@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#EDE8DC"/>
+  <rect x="24" y="24" width="352" height="452" fill="none" stroke="#C9A227" stroke-opacity=".18"/>
+  <path d="M140 90 L250 90 L255 230 L310 250 L310 300 L120 300 L120 230 L140 220 Z" fill="#161412"/><rect x="140" y="200" width="110" height="12" fill="#C9A227" opacity=".5"/>
+  <rect x="24" y="400" width="352" height="76" fill="#EDE8DC"/>
+  <text x="40" y="430" font-family="IBM Plex Sans, sans-serif" font-size="11" letter-spacing="1.6" fill="#C9A227">DR. MARTENS</text>
+  <text x="40" y="454" font-family="IBM Plex Sans, sans-serif" font-size="15" fill="#171512">1460 Black Smooth</text>
+</svg>

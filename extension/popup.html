@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lane Bridge</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Lane Bridge</strong>
+      <span id="status" class="pill">Not paired</span>
+    </header>
+    <p class="lede">
+      This extension uses your signed-in vinted.co.uk session. Lane never receives your Vinted password.
+    </p>
+    <label>
+      Lane origin
+      <input id="origin" type="url" placeholder="https://your-lane-host" autocomplete="off" />
+    </label>
+    <label>
+      Pairing token
+      <input id="token" type="password" placeholder="lnb_…" autocomplete="off" />
+    </label>
+    <p class="hint">Copy the token from Lane → Settings → Channels. Origin is the URL of the Lane app (no trailing slash).</p>
+    <div class="row">
+      <button id="save" type="button">Pair</button>
+      <button id="test" type="button" class="ghost">Test</button>
+    </div>
+    <p id="msg" class="msg"></p>
+    <p class="foot">Keep a tab open on vinted.co.uk. Closing it parks Vinted jobs as waiting_for_browser.</p>
+    <script src="popup.js"></script>
+  </body>
+</html>

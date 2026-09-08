@@ -1,0 +1,369 @@
+LANE — DEVELOPER HANDOFF
+========================
+Product: Lane (UK-first crosslisting SaaS)
+Owner: VEIL (GitHub: Bleuszz)
+Repo: https://github.com/Bleuszz/lane
+Date: 8 September 2026
+
+Read this whole file before changing code or deploying. The control plane
+(this web app) is real. Marketplace side-effects are real only after the
+owner’s eBay keys and the Chrome extension are in place. Do not reintroduce
+placeholder shops, seed wardrobes, or a “wake bridge” button that fakes
+Vinted as green.
+
+
+0. WHAT WAS WRONG, AND WHAT IS NOW TRUE
+---------------------------------------
+The first preview connected “london_rails” / “lane_uk_shop” and imported a
+hard-coded wardrobe. That was a code defect, not a user error. Those
+placeholder accounts are purged on the next signed-in load.
+
+Now:
+
+  • Connect Vinted creates an extension-mode account in status
+    extension_offline. It stays that way until Lane Bridge heartbeats.
+  • Connect eBay 302s to official eBay OAuth. No shop is inserted until
+    the callback stores real tokens (AES-256-GCM sealed with
+    BETTER_AUTH_SECRET).
+  • Vinted jobs never complete in the Lane tab. They sit in
+    waiting_for_browser until the extension POSTs /api/bridge/jobs/:id/result.
+  • eBay jobs run on the server via Inventory API
+    (location → inventory_item → offer → publish; withdraw on delist).
+
+If something “isn’t working” in the Grok live preview, that is expected:
+the preview cannot run a real Chrome extension or complete eBay OAuth
+without the owner’s developer keys. Failures must stay honest.
+
+
+1. YOUR JOB
+-----------
+Make Lane fully functional against live eBay UK and live Vinted UK, then
+publish it. Report back to the owner ONLY if you need something only they
+can supply (accounts, identities, payment). If you can finish without them,
+do so and ship.
+
+Do not ship with presets, demo SKUs, fake usernames, or silent fallbacks
+to sandbox shops.
+
+
+2. STACK (DO NOT REWRITE UNLESS BLOCKED)
+----------------------------------------
+  Runtime:        Node 22, TanStack Start + Router + Query, React 19
+  Auth:           Better Auth ON (email/password + Google/X via Grok broker)
+  Database:       Postgres (Neon in production, PGLite only in local preview)
+  CSS:            Tailwind v4, IBM Plex Sans / Mono
+  Preview port:   0.0.0.0:8080 (npm run dev — never raw vite)
+  Default build:  Nitro preset `vercel` (vite.config.ts)
+  Chrome ext:     MV3, unpacked, folder /extension
+
+Auth files under src/lib/auth/ are pre-wired. Do not rewrite them. Flip
+nothing except env.
+
+Every server function that touches per-user data already uses
+authMiddleware and scopes SQL by context.userId. Keep that invariant.
+
+The bridge API MUST NOT use authMiddleware / cookies. The extension sends
+Authorization: Bearer <pairing token> and Sec-Fetch-Site is
+cross-site / none. Isolation assertSameSiteRequest would 403 it. Pairing
+token lookup lives in src/lib/lane/server/bridge.ts.
+
+
+3. LOCAL BRING-UP
+-----------------
+  git clone https://github.com/Bleuszz/lane
+  cd lane
+  npm install
+  npm run dev          # http://127.0.0.1:8080
+  npm run typecheck
+  npm run build        # also runs migrations
+
+Copy .env.example into the host secret store (Vercel / Cloudflare /
+Hyperdrive). Never commit .env.
+
+Chrome extension (required for Vinted):
+
+  1. chrome://extensions → Developer mode → Load unpacked → ./extension
+  2. Sign in to Lane, open Settings → Channels, copy pairing token (lnb_…)
+  3. Extension popup: Lane origin = the app URL with no trailing slash
+     (local: http://127.0.0.1:8080). Grant host permission when prompted.
+  4. Sign in to https://www.vinted.co.uk and LEAVE THAT TAB OPEN.
+  5. Click Test in the popup. /api/bridge/me must return 200.
+
+
+4. ENVIRONMENT (ALL REQUIRED FOR LIVE EBAY)
+-------------------------------------------
+  BETTER_AUTH_SECRET          32+ random bytes. Encrypts eBay tokens.
+  BETTER_AUTH_URL             Public origin, https, no trailing slash.
+  VITE_AUTH_ENABLED           true
+  DATABASE_URL                Neon (or any Postgres). sslmode=require.
+
+  EBAY_CLIENT_ID              App ID (Client ID) from developer.ebay.com
+  EBAY_CLIENT_SECRET          Cert ID (Client Secret)
+  EBAY_RU_NAME                RuName string. THIS is redirect_uri.
+                              Do not put the https callback URL in the
+                              OAuth request. eBay maps RuName → URL.
+  EBAY_ENV                    production | sandbox
+  EBAY_MARKETPLACE_ID         EBAY_GB
+  EBAY_FULFILLMENT_POLICY_ID  Seller Hub → Business policies
+  EBAY_PAYMENT_POLICY_ID
+  EBAY_RETURN_POLICY_ID
+  EBAY_LOCATION_LINE1         Real GB dispatch address (no placeholders)
+  EBAY_LOCATION_CITY
+  EBAY_LOCATION_POSTCODE
+  EBAY_LOCATION_KEY           optional, default LANE_UK
+  EBAY_LOCATION_NAME          optional
+
+OAuth scopes requested in src/lib/lane/server/ebay.ts:
+
+  https://api.ebay.com/oauth/api_scope
+  https://api.ebay.com/oauth/api_scope/sell.inventory
+  https://api.ebay.com/oauth/api_scope/sell.inventory.readonly
+  https://api.ebay.com/oauth/api_scope/sell.account
+  https://api.ebay.com/oauth/api_scope/sell.fulfillment
+  https://api.ebay.com/oauth/api_scope/commerce.identity.readonly
+
+Callback path the RuName must target:
+
+  GET https://YOUR_HOST/api/ebay/callback
+
+
+5. EBAY DEVELOPER CONSOLE (OWNER ACTION IF YOU LACK THE ACCOUNT)
+----------------------------------------------------------------
+You need an eBay developer account tied to the owner’s eBay UK seller:
+
+  1. https://developer.ebay.com → Application Keys (Production, unless
+     testing against sandbox).
+  2. Create a RuName:
+       Display title:        Lane
+       Auth accepted URL:    https://YOUR_HOST/api/ebay/callback
+       Auth declined URL:    https://YOUR_HOST/settings/channels?ebay=denied
+       Privacy / T&C URLs:   the Lane legal pages, or the landing page
+                             until those exist
+  3. Opt the seller into Business Policies. Copy the three policy IDs
+     from Seller Hub → Account → Business policies.
+  4. Put App ID, Cert ID, RuName, policy IDs, dispatch address into
+     the host secrets.
+
+If you cannot log into the owner’s eBay developer account, STOP and
+report back (see §12). Do not mint a personal app that publishes to
+your own sandbox and call it done.
+
+
+6. VINTED / LANE BRIDGE
+-----------------------
+There is no official Vinted public write API. Lane uses the seller’s
+browser session, the same class of tool as Vindy:
+
+  extension/manifest.json     MV3, host_permissions for vinted.co.uk
+  extension/background.js     pairing token, /api/bridge calls
+  extension/content-vinted.js isolated world, 4s poll, job relay
+  extension/injected.js       MAIN world fetch() to Vinted with CSRF
+  extension/popup.html        origin + token
+
+Endpoints used today (change injected.js if Vinted move them):
+
+  GET  /api/v2/users/current
+  GET  /api/v2/users/{id}/items?page=&per_page=96
+  GET  /api/v2/catalogs
+  POST /api/v2/photos                 (multipart)
+  POST /api/v2/item_upload/photos     (fallback)
+  POST /api/v2/items
+  PUT  /api/v2/items/{id}
+  DELETE /api/v2/items/{id}
+
+Lane bridge HTTP (pairing token, CORS for chrome-extension://):
+
+  GET  /api/bridge/me
+  POST /api/bridge/heartbeat          returns pending jobs
+  GET  /api/bridge/jobs
+  POST /api/bridge/jobs/:id/result    { ok, remoteId, url, error, errorBody }
+  POST /api/bridge/catalog            { items: [...], username, userId }
+  POST /api/bridge/sold               { remoteId, soldPriceGbp }
+  POST /api/bridge/identity           { username, userId }
+
+Catalog IDs in src/lib/lane/categories.ts are currently null for Vinted.
+injected.js resolves by catalog path/name against /api/v2/catalogs. If
+that mapping is ambiguous, confirm the numeric catalogId and write it
+into categories.ts (confirmed leaf). Do not guess.
+
+Hourly publish cap defaults to 30/account. Do not raise it casually —
+marketplace ToS risk.
+
+Photos: file inputs become data URLs and the extension re-uploads them
+to Vinted. eBay Inventory API requires publicly reachable http(s) URLs.
+If you need object storage, add R2 (or equivalent) and store https URLs
+on item_photos. Do not leave eBay publishes on data: URLs — they will
+fail with a clear error, which is correct.
+
+
+7. CORE LOOP TO VERIFY ON LIVE KEYS
+-----------------------------------
+  1. Sign up (email/password is enabled).
+  2. Settings → Channels → copy pairing token → pair extension.
+  3. Connect Vinted. Status stays extension_offline until the vinted.co.uk
+     tab heartbeats, then green and remote_username fills.
+  4. Import → Sync from marketplace. Wardrobe rows appear. Import ≤ 200.
+  5. Connect eBay UK → eBay consent screen → callback → green with the
+     real eBay username.
+  6. New listing (or imported item): confirmed category, https photos for
+     eBay, GBP price. Publish to both accounts.
+     eBay job: queued → creating → done, remote_id + url + ebay_offer_id.
+     Vinted job: waiting_for_browser until the extension completes.
+  7. Mark sold on Vinted (or let the extension detect sold). Quantity 0
+     enqueues delist on the other live channel. eBay withdraws the offer.
+  8. Activity shows request ids. Failed jobs retry. Closing the Vinted
+     tab parks new Vinted work as waiting_for_browser / extension_offline.
+
+If any step silently succeeds without hitting the marketplace, you have
+regressed. Revert.
+
+
+8. LAYOUT / FILE GUIDE
+----------------------
+  src/routes/index.tsx                 marketing / signed-in redirect
+  src/routes/login.tsx                 Better Auth
+  src/routes/onboarding.tsx            honest connect + token
+  src/routes/_app.tsx                  auth gate
+  src/routes/_app.inbox.tsx            waiting / failed / offline
+  src/routes/_app.inventory*.tsx       list + item (Outlet layout)
+  src/routes/_app.new.tsx              create
+  src/routes/_app.import.tsx           remote + CSV
+  src/routes/_app.activity.tsx         job log
+  src/routes/_app.sold.tsx             GMV
+  src/routes/_app.settings.channels.tsx pairing token, OAuth, disconnect
+  src/lib/lane/server/fns.ts           server functions (no placeholders)
+  src/lib/lane/server/process.ts       OAuth worker + applyExtensionJobResult
+  src/lib/lane/server/ebay.ts          Inventory API
+  src/lib/lane/server/bridge.ts        pairing API
+  src/lib/lane/server/secret.ts        seal/unseal, OAuth state, ebayConfigured
+  migrations/0001_auth.sql
+  migrations/0002_lane.sql
+  migrations/0003_live_adapters.sql    tokens, pairing, ebay_offer_id
+  migrations/0004_honest_defaults.sql  extension_awake default false
+
+Canonical model: items 1—N channel_listings. Sales decrement quantity.
+qty 0 ⇒ enqueue delist on remaining live/queued/waiting listings.
+
+
+9. PUBLISH — CLOUDFLARE (PREFERRED BY OWNER)
+--------------------------------------------
+You cannot finish Cloudflare from this sandbox: there is no owner
+Cloudflare login here. Do it on your side.
+
+Recommended free-tier shape:
+
+  A. Neon Postgres (free) + Cloudflare Hyperdrive
+  B. Worker (Nitro cloudflare_module) OR Pages for the static/SSR output
+  C. Secrets via `wrangler secret put` matching .env.example
+  D. Auth callback / BETTER_AUTH_URL = the public origin
+  E. eBay RuName Auth accepted URL = https://THAT_ORIGIN/api/ebay/callback
+
+vite.config.ts currently sets nitro({ preset: "vercel" }). Cut over:
+
+  • Confirm TanStack Start 1.170 + Nitro 3 `cloudflare_module` actually
+    boots (SSR, server functions, /api/auth, /api/ebay, /api/bridge).
+  • If the CF preset is not viable without a week of platform work,
+    ship on Vercel first (this template already builds for it) and
+    then migrate. Do not stall the live loop on the host brand.
+  • wrangler.toml is a stub, not a working deploy. Finish it.
+
+Free hostname (option B — ship now, no purchase):
+
+  https://<project>.workers.dev
+  or
+  https://<project>.pages.dev
+
+Custom domain (option A) — Cloudflare Registrar prices checked
+8 September 2026 (at-cost, WHOIS privacy included). Confirm at
+https://www.cloudflare.com/products/registrar/ before charging the owner.
+
+  TLD     Register / year    Renew / year
+  .uk     $5.30              $5.30
+  .com    $10.46             $10.46
+  .org    $8.50              $11.20
+  .dev    $12.20             $12.20
+  .app    $14.20             $14.20
+  .io     $50.00             $50.00
+  .ai     $80.00             $80.00
+
+Suggested names (check availability yourself; do not buy without the
+owner’s written pick):
+
+  lane.uk
+  getlane.uk
+  lanehq.com
+  sellwithlane.com
+  lanehq.uk
+
+Workers.dev / Pages.dev remain valid until a domain is chosen.
+
+After deploy:
+
+  • Set BETTER_AUTH_URL and eBay RuName to the live origin.
+  • Load the extension against that origin.
+  • Run the loop in §7 on a cheap real SKU.
+
+
+10. OPTION A vs B — TELL THE OWNER
+----------------------------------
+Default to B (free hostname) so the product can go live the same day
+the keys exist. Present A as an upgrade.
+
+  B (do this first):  <name>.workers.dev or <name>.pages.dev — £0
+  A (when they pick): register via Cloudflare Registrar at the table
+                      in §9, attach the zone, update RuName +
+                      BETTER_AUTH_URL, re-pair the extension.
+
+Do not buy a domain on their card without an explicit A/B choice.
+
+
+11. QUALITY BAR
+---------------
+  • GBP, DD/MM/YYYY, en-GB copy. No US-first defaults.
+  • No marketplace passwords stored, logged, or requested.
+  • eBay tokens sealed at rest. Pairing token rotatable.
+  • Rate caps stay on. Delist and update do not consume the monthly
+    publish/relist cap.
+  • Job errors show marketplace body (truncated), request id, attempt.
+  • Categories with unconfirmed eBay ids must block publish, not guess.
+  • Do not add Poshmark/Mercari/Depop until asked.
+  • Keep legal footer copy in src/lib/lane/copy.ts.
+
+
+12. REPORT BACK TO THE OWNER — ONLY IF YOU NEED THEM
+----------------------------------------------------
+Message the owner (VEIL / Bleuszz) if and only if you are blocked on
+something you cannot create:
+
+  [ ] Access to developer.ebay.com for the selling account
+      (App ID, Cert ID, RuName).
+  [ ] Seller Hub Business Policy IDs and a real GB dispatch address.
+  [ ] Cloudflare account login (or permission to create one under
+      their email).
+  [ ] Neon account (or permission to create).
+  [ ] Domain choice A (which name) vs B (free hostname).
+  [ ] Stripe live keys, when you turn billing on (plans are Starter
+      £12 / Seller £24 / Pro £39 + AI pack £5; currently applied
+      in-app without charging).
+  [ ] A Vinted catalog leaf that will not resolve by name.
+
+If none of those apply — finish, deploy on the free Cloudflare
+hostname, pair the extension, run §7, and send them:
+
+  • Production URL
+  • Git SHA
+  • Confirmation that a real eBay listing and a real Vinted listing
+    were created and that mark-sold autodelisted the other
+  • Remaining ToS / rate-limit notes
+
+
+13. DO NOT
+----------
+  • Re-add SEED_WARDROBE to connectAccount or importRemote.
+  • Insert usernames london_rails / lane_uk_shop.
+  • Complete Vinted jobs from heartbeat() in the web app.
+  • Store Vinted cookies or passwords on the server.
+  • Use a fake London warehouse address when location env is missing.
+  • Mark the extension green from a button in the Lane tab.
+  • Claim Cloudflare is live until you have deployed it from an
+    account you control.

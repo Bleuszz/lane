@@ -1,0 +1,100 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-paper: #f2efe8;
+  --color-ink: #171512;
+  --color-surface: #fbf9f5;
+  --color-raised: #ffffff;
+  --color-muted: #6e6960;
+  --color-subtle: #8a847a;
+  --color-line: #ddd7cc;
+  --color-line-strong: #c9c2b4;
+  --color-mark: #1a4a3c;
+  --color-mark-hover: #14382e;
+  --color-mark-fg: #f4f1ea;
+  --color-warn: #9a6700;
+  --color-warn-bg: #f3e6c8;
+  --color-danger: #9b2c2c;
+  --color-danger-bg: #f4d6d4;
+  --color-ok: #1a4a3c;
+  --color-ok-bg: #dce8e3;
+
+  --color-background: #f2efe8;
+  --color-foreground: #171512;
+  --color-card: #fbf9f5;
+  --color-card-foreground: #171512;
+  --color-primary: #1a4a3c;
+  --color-primary-foreground: #f4f1ea;
+  --color-secondary: #e8e3d8;
+  --color-secondary-foreground: #171512;
+  --color-muted-foreground: #6e6960;
+  --color-accent: #1a4a3c;
+  --color-accent-foreground: #f4f1ea;
+  --color-destructive: #9b2c2c;
+  --color-border: #ddd7cc;
+  --color-input: #ddd7cc;
+  --color-ring: #1a4a3c;
+  --color-popover: #fbf9f5;
+  --color-popover-foreground: #171512;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-panel: 0 1px 0 rgba(23, 21, 18, 0.04), 0 8px 24px -16px rgba(23, 21, 18, 0.18);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01" on, "cv11" on;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    border-color: var(--color-line);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-mark);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-mark) 22%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

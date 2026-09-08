@@ -1,0 +1,66 @@
+:root {
+  color-scheme: light;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+body {
+  margin: 0;
+  width: 320px;
+  padding: 16px;
+  background: #f2efe8;
+  color: #171512;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+strong { font-weight: 600; letter-spacing: -0.02em; }
+.lede, .hint, .foot, .msg { font-size: 12px; line-height: 1.45; color: #6e6960; }
+.hint, .foot { margin-top: 8px; }
+label {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6e6960;
+}
+input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  box-sizing: border-box;
+  height: 34px;
+  border: 1px solid #ddd7cc;
+  border-radius: 6px;
+  padding: 0 8px;
+  background: #fff;
+  color: #171512;
+  font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.row { display: flex; gap: 8px; margin-top: 12px; }
+button {
+  flex: 1;
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: #1a4a3c;
+  color: #f4f1ea;
+  font-weight: 500;
+  cursor: pointer;
+}
+button.ghost {
+  background: #fff;
+  color: #171512;
+  border: 1px solid #ddd7cc;
+}
+.pill {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3e6c8;
+  color: #9a6700;
+}
+.pill.ok { background: #dce8e3; color: #1a4a3c; }
+.msg.err { color: #9b2c2c; }
+.msg.ok { color: #1a4a3c; }

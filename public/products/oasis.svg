@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#EDE8DC"/>
+  <rect x="24" y="24" width="352" height="452" fill="none" stroke="#171512" stroke-opacity=".18"/>
+  <path d="M110 150 L160 125 L200 155 L240 125 L290 150 L270 330 L130 330 Z" fill="#C4B5A0"/><text x="200" y="230" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="22" fill="#171512" opacity=".7">OASIS</text>
+  <rect x="24" y="400" width="352" height="76" fill="#EDE8DC"/>
+  <text x="40" y="430" font-family="IBM Plex Sans, sans-serif" font-size="11" letter-spacing="1.6" fill="#171512">OASIS</text>
+  <text x="40" y="454" font-family="IBM Plex Sans, sans-serif" font-size="15" fill="#171512">Band Tee  1996</text>
+</svg>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#EDE8DC"/>
+  <rect x="24" y="24" width="352" height="452" fill="none" stroke="#C45C26" stroke-opacity=".18"/>
+  <path d="M145 110 L255 110 L268 360 L210 360 L200 220 L190 360 L132 360 Z" fill="#1E3A5F"/><line x1="200" y1="220" x2="200" y2="360" stroke="#C45C26" stroke-width="3" opacity=".4"/>
+  <rect x="24" y="400" width="352" height="76" fill="#EDE8DC"/>
+  <text x="40" y="430" font-family="IBM Plex Sans, sans-serif" font-size="11" letter-spacing="1.6" fill="#C45C26">LEVI'S</text>
+  <text x="40" y="454" font-family="IBM Plex Sans, sans-serif" font-size="15" fill="#171512">501 Original  W32 L32</text>
+</svg>

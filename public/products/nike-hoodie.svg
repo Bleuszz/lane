@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <rect width="400" height="500" fill="#EDE8DC"/>
+  <rect x="24" y="24" width="352" height="452" fill="none" stroke="#1A4A3C" stroke-opacity=".18"/>
+  <path d="M70 150 L110 120 L140 145 L140 128 L200 108 L260 128 L260 145 L290 120 L330 150 L310 210 L270 195 L270 340 L130 340 L130 195 L90 210 Z" fill="#1A1A1A"/><rect x="175" y="175" width="50" height="70" rx="8" fill="#1A4A3C" opacity=".18"/>
+  <rect x="24" y="400" width="352" height="76" fill="#EDE8DC"/>
+  <text x="40" y="430" font-family="IBM Plex Sans, sans-serif" font-size="11" letter-spacing="1.6" fill="#1A4A3C">NIKE</text>
+  <text x="40" y="454" font-family="IBM Plex Sans, sans-serif" font-size="15" fill="#171512">Tech Fleece Hoodie</text>
+</svg>

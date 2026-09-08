@@ -1,0 +1,24 @@
+# Cloudflare Workers handoff (not wired as the default build).
+# This app's vite.config.ts uses Nitro's `vercel` preset because that is what
+# the Grok App Builder image ships. To run on Cloudflare:
+#
+#   1. Provision Neon Postgres + Hyperdrive (or a TCP-capable driver).
+#   2. Change vite.config.ts nitro({ preset: "cloudflare_module" })
+#      — verify TanStack Start + Nitro 3 support for that preset before shipping.
+#   3. wrangler secret put the vars in .env.example
+#   4. wrangler deploy
+#
+# Free hostname: <name>.workers.dev  (option B in instructions.txt)
+# Custom domain: attach in the Cloudflare dashboard after choosing option A.
+#
+# Until that cutover, `npm run build` still produces a Vercel-compatible output.
+# Do not pretend this file deploys as-is.
+
+name = "lane"
+main = "dist/server/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# [hyperdrive]
+# binding = "HYPERDRIVE"
+# id = "YOUR_HYPERDRIVE_ID"

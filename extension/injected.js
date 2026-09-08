@@ -1,0 +1,307 @@
+/**
+ * MAIN-world Vinted client. Runs as the page so fetch() includes the user's
+ * session cookies and CSRF. Talks to the content script via window.postMessage.
+ *
+ * Endpoints are versioned here on purpose. If Vinted change a path, update this
+ * file — do not put marketplace passwords on the Lane server.
+ */
+(() => {
+  if (window.__LANE_BRIDGE_INJECTED) return;
+  window.__LANE_BRIDGE_INJECTED = true;
+  document.documentElement.dataset.laneBridge = "1";
+
+  const CHANNEL = "LANE_BRIDGE";
+  const VINTED_STATUS = {
+    new_with_tags: 6,
+    new_without_tags: 1,
+    very_good: 2,
+    good: 3,
+    satisfactory: 4,
+  };
+
+  function csrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta?.content) return meta.content;
+    const match = document.cookie.match(/(?:^|; )(?:csrf_token|anon_csrf)=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+    const next = document.getElementById("__NEXT_DATA__");
+    if (next?.textContent) {
+      try {
+        const json = JSON.parse(next.textContent);
+        const hit = JSON.stringify(json).match(/"csrf(?:Token)?"\s*:\s*"([^"]+)"/);
+        if (hit) return hit[1];
+      } catch {
+        /* ignore */
+      }
+    }
+    return "";
+  }
+
+  async function vintedFetch(path, opts = {}) {
+    const csrf = csrfToken();
+    const headers = {
+      Accept: "application/json, text/plain, */*",
+      "X-CSRF-Token": csrf,
+      "X-Money-Object": "true",
+      ...(opts.headers ?? {}),
+    };
+    if (opts.json) headers["Content-Type"] = "application/json";
+    const res = await fetch(path, {
+      method: opts.method ?? "GET",
+      credentials: "include",
+      headers,
+      body: opts.json ? JSON.stringify(opts.json) : opts.body,
+    });
+    const text = await res.text();
+    let json = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    if (!res.ok) {
+      const err = new Error(
+        (json && (json.message || json.error || json.errors?.[0]?.field)) || `Vinted HTTP ${res.status} ${path}`,
+      );
+      err.body = text.slice(0, 4000);
+      err.status = res.status;
+      throw err;
+    }
+    return json;
+  }
+
+  async function identity() {
+    const tries = ["/api/v2/users/current", "/web/api/users/current", "/api/v2/users/my_info"];
+    for (const path of tries) {
+      try {
+        const json = await vintedFetch(path);
+        const user = json.user ?? json;
+        if (user?.id) {
+          return {
+            userId: String(user.id),
+            username: user.login || user.username || user.name || String(user.id),
+          };
+        }
+      } catch {
+        /* try next */
+      }
+    }
+    throw new Error("Not signed in on vinted.co.uk. Sign in, then leave this tab open.");
+  }
+
+  function mapItem(raw) {
+    const photo =
+      raw.photo?.url ||
+      raw.photos?.[0]?.url ||
+      raw.photos?.[0]?.full_size_url ||
+      null;
+    const price =
+      Number(raw.price?.amount ?? raw.price ?? raw.total_item_price?.amount ?? 0) || 0;
+    return {
+      remoteId: String(raw.id),
+      url: raw.url || `https://www.vinted.co.uk/items/${raw.id}`,
+      title: raw.title || "Untitled",
+      description: raw.description || "",
+      priceGbp: price,
+      quantity: raw.is_closed ? 0 : 1,
+      photoUrl: photo,
+      brand: raw.brand?.title || raw.brand_dto?.title || null,
+      sizeLabel: raw.size_title || raw.size || null,
+      categoryName: raw.catalog?.title || raw.catalog_title || null,
+      colour: Array.isArray(raw.color) ? raw.color.map((c) => c.title).join(", ") : raw.color || null,
+      conditionLabel: raw.status || raw.status_title || null,
+      status: raw.is_closed ? (raw.item_closing_action === "sold" ? "sold" : "ended") : "live",
+    };
+  }
+
+  async function wardrobe() {
+    const me = await identity();
+    const items = [];
+    for (let page = 1; page <= 8 && items.length < 200; page += 1) {
+      const json = await vintedFetch(
+        `/api/v2/users/${encodeURIComponent(me.userId)}/items?page=${page}&per_page=96&order=newest_first`,
+      );
+      const batch = json.items ?? json.wardrobe_items ?? [];
+      if (batch.length === 0) break;
+      for (const row of batch) {
+        const mapped = mapItem(row);
+        if (mapped.status === "live") items.push(mapped);
+      }
+      if (batch.length < 96) break;
+    }
+    return items.slice(0, 200);
+  }
+
+  async function soldItems() {
+    const me = await identity();
+    const json = await vintedFetch(
+      `/api/v2/users/${encodeURIComponent(me.userId)}/items?page=1&per_page=96&order=newest_first`,
+    );
+    const batch = json.items ?? [];
+    return batch
+      .filter((row) => row.is_closed && (row.item_closing_action === "sold" || row.status === "sold"))
+      .map(mapItem);
+  }
+
+  async function catalogs() {
+    const json = await vintedFetch("/api/v2/catalogs");
+    return json.catalogs ?? json ?? [];
+  }
+
+  function flattenCatalogs(nodes, prefix = []) {
+    const out = [];
+    for (const n of nodes ?? []) {
+      const path = [...prefix, n.title || n.code || ""];
+      out.push({ id: String(n.id), path: path.join(" / "), title: n.title });
+      if (n.catalogs || n.children) out.push(...flattenCatalogs(n.catalogs || n.children, path));
+    }
+    return out;
+  }
+
+  async function resolveCatalog(job) {
+    const given = job.item?.vintedCatalogId;
+    if (given) return Number(given);
+    const want = (job.item?.vintedCatalogPath || job.item?.vintedCatalogName || "").toLowerCase();
+    if (!want) {
+      throw new Error(
+        "Vinted catalog id is not confirmed for this item. Pick a category in Lane and set vintedUk.catalogId in src/lib/lane/categories.ts.",
+      );
+    }
+    const tree = flattenCatalogs(await catalogs());
+    const hit =
+      tree.find((c) => c.path.toLowerCase() === want) ||
+      tree.find((c) => c.path.toLowerCase().endsWith(want)) ||
+      tree.find((c) => c.title && want.includes(c.title.toLowerCase()));
+    if (!hit) {
+      throw new Error(
+        `Could not map Vinted catalog for "${want}". Confirm the leaf in categories.ts. Sample: ${tree
+          .slice(0, 8)
+          .map((c) => c.path)
+          .join(" | ")}`,
+      );
+    }
+    return Number(hit.id);
+  }
+
+  async function blobFromUrl(url) {
+    if (url.startsWith("data:")) {
+      const res = await fetch(url);
+      return res.blob();
+    }
+    const res = await fetch(url, { credentials: url.includes("vinted") ? "include" : "omit" });
+    if (!res.ok) throw new Error(`Could not download photo (${res.status}).`);
+    return res.blob();
+  }
+
+  async function uploadPhoto(url) {
+    const blob = await blobFromUrl(url);
+    const fd = new FormData();
+    fd.append("photo[type]", "item");
+    fd.append("photo[file]", blob, "photo.jpg");
+    try {
+      const json = await vintedFetch("/api/v2/photos", { method: "POST", body: fd });
+      const id = json.photo?.id ?? json.id;
+      if (id) return id;
+    } catch {
+      /* try upload session */
+    }
+    const fd2 = new FormData();
+    fd2.append("photo", blob, "photo.jpg");
+    const json = await vintedFetch("/api/v2/item_upload/photos", { method: "POST", body: fd2 });
+    const id = json.photo?.id ?? json.id;
+    if (!id) throw new Error("Vinted photo upload did not return an id.");
+    return id;
+  }
+
+  async function publish(job) {
+    const item = job.item;
+    if (!item?.title) throw new Error("Job missing item payload.");
+    const catalogId = await resolveCatalog(job);
+    const photos = item.photos ?? [];
+    if (photos.length === 0) throw new Error("Vinted publish needs at least one photo.");
+    const photoIds = [];
+    for (const p of photos.slice(0, 8)) {
+      photoIds.push(await uploadPhoto(p.url));
+    }
+    const payload = {
+      item: {
+        currency: "GBP",
+        title: String(item.title).slice(0, 100),
+        description: item.description || item.title,
+        price: Number(item.priceGbp),
+        catalog_id: catalogId,
+        status_id: VINTED_STATUS[item.condition] ?? 3,
+        package_size_id: 1,
+        photo_ids: photoIds,
+        is_unisex: false,
+        item_attributes: [],
+      },
+    };
+    const json = await vintedFetch("/api/v2/items", { method: "POST", json: payload });
+    const created = json.item ?? json;
+    const id = created.id;
+    if (!id) throw new Error("Vinted create item did not return an id.");
+    return {
+      remoteId: String(id),
+      url: created.url || `https://www.vinted.co.uk/items/${id}`,
+    };
+  }
+
+  async function delist(job) {
+    const remoteId = job.listing?.remoteId;
+    if (!remoteId) throw new Error("No Vinted item id on this listing.");
+    try {
+      await vintedFetch(`/api/v2/items/${encodeURIComponent(remoteId)}`, { method: "DELETE" });
+    } catch {
+      await vintedFetch(`/api/v2/items/${encodeURIComponent(remoteId)}/delete`, { method: "POST", json: {} });
+    }
+    return { remoteId };
+  }
+
+  async function update(job) {
+    const remoteId = job.listing?.remoteId;
+    if (!remoteId) throw new Error("No Vinted item id on this listing.");
+    const item = job.item;
+    await vintedFetch(`/api/v2/items/${encodeURIComponent(remoteId)}`, {
+      method: "PUT",
+      json: {
+        item: {
+          title: item.title,
+          description: item.description,
+          price: Number(item.priceGbp),
+        },
+      },
+    });
+    return { remoteId, url: job.listing?.url };
+  }
+
+  const actions = { identity, wardrobe, sold: soldItems, publish, delist, update, relist: publish };
+
+  window.addEventListener("message", (ev) => {
+    if (ev.source !== window) return;
+    const data = ev.data;
+    if (!data || data.channel !== CHANNEL || data.kind !== "call") return;
+    const fn = actions[data.action];
+    Promise.resolve()
+      .then(() => {
+        if (!fn) throw new Error(`Unknown Vinted action ${data.action}`);
+        return fn(data.payload);
+      })
+      .then((payload) => {
+        window.postMessage({ channel: CHANNEL, kind: "result", id: data.id, ok: true, payload }, "*");
+      })
+      .catch((err) => {
+        window.postMessage(
+          {
+            channel: CHANNEL,
+            kind: "result",
+            id: data.id,
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+            body: err && typeof err === "object" && "body" in err ? String(err.body) : undefined,
+          },
+          "*",
+        );
+      });
+  });
+})();
