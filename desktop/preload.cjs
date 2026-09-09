@@ -1,11 +1,12 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("laneDesktop", {
+const api = {
   isDesktop: true,
-  version: "0.1.0",
-  connect: (marketplace) => ipcRenderer.invoke("lane:connect", marketplace),
-  theme: () => ipcRenderer.invoke("lane:theme"),
-  setTheme: (theme) => ipcRenderer.invoke("lane:set-theme", theme),
-  appUrl: () => ipcRenderer.invoke("lane:app-url"),
-  finishWizard: (payload) => ipcRenderer.invoke("lane:finish-wizard", payload),
-});
+  connect: (marketplace, opts) => ipcRenderer.invoke("lane:connect", marketplace, opts || {}),
+  setPairing: (token, origin) => ipcRenderer.invoke("lane:set-pairing", token, origin),
+  setAppUrl: (url) => ipcRenderer.invoke("lane:set-app-url", url),
+  config: () => ipcRenderer.invoke("lane:config"),
+};
+
+contextBridge.exposeInMainWorld("lane", api);
+contextBridge.exposeInMainWorld("laneDesktop", api);

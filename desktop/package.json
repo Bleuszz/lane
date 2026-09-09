@@ -1,8 +1,8 @@
 {
   "name": "lane-desktop",
   "productName": "Lane",
-  "version": "0.1.0",
-  "description": "Lane desktop for Windows. Connect marketplaces by signing in on their real sites.",
+  "version": "0.2.0",
+  "description": "Lane for Windows. Same website, in-app marketplace connect.",
   "author": "Lane (UK)",
   "private": true,
   "main": "main.cjs",
@@ -20,12 +20,13 @@
     "productName": "Lane",
     "copyright": "Lane (UK)",
     "directories": { "output": "dist" },
-    "files": ["main.cjs", "preload.cjs", "channels.cjs", "wizard/**/*", "package.json"],
+    "files": ["main.cjs", "preload.cjs", "channels.cjs", "first-run.html", "package.json"],
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
       "artifactName": "Lane Setup.${ext}",
       "publisherName": "Lane (UK)"
     },
+    "protocols": [{ "name": "Lane", "schemes": ["lane"] }],
     "nsis": {
       "oneClick": false,
       "perMachine": false,

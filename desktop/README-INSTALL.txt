@@ -1,22 +1,38 @@
 Lane for Windows
 ================
 
-1. Unzip this folder.
-2. Double-click Lane Setup.exe. If you only have the source tree, open
-   Command Prompt in the desktop folder and run:
-     npm install
-     npm run dist
-   Then use dist\Lane Setup.exe.
-3. If Windows SmartScreen appears, click More info, then Run anyway.
-   This build is not code-signed yet. Publisher: Lane (UK). That warning
-   goes away when the owner buys an Authenticode certificate.
-4. Walk the five setup screens. They are meant to be readable.
-5. Sign in to Lane. Open Connect, pick a marketplace, and sign in on
-   that site. Lane never asks for the marketplace password.
+Unzip the folder. Double-click Lane.exe. SmartScreen: More info → Run anyway
+(the build is not code-signed yet).
 
-eBay uses official OAuth. Vinted, Depop, Facebook Marketplace, Gumtree,
-Grailed, Poshmark and Mercari use the in-app window on the real site.
-Publish adapters other than Vinted and eBay are marked honestly if they
-are not wired yet.
+The window is the Lane website, not a separate inventory. First launch asks
+for your Lane URL (the Cloudflare hostname). Paste it, sign in with the same
+email you used on the site. Plan, products, and connected shops stay in sync.
 
-UK product. GBP. Questions: the repo at https://github.com/Bleuszz/lane
+Connect
+-------
+Accounts → Connect Vinted. A real vinted.co.uk window opens. Sign in there
+(Google, Apple, email, 2FA all work). When you are in, Lane reads the session
+cookies — including HttpOnly ones a normal website cannot see — posts them to
+your Lane account, and closes the window. Same idea as Crosslist.
+
+If a previous build left the Vinted window open after you were already in:
+that was a cookie-filter bug on .co.uk domains. This build dumps the whole
+cookie jar and also looks for the Log out menu, then closes.
+
+You can also use Connect in the menu bar.
+
+Phone
+-----
+Safari cannot hand Vinted cookies to a website. On a phone, use Firefox + the
+Lane Bridge extension, or open the QR link and tap “Open in Lane Windows”
+so this PC does the capture. 2FA prompts still work inside the Vinted window.
+
+lane.json
+---------
+Sits next to Lane.exe:
+
+  { "appUrl": "https://YOUR-LANE.pages.dev" }
+
+File → Change Lane URL to pick a new host.
+
+Do not paste marketplace passwords into Lane. Ever.
