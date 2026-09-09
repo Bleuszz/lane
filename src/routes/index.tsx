@@ -1,7 +1,6 @@
 import { createFileRoute, Link, Navigate, useRouteContext } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { LEGAL_FOOTER } from "@/lib/lane/copy";
-import { WINDOWS_DOWNLOAD_URL } from "@/lib/lane/download";
 import { PLAN_DEFS } from "@/lib/lane/plans";
 import { formatMoney } from "@/lib/lane/format";
 import { desktopApi } from "@/lib/lane/desktop";
@@ -24,9 +23,9 @@ function Home() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {!inDesktop ? (
-            <a href={WINDOWS_DOWNLOAD_URL} className="hidden text-sm text-muted hover:text-ink sm:inline">
+            <Link to="/download" className="hidden text-sm text-muted hover:text-ink sm:inline">
               Download Windows
-            </a>
+            </Link>
           ) : null}
           <Link to="/login" className="text-sm text-muted hover:text-ink">
             Sign in
@@ -48,11 +47,11 @@ function Home() {
             <Button size="lg">Start 7-day free trial</Button>
           </Link>
           {!inDesktop ? (
-            <a href={WINDOWS_DOWNLOAD_URL} className="inline-flex">
+            <Link to="/download" className="inline-flex">
               <Button size="lg" variant="secondary">
                 Download for Windows
               </Button>
-            </a>
+            </Link>
           ) : null}
         </div>
         <p className="mt-4 max-w-lg text-sm text-subtle">
@@ -75,7 +74,22 @@ function Home() {
             </div>
           ))}
         </div>
-        <footer className="mt-16 max-w-2xl text-[11px] leading-relaxed text-subtle">{LEGAL_FOOTER}</footer>
+        <footer className="mt-16 max-w-2xl text-[11px] leading-relaxed text-subtle">
+          <p>{LEGAL_FOOTER}</p>
+          <p className="mt-3">
+            <Link to="/download" className="hover:text-ink">
+              Download Windows
+            </Link>
+            {" · "}
+            <Link to="/legal/privacy" className="hover:text-ink">
+              Privacy
+            </Link>
+            {" · "}
+            <Link to="/legal/terms" className="hover:text-ink">
+              Terms
+            </Link>
+          </p>
+        </footer>
       </section>
     </main>
   );

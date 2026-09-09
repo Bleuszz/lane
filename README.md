@@ -34,16 +34,18 @@ The Windows app **is this website** in Chromium. Sign in with the same account s
 ## Local
 
 ```sh
-cp .env.example .env   # then fill secrets in your host, not necessarily a file
+cp .env.example .env
 npm install
-npm run dev            # 0.0.0.0:8080
+npm run dev
 ```
-
-Auth schema: `migrations/0001_auth.sql`. Product: `0002_lane.sql`. Live adapters: `0003_live_adapters.sql`.
 
 ## Windows
 
+The site page is `/download`. It points at Drive file `Lane-Windows.zip` (`WINDOWS_FILE_ID` in `src/lib/lane/download.ts`).
+
 Unzip, run `Lane.exe`, paste the Lane URL from Cloudflare, sign in. Connect Vinted → sign in on their site → the window closes when the session is captured.
+
+The Drive file must be shared **anyone with the link** or public visitors hit a Google login wall.
 
 ## What will not work until the owner supplies keys
 
