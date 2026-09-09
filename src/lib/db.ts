@@ -87,16 +87,22 @@ function toSql(run: Run): Sql {
 
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
-    // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
-    // pooled endpoint. One pool per process; warm serverless instances reuse it.
-    const { Pool, types } = await import("pg");
+    // Neon HTTP driver (@neondatabase/serverless): every query is a stateless
+    // HTTPS fetch, so there is no long-lived TCP socket held across requests.
+    // That is what makes it safe on Cloudflare Workers, where a socket opened in
+    // one request may not be used by another — a globally-memoized node-postgres
+    // Pool hangs there ("code had hung"). The HTTP driver also runs unchanged on
+    // Node (Vercel), so this single path serves both. Same type coercions as the
+    // old pg setup so query results are identical on both backends.
+    const { neon, types } = await import("@neondatabase/serverless");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    if (!databaseUrl) throw new Error("DATABASE_URL is required for the Neon backend");
+    const sql = neon(databaseUrl);
     return toSql(async <T>(text: string, params: unknown[]) => {
-      const res = await pool.query(text, params);
-      return res.rows as T[];
+      const rows = await sql.query(text, params);
+      return rows as T[];
     });
   })().catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
