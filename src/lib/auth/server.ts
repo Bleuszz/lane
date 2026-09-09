@@ -34,12 +34,12 @@ import { bearer, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
-import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
+import { neonHttpDialect } from "./neon-http-dialect";
 import {
   GROK_ISSUER_DEFAULT,
   PREVIEW_ALLOWED_HOSTS,
@@ -141,8 +141,10 @@ const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 // SAME DB as app data, including email/password users. Both use the Better Auth
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on.
+// Neon uses the stateless HTTP driver (Workers-safe — a globally-memoized
+// node-postgres Pool hangs on warm isolates); preview uses embedded PGLite.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
+  ? { dialect: neonHttpDialect(databaseUrl), type: "postgres" as const }
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */

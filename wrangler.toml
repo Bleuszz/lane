@@ -1,24 +1,32 @@
-# Cloudflare Workers handoff (not wired as the default build).
-# This app's vite.config.ts uses Nitro's `vercel` preset because that is what
-# the Grok App Builder image ships. To run on Cloudflare:
+# Cloudflare Workers deploy config for Lane.
 #
-#   1. Provision Neon Postgres + Hyperdrive (or a TCP-capable driver).
-#   2. Change vite.config.ts nitro({ preset: "cloudflare_module" })
-#      — verify TanStack Start + Nitro 3 support for that preset before shipping.
-#   3. wrangler secret put the vars in .env.example
-#   4. wrangler deploy
+# vite.config.ts now uses Nitro's `cloudflare_module` preset. On `npm run build`
+# Nitro emits the authoritative Worker config at `.output/server/wrangler.json`
+# (it sets `main`, the ASSETS binding and module rules) and merges the values
+# below into it — verified: `name`, `compatibility_date` and
+# `compatibility_flags` all flow through. Deploy from the build output:
 #
-# Free hostname: <name>.workers.dev  (option B in instructions.txt)
-# Custom domain: attach in the Cloudflare dashboard after choosing option A.
+#   npm run build
+#   npx wrangler --cwd .output/server deploy     # or: npx nitro deploy --prebuilt
 #
-# Until that cutover, `npm run build` still produces a Vercel-compatible output.
-# Do not pretend this file deploys as-is.
+# Secrets (never commit them) — set with `wrangler secret put <NAME>`, matching
+# .env.example: BETTER_AUTH_SECRET, BETTER_AUTH_URL, DATABASE_URL, the EBAY_*
+# and STRIPE_* vars, etc. BETTER_AUTH_SECRET must be set or the app falls back
+# to a preview-only random secret that is generated at global scope and is
+# rejected by the Workers runtime.
+#
+# To revert to the Vercel build, set `preset: "vercel"` in vite.config.ts.
 
 name = "lane"
-main = "dist/server/index.js"
+main = "dist/server/index.js"          # overridden by Nitro's generated wrangler.json
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
-# [hyperdrive]
+# Production Postgres (Neon) over a TCP-capable path. Provision a Hyperdrive
+# config that points at your Neon connection string, then set its id here and
+# rebuild so Nitro merges the binding. `pg` (used when DATABASE_URL is set)
+# connects through it; without DATABASE_URL the app would try the embedded
+# PGLite fallback, which does not run under workerd.
+# [[hyperdrive]]
 # binding = "HYPERDRIVE"
 # id = "YOUR_HYPERDRIVE_ID"
