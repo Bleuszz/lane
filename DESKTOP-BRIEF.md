@@ -1,7 +1,1 @@
-The full, current prompt is AGENT-PROMPT.md in this repo.
-
-It covers: Windows EXE, one-click WebView connect, every channel in
-channels.ts, dark mode, quiet landing + 7-day trial, installer zip,
-and the GitHub push.
-
-Implement AGENT-PROMPT.md. Do not stall on a missing code-signing cert.
+Lane desktop is Chromium around the live Lane URL. Connect opens the real marketplace, reads session cookies (whole jar — not url-filtered), posts `/api/bridge/session`, closes the window. Pairing token comes from the signed-in website via `window.lane.setPairing`.

@@ -5,37 +5,46 @@ UK-first crosslister. One canonical inventory record; channel listings hang off 
 **This is not a Crosslist clone and it never stores marketplace passwords.**
 
 - eBay UK — official REST OAuth (`sell.inventory`)
-- Vinted UK — Lane Bridge and/or the Windows app WebView session
-- Other channels in `channels.ts` can be connected; publish adapters ship as they are wired
-- 7-day trial, then Starter £12 / month
-- Dark mode (same brand, inverted paper/ink)
-- Windows desktop app in `/desktop`
+- Vinted UK — Windows in-app browser captures the session (Crosslist-style: sign in, window closes). Lane Bridge is the fallback.
+- Import up to 200 live listings
+- Universal form → queued publish
+- Mark sold → autodelist other live channels
+- Job log with request ids and retry
+- Honest `waiting_for_browser` / `extension_offline` when Chrome is asleep
+- Dark UI (Cursor / Grok-like). Light mode is a toggle, not inverted beige.
+
+The Windows app **is this website** in Chromium. Sign in with the same account so the plan and shops match.
 
 ## Repo map
 
 | Path | What |
 |---|---|
-| `AGENT-PROMPT.md` | **Paste-this prompt** for the next coding agent |
-| `DESKTOP-BRIEF.md` | Pointer to that prompt |
-| `instructions.txt` | Developer handoff |
-| `desktop/` | Electron shell, setup wizard, WebView cookie capture |
-| `extension/` | Chrome/Firefox MV3 Lane Bridge |
-| `src/routes/download.tsx` | Public download page |
+| `CLOUDFLARE-PROMPT.md` | Hand this to a VM agent to get a free `*.pages.dev` / `*.workers.dev` URL |
+| `instructions.txt` | Developer handoff: env, eBay RuName, Cloudflare, domains |
+| `desktop/` | Electron shell. `main.cjs` opens the marketplace, reads cookies, closes |
+| `extension/` | **Standalone** Chrome/Firefox MV3 Lane Bridge |
+| `src/lib/lane/listing-fields.ts` | Vinted vs eBay required fields |
+| `src/lib/lane/server/ebay.ts` | eBay Inventory API client |
+| `src/lib/lane/server/process.ts` | Job worker (OAuth jobs only) |
+| `src/lib/lane/server/bridge.ts` | Pairing-token API used by the extension and the Windows app |
+| `src/routes/api/ebay/` | OAuth start + callback |
+| `src/routes/api/bridge/` | `/api/bridge/*` |
+| `migrations/` | Auth + product + live-adapter SQL |
 
-## Windows installer
-
-On a Windows PC with Node 20+:
-
-```sh
-cd desktop
-BUILD-ON-WINDOWS.bat
-# dist/Lane Setup.exe
-```
-
-## Local web app
+## Local
 
 ```sh
-cp .env.example .env
+cp .env.example .env   # then fill secrets in your host, not necessarily a file
 npm install
 npm run dev            # 0.0.0.0:8080
 ```
+
+Auth schema: `migrations/0001_auth.sql`. Product: `0002_lane.sql`. Live adapters: `0003_live_adapters.sql`.
+
+## Windows
+
+Unzip, run `Lane.exe`, paste the Lane URL from Cloudflare, sign in. Connect Vinted → sign in on their site → the window closes when the session is captured.
+
+## What will not work until the owner supplies keys
+
+Connect eBay without `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` / `EBAY_RU_NAME` fails with a real error. Vinted stays `extension_offline` until a session is captured (Windows app) or Lane Bridge heartbeats from a vinted.co.uk tab. There are no placeholder shops.
