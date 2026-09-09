@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /download
+Allow: /legal/privacy
+Allow: /legal/terms
+Disallow: /inbox
+Disallow: /inventory
+Disallow: /settings
+Disallow: /api/
+Sitemap: /sitemap.xml
