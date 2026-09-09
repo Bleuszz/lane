@@ -40,7 +40,7 @@ import { ebayConfigured, randomToken } from "./secret";
 import { conditionFromLabel } from "@/lib/lane/condition";
 import { ebayListInventory } from "./ebay";
 import { liveVintedToken, vintedCurrentUser, vintedListWardrobe } from "./vinted";
-import { stripeConfigured, stripeForm, priceIdFor } from "./stripe";
+import { stripeConfigured, stripeForm, priceIdFor, stripeSetup } from "./stripe";
 import { getRequest } from "@tanstack/react-start/server";
 
 const marketplaceSchema = z.string().refine(isMarketplaceId, "Unknown marketplace");
@@ -248,6 +248,7 @@ export const getBootstrap = createServerFn({ method: "GET" })
       gmvGbp: num0(gmv[0]?.gmv),
       ebayConfigured: ebayConfigured(),
       stripeConfigured: stripeConfigured(),
+      stripeSetup: stripeSetup(),
     };
   });
 

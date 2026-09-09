@@ -289,6 +289,13 @@ export type InboxPayload = {
   reauthAccounts: AccountView[];
 };
 
+export type StripeSetup = {
+  configured: boolean;
+  secret: boolean;
+  webhook: boolean;
+  prices: { starter: boolean; seller: boolean; pro: boolean; aiPack: boolean };
+};
+
 export type BootstrapPayload = {
   settings: UserSettingsView;
   accounts: AccountView[];
@@ -300,6 +307,7 @@ export type BootstrapPayload = {
   gmvGbp: number;
   ebayConfigured: boolean;
   stripeConfigured: boolean;
+  stripeSetup: StripeSetup;
 };
 
 export type ItemDraft = {

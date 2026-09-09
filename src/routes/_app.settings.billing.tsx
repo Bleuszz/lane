@@ -13,7 +13,8 @@ function BillingPage() {
   const qc = useQueryClient();
   const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
   const settings = boot.data?.settings;
-  const stripeOn = Boolean(boot.data?.stripeConfigured);
+  const setup = boot.data?.stripeSetup;
+  const stripeOn = Boolean(setup?.configured ?? boot.data?.stripeConfigured);
   const flag = useMemo(() => new URLSearchParams(window.location.search).get("checkout"), []);
   const [err, setErr] = useState<string | null>(null);
 
@@ -32,12 +33,23 @@ function BillingPage() {
 
   if (!settings) return <div className="h-32 animate-pulse rounded-[var(--radius-md)] bg-secondary" />;
 
+  const ticks: [string, boolean][] = setup
+    ? [
+        ["STRIPE_SECRET_KEY", setup.secret],
+        ["STRIPE_WEBHOOK_SECRET", setup.webhook],
+        ["STRIPE_PRICE_STARTER", setup.prices.starter],
+        ["STRIPE_PRICE_SELLER", setup.prices.seller],
+        ["STRIPE_PRICE_PRO", setup.prices.pro],
+        ["STRIPE_PRICE_AI_PACK", setup.prices.aiPack],
+      ]
+    : [];
+
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted">
         {stripeOn
           ? "Checkout goes to Stripe. Webhooks update the plan. 3-day refund if you have made fewer than 20 live publishes."
-          : "Stripe keys are not on this server yet, so plan switches here only change action caps. Production wiring is in instructions.txt."}
+          : "Card billing is not live on this server yet. The switches below only change action caps. Set the keys in the checklist, then Subscribe becomes a real Stripe Checkout."}
       </p>
       {flag === "success" ? <p className="text-sm text-mark">Payment received. Plan updates when the webhook lands.</p> : null}
       {flag === "cancel" ? <p className="text-sm text-muted">Checkout cancelled.</p> : null}
@@ -95,6 +107,24 @@ function BillingPage() {
         >
           {settings.aiPack ? "AI pack on" : stripeOn ? "Add AI pack at checkout" : "Add AI pack"}
         </Button>
+      </Panel>
+      <Panel className="p-4">
+        <p className="text-sm font-medium">Live billing setup</p>
+        <p className="mt-1 text-sm text-muted">
+          Secrets never leave the server. This only shows whether each env var is present. Full steps: instructions.txt §7c.
+        </p>
+        <ul className="mt-3 space-y-1 text-sm">
+          {ticks.map(([name, ok]) => (
+            <li key={name} className="flex items-center justify-between gap-3">
+              <code className="font-mono text-[11px]">{name}</code>
+              <span className={ok ? "text-mark" : "text-muted"}>{ok ? "Set" : "Missing"}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[11px] text-subtle">
+          Webhook URL: /api/stripe/webhook · events: checkout.session.completed, customer.subscription.updated,
+          customer.subscription.deleted, invoice.payment_failed. Test card 4000 0000 0000 0002.
+        </p>
       </Panel>
     </div>
   );

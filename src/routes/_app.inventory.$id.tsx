@@ -17,6 +17,7 @@ import {
 import { CHANNELS } from "@/lib/lane/channels";
 import { formatDateTime, formatMoney } from "@/lib/lane/format";
 import { ChannelPicker, ItemForm, draftFromItem } from "@/components/item-form";
+import type { ListingTarget } from "@/lib/lane/listing-fields";
 import { Button, Panel } from "@/components/ui";
 import { ModeChip, StatusBadge } from "@/components/status";
 import { useEffect, useState } from "react";
@@ -50,6 +51,11 @@ function ItemPage() {
   if (itemQ.isPending || !draft) return <div className="h-64 animate-pulse rounded-[var(--radius-md)] bg-secondary" />;
   if (itemQ.isError) return <p className="text-sm text-danger">Item not found.</p>;
   const item = itemQ.data;
+  const picked = (boot.data?.accounts ?? []).filter((a) => accountIds.includes(a.id));
+  const wantsEbay = item.channels.some((c) => c.marketplace === "ebay_uk") || picked.some((a) => a.marketplace === "ebay_uk");
+  const wantsVinted = item.channels.some((c) => c.marketplace === "vinted_uk") || picked.some((a) => a.marketplace === "vinted_uk");
+  const listingTarget: ListingTarget = wantsEbay && wantsVinted ? "both" : wantsEbay ? "ebay" : "vinted";
+
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -109,8 +115,7 @@ function ItemPage() {
       <ItemForm
         draft={draft}
         onChange={setDraft}
-        ebaySelected={item.channels.some((c) => c.marketplace === "ebay_uk")}
-        vintedSelected={item.channels.some((c) => c.marketplace === "vinted_uk")}
+        target={listingTarget}
         rules={extras.data?.rules ?? []}
         aiEnabled={Boolean(boot.data?.settings.aiPack)}
       />

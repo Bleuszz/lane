@@ -2,8 +2,18 @@ import { CATEGORIES } from "@/lib/lane/categories";
 import { CHANNELS } from "@/lib/lane/channels";
 import { compareTakeHome } from "@/lib/lane/fees";
 import { formatMoney } from "@/lib/lane/format";
+import {
+  COLOURS,
+  LISTING_TARGETS,
+  VINTED_PARCELS,
+  departmentOf,
+  fieldsFor,
+  genderFromCategory,
+  needsSize,
+  type ListingTarget,
+} from "@/lib/lane/listing-fields";
 import { applyPricingRule } from "@/lib/lane/pricing";
-import { convertSize, sizeKindForCategory } from "@/lib/lane/sizes";
+import { CLOTHING_SIZES, FOOTWEAR_SIZES, convertSize, sizeKindForCategory } from "@/lib/lane/sizes";
 import { CONDITION_LABELS, CONDITIONS, type AiVoice, type ItemDraft, type PricingRuleView } from "@/lib/lane/types";
 import { generateListingCopy } from "@/lib/lane/server/fns";
 import { Button, Field, Input, NativeSelect, Textarea } from "@/components/ui";
@@ -30,28 +40,57 @@ export const EMPTY_DRAFT: ItemDraft = {
   lengthCm: "",
   widthCm: "",
   heightCm: "",
-  postageProfileId: "",
+  postageProfileId: "vinted_medium",
   notes: "",
   tags: "",
   sku: "",
   photos: [],
 };
 
+export function ListingTargetPicker({
+  value,
+  onChange,
+}: {
+  value: ListingTarget | null;
+  onChange: (next: ListingTarget) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      {LISTING_TARGETS.map((opt) => {
+        const on = value === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            className={cn(
+              "min-h-11 rounded-[var(--radius-sm)] border px-3 py-3 text-left",
+              on ? "border-mark bg-ok-bg text-ink" : "border-line bg-raised text-muted hover:border-line-strong",
+            )}
+          >
+            <span className="block text-sm font-medium text-ink">{opt.title}</span>
+            <span className="mt-1 block text-[11px] leading-snug">{opt.body}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ItemForm({
   draft,
   onChange,
-  ebaySelected,
-  vintedSelected,
+  target,
   rules,
   aiEnabled,
 }: {
   draft: ItemDraft;
   onChange: (next: ItemDraft) => void;
-  ebaySelected: boolean;
-  vintedSelected: boolean;
+  target: ListingTarget;
   rules: PricingRuleView[];
   aiEnabled: boolean;
 }) {
+  const f = fieldsFor(target);
   const set = (patch: Partial<ItemDraft>) => onChange({ ...draft, ...patch });
   const price = Number(draft.basePriceGbp) || 0;
   const take = compareTakeHome({ listPriceGbp: price, categoryCanonical: draft.categoryCanonical });
@@ -60,19 +99,28 @@ export function ItemForm({
   const [voice, setVoice] = useState<AiVoice>("short");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [extras, setExtras] = useState(false);
+  const [dept, setDept] = useState<"all" | "men" | "women" | "kids" | "other">("all");
+  const kind = sizeKindForCategory(draft.categoryCanonical);
+  const sizeTable = kind === "footwear" ? FOOTWEAR_SIZES : CLOTHING_SIZES;
+  const cats = CATEGORIES.filter((c) => (dept === "all" ? true : departmentOf(c.id) === dept));
+  const httpsCount = draft.photos.filter((p) => /^https?:\/\//i.test(p.url)).length;
 
   function onUkSize(value: string) {
-    const kind = sizeKindForCategory(draft.categoryCanonical);
     const row = convertSize(value, "uk", kind);
     set({ sizeUk: value, sizeEu: row?.eu ?? draft.sizeEu, sizeUs: row?.us ?? draft.sizeUs });
+  }
+
+  function onCategory(id: string) {
+    set({ categoryCanonical: id, gender: genderFromCategory(id) });
   }
 
   async function onFiles(files: FileList | null) {
     if (!files) return;
     const next = [...draft.photos];
     for (const file of Array.from(files)) {
-      if (next.length >= 8) break;
-      if (file.size > 900_000) continue;
+      if (next.length >= 12) break;
+      if (file.size > 2_000_000) continue;
       const url = await readFile(file);
       next.push({ url });
     }
@@ -103,6 +151,7 @@ export function ItemForm({
         condition: res.draft.condition,
         colour: res.draft.colour,
         material: res.draft.material,
+        gender: genderFromCategory(res.draft.categoryCanonical),
       });
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "AI failed");
@@ -111,23 +160,38 @@ export function ItemForm({
     }
   }
 
+  const titleMax = f.titleMax;
+  const descMax = f.descriptionMax;
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
       <div className="space-y-5">
         <section className="space-y-3">
-          <h2 className="text-sm font-medium">Photos</h2>
+          <h2 className="text-sm font-medium">Photos {f.vinted && !f.ebay ? "(1–12)" : f.ebay ? "(https required for eBay)" : ""}</h2>
           <div className="flex flex-wrap gap-2">
             {draft.photos.map((p, i) => (
               <div key={`${p.url}-${i}`} className="relative h-24 w-20 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-raised">
                 <img src={p.url} alt="" className="h-full w-full object-cover" />
                 <div className="absolute inset-x-0 bottom-0 flex">
-                  <button type="button" className="flex-1 bg-ink/70 py-0.5 text-[10px] text-paper" onClick={() => {
-                    const photos = [...draft.photos];
-                    const [moved] = photos.splice(i, 1);
-                    if (moved) photos.unshift(moved);
-                    set({ photos });
-                  }}>Primary</button>
-                  <button type="button" className="flex-1 bg-danger/80 py-0.5 text-[10px] text-white" onClick={() => set({ photos: draft.photos.filter((_, j) => j !== i) })}>Remove</button>
+                  <button
+                    type="button"
+                    className="flex-1 bg-ink/70 py-0.5 text-[10px] text-paper"
+                    onClick={() => {
+                      const photos = [...draft.photos];
+                      const [moved] = photos.splice(i, 1);
+                      if (moved) photos.unshift(moved);
+                      set({ photos });
+                    }}
+                  >
+                    Primary
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 bg-danger/80 py-0.5 text-[10px] text-white"
+                    onClick={() => set({ photos: draft.photos.filter((_, j) => j !== i) })}
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
             ))}
@@ -136,156 +200,278 @@ export function ItemForm({
               <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => void onFiles(e.target.files)} />
             </label>
           </div>
-          <p className="text-[11px] text-subtle">
-            File uploads become data URLs and work for Vinted (the extension re-uploads them). eBay Inventory API requires
-            publicly reachable http(s) URLs — paste those below.
-          </p>
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const input = (e.currentTarget.elements.namedItem("photoUrl") as HTMLInputElement | null);
-              const value = input?.value.trim() ?? "";
-              if (!/^https?:\/\//i.test(value)) return;
-              if (draft.photos.length >= 8) return;
-              set({ photos: [...draft.photos, { url: value }] });
-              if (input) input.value = "";
-            }}
-          >
-            <Input name="photoUrl" placeholder="https://… photo URL for eBay" className="flex-1" />
-            <Button type="submit" size="sm" variant="secondary">
-              Add URL
-            </Button>
-          </form>
+          {f.httpsPhotos ? (
+            <>
+              <p className="text-[11px] text-subtle">
+                File uploads work for Vinted. eBay Inventory needs a public https URL. {httpsCount} https photo
+                {httpsCount === 1 ? "" : "s"} ready.
+              </p>
+              <form
+                className="flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const input = e.currentTarget.elements.namedItem("photoUrl") as HTMLInputElement | null;
+                  const value = input?.value.trim() ?? "";
+                  if (!/^https?:\/\//i.test(value)) return;
+                  if (draft.photos.length >= 12) return;
+                  set({ photos: [...draft.photos, { url: value }] });
+                  if (input) input.value = "";
+                }}
+              >
+                <Input name="photoUrl" placeholder="https://… photo URL for eBay" className="flex-1" />
+                <Button type="submit" size="sm" variant="secondary">
+                  Add URL
+                </Button>
+              </form>
+            </>
+          ) : (
+            <p className="text-[11px] text-subtle">Vinted accepts the files you add here. Lane Bridge re-uploads them from your browser.</p>
+          )}
         </section>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Title">
-            <Input value={draft.title} onChange={(e) => set({ title: e.target.value })} />
+          <Field label={`Title · ${draft.title.length}/${titleMax}`}>
+            <Input
+              value={draft.title}
+              maxLength={titleMax}
+              onChange={(e) => set({ title: e.target.value })}
+              placeholder={f.vinted ? "Brand, item, colour, size" : "Clear title, 80 characters"}
+            />
           </Field>
-          <Field label="SKU">
-            <Input value={draft.sku} onChange={(e) => set({ sku: e.target.value })} className="font-mono" />
-          </Field>
+          {f.sku ? (
+            <Field label="SKU" hint="eBay requires a unique SKU. Leave blank to auto-generate.">
+              <Input value={draft.sku} onChange={(e) => set({ sku: e.target.value })} className="font-mono" />
+            </Field>
+          ) : null}
         </div>
-        <Field label="Description">
-          <Textarea value={draft.description} onChange={(e) => set({ description: e.target.value })} rows={6} />
+        <Field label={`Description · ${draft.description.length}/${descMax}`}>
+          <Textarea
+            value={draft.description}
+            maxLength={descMax}
+            onChange={(e) => set({ description: e.target.value })}
+            rows={6}
+            placeholder="What it is, size/fit, condition, flaws."
+          />
         </Field>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Brand">
-            <Input value={draft.brand} onChange={(e) => set({ brand: e.target.value })} />
-          </Field>
-          <Field label="Category" hint="Mapped per channel. Confirm the leaf if the ID is unverified.">
-            <NativeSelect value={draft.categoryCanonical} onChange={(e) => set({ categoryCanonical: e.target.value })}>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>{c.path}</option>
+
+        <div className="flex flex-wrap gap-2">
+          {(["all", "men", "women", "kids"] as const).map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDept(d)}
+              className={cn(
+                "h-8 rounded-full px-3 text-xs",
+                dept === d ? "bg-mark text-mark-fg" : "bg-secondary text-muted",
+              )}
+            >
+              {d === "all" ? "All categories" : d[0]!.toUpperCase() + d.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Category"
+            hint={
+              f.ebay && !CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.ebayUk.confirmed
+                ? "eBay leaf not verified — publish will be blocked until it is."
+                : undefined
+            }
+          >
+            <NativeSelect value={draft.categoryCanonical} onChange={(e) => onCategory(e.target.value)}>
+              {cats.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.path}
+                </option>
               ))}
             </NativeSelect>
           </Field>
           <Field label="Condition">
             <NativeSelect value={draft.condition} onChange={(e) => set({ condition: e.target.value as ItemDraft["condition"] })}>
               {CONDITIONS.map((c) => (
-                <option key={c} value={c}>{CONDITION_LABELS[c]}</option>
+                <option key={c} value={c}>
+                  {CONDITION_LABELS[c]}
+                </option>
               ))}
             </NativeSelect>
           </Field>
         </div>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <Field label="Size UK">
-            <Input value={draft.sizeUk} onChange={(e) => onUkSize(e.target.value)} />
-          </Field>
-          <Field label="Size EU">
-            <Input value={draft.sizeEu} onChange={(e) => set({ sizeEu: e.target.value })} />
-          </Field>
-          <Field label="Size US">
-            <Input value={draft.sizeUs} onChange={(e) => set({ sizeUs: e.target.value })} />
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Brand" hint={f.vinted ? "Vinted requires a brand, or No brand." : "eBay item specific."}>
+            <Input value={draft.brand === "No brand" ? "" : draft.brand} onChange={(e) => set({ brand: e.target.value })} disabled={draft.brand === "No brand"} />
+            {f.vinted ? (
+              <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={draft.brand === "No brand"}
+                  onChange={(e) => set({ brand: e.target.checked ? "No brand" : "" })}
+                />
+                No brand
+              </label>
+            ) : null}
           </Field>
           <Field label="Colour">
-            <Input value={draft.colour} onChange={(e) => set({ colour: e.target.value })} />
-          </Field>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <Field label="Material">
-            <Input value={draft.material} onChange={(e) => set({ material: e.target.value })} />
-          </Field>
-          <Field label="Gender">
-            <NativeSelect value={draft.gender} onChange={(e) => set({ gender: e.target.value })}>
-              <option value="men">Men</option>
-              <option value="women">Women</option>
-              <option value="unisex">Unisex</option>
-              <option value="kids">Kids</option>
+            <NativeSelect value={draft.colour} onChange={(e) => set({ colour: e.target.value })}>
+              <option value="">Select colour</option>
+              {COLOURS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </NativeSelect>
           </Field>
-          <Field label="Era">
-            <Input value={draft.era} onChange={(e) => set({ era: e.target.value })} />
-          </Field>
-          <Field label="Tags" hint="Comma separated">
-            <Input value={draft.tags} onChange={(e) => set({ tags: e.target.value })} />
-          </Field>
         </div>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <Field label="List price £">
-            <Input inputMode="decimal" value={draft.basePriceGbp} onChange={(e) => set({ basePriceGbp: e.target.value })} />
-          </Field>
-          <Field label="Cost £ (optional)">
-            <Input inputMode="decimal" value={draft.costPriceGbp} onChange={(e) => set({ costPriceGbp: e.target.value })} />
-          </Field>
-          <Field label="Qty" hint={vintedSelected ? "Vinted is always 1." : undefined}>
-            <Input inputMode="numeric" value={draft.quantity} onChange={(e) => set({ quantity: e.target.value })} />
-          </Field>
-          <Field label="Weight g">
-            <Input inputMode="numeric" value={draft.weightG} onChange={(e) => set({ weightG: e.target.value })} />
-          </Field>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="L cm">
-            <Input value={draft.lengthCm} onChange={(e) => set({ lengthCm: e.target.value })} />
-          </Field>
-          <Field label="W cm">
-            <Input value={draft.widthCm} onChange={(e) => set({ widthCm: e.target.value })} />
-          </Field>
-          <Field label="H cm">
-            <Input value={draft.heightCm} onChange={(e) => set({ heightCm: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="Internal notes">
-          <Textarea value={draft.notes} onChange={(e) => set({ notes: e.target.value })} rows={3} />
-        </Field>
 
-        {ebaySelected || vintedSelected ? (
-          <div className="rounded-[var(--radius-md)] border border-line bg-raised p-3 text-xs text-muted">
-            {ebaySelected ? (
-              <p>
-                eBay maps to {CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.ebayUk.name ?? "picker"}{" "}
-                {CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.ebayUk.confirmed ? "" : "— confirm this leaf, ID not verified."}
-              </p>
-            ) : null}
-            {vintedSelected ? (
-              <p className="mt-1">
-                Vinted path: {CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.vintedUk.path ?? "confirm in picker"}
-              </p>
+        {needsSize(draft.categoryCanonical) ? (
+          <div className={cn("grid gap-3", f.ebay ? "sm:grid-cols-3" : "sm:grid-cols-1")}>
+            <Field label="Size (UK)">
+              <NativeSelect value={draft.sizeUk} onChange={(e) => onUkSize(e.target.value)}>
+                <option value="">Select size</option>
+                {sizeTable.map((s) => (
+                  <option key={s.uk} value={s.uk}>
+                    UK {s.uk}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            {f.ebay ? (
+              <>
+                <Field label="Size EU">
+                  <Input value={draft.sizeEu} onChange={(e) => set({ sizeEu: e.target.value })} />
+                </Field>
+                <Field label="Size US">
+                  <Input value={draft.sizeUs} onChange={(e) => set({ sizeUs: e.target.value })} />
+                </Field>
+              </>
             ) : null}
           </div>
         ) : null}
+
+        {f.material ? (
+          <Field label="Material" hint="Vinted lets you pick up to 3. One main fibre is enough here.">
+            <Input value={draft.material} onChange={(e) => set({ material: e.target.value })} placeholder="Cotton, wool, leather…" />
+          </Field>
+        ) : null}
+
+        {f.parcel ? (
+          <Field label="Parcel size" hint="Vinted shipping. Buyer pays the carrier rate for this size.">
+            <div className="grid gap-2 sm:grid-cols-3">
+              {VINTED_PARCELS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => set({ postageProfileId: p.id })}
+                  className={cn(
+                    "min-h-11 rounded-[var(--radius-sm)] border px-3 py-2 text-left text-sm",
+                    draft.postageProfileId === p.id ? "border-mark bg-ok-bg" : "border-line bg-raised text-muted",
+                  )}
+                >
+                  <span className="block font-medium text-ink">{p.label}</span>
+                  <span className="block text-[11px]">{p.hint}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
+        ) : null}
+
+        <div className={cn("grid gap-3", f.quantity ? "sm:grid-cols-3" : "sm:grid-cols-1")}>
+          <Field label="List price £">
+            <Input inputMode="decimal" value={draft.basePriceGbp} onChange={(e) => set({ basePriceGbp: e.target.value })} />
+          </Field>
+          {f.quantity ? (
+            <Field label="Qty" hint="Vinted is always 1 if you also list there.">
+              <Input inputMode="numeric" value={draft.quantity} onChange={(e) => set({ quantity: e.target.value })} />
+            </Field>
+          ) : null}
+          {f.sku && f.ebay && !f.vinted ? null : null}
+        </div>
+
+        {f.weight || f.dimensions ? (
+          <div className="grid gap-3 sm:grid-cols-4">
+            {f.weight ? (
+              <Field label="Weight g" hint="eBay package weight.">
+                <Input inputMode="numeric" value={draft.weightG} onChange={(e) => set({ weightG: e.target.value })} />
+              </Field>
+            ) : null}
+            {f.dimensions ? (
+              <>
+                <Field label="L cm">
+                  <Input value={draft.lengthCm} onChange={(e) => set({ lengthCm: e.target.value })} />
+                </Field>
+                <Field label="W cm">
+                  <Input value={draft.widthCm} onChange={(e) => set({ widthCm: e.target.value })} />
+                </Field>
+                <Field label="H cm">
+                  <Input value={draft.heightCm} onChange={(e) => set({ heightCm: e.target.value })} />
+                </Field>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        <button type="button" className="text-xs text-muted underline-offset-4 hover:underline" onClick={() => setExtras((v) => !v)}>
+          {extras ? "Hide Lane-only fields" : "Show Lane-only fields (cost, notes, tags)"}
+        </button>
+        {extras ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Cost £">
+              <Input inputMode="decimal" value={draft.costPriceGbp} onChange={(e) => set({ costPriceGbp: e.target.value })} />
+            </Field>
+            <Field label="Tags" hint="Comma separated, Lane only">
+              <Input value={draft.tags} onChange={(e) => set({ tags: e.target.value })} />
+            </Field>
+            <Field label="Internal notes">
+              <Textarea value={draft.notes} onChange={(e) => set({ notes: e.target.value })} rows={3} />
+            </Field>
+          </div>
+        ) : null}
+
+        <div className="rounded-[var(--radius-md)] border border-line bg-raised p-3 text-xs text-muted">
+          {f.ebay ? (
+            <p>
+              eBay → {CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.ebayUk.name ?? "picker"}
+              {CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.ebayUk.confirmed ? "" : " — confirm this leaf, ID not verified."}
+            </p>
+          ) : null}
+          {f.vinted ? (
+            <p className={f.ebay ? "mt-1" : undefined}>
+              Vinted → {CATEGORIES.find((c) => c.id === draft.categoryCanonical)?.vintedUk.path ?? "confirm in picker"}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <aside className="space-y-4">
         <div className="rounded-[var(--radius-md)] border border-line bg-raised p-3">
           <p className="text-xs font-medium text-ink">You receive at this list price</p>
           <div className="mt-2 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted">{CHANNELS.ebay_uk.short} {formatMoney(ebayPrice)}</span>
-              <span className="tabular">{formatMoney(take.ebay.youReceiveGbp)}</span>
-            </div>
-            <p className="text-[11px] text-subtle">{take.ebay.note}</p>
-            <div className="flex justify-between pt-2 border-t border-line">
-              <span className="text-muted">{CHANNELS.vinted_uk.short} {formatMoney(vintedPrice)}</span>
-              <span className="tabular">{formatMoney(take.vinted.youReceiveGbp)}</span>
-            </div>
-            <p className="text-[11px] text-subtle">{take.vinted.note}</p>
+            {f.ebay ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted">
+                    {CHANNELS.ebay_uk.short} {formatMoney(ebayPrice)}
+                  </span>
+                  <span className="tabular">{formatMoney(take.ebay.youReceiveGbp)}</span>
+                </div>
+                <p className="text-[11px] text-subtle">{take.ebay.note}</p>
+              </>
+            ) : null}
+            {f.vinted ? (
+              <>
+                <div className={cn("flex justify-between", f.ebay && "border-t border-line pt-2")}>
+                  <span className="text-muted">
+                    {CHANNELS.vinted_uk.short} {formatMoney(vintedPrice)}
+                  </span>
+                  <span className="tabular">{formatMoney(take.vinted.youReceiveGbp)}</span>
+                </div>
+                <p className="text-[11px] text-subtle">{take.vinted.note}</p>
+              </>
+            ) : null}
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-md)] border border-line bg-raised p-3 space-y-2">
+        <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-raised p-3">
           <p className="text-xs font-medium">AI fill</p>
           <p className="text-[11px] text-subtle">Lands in this form. Never auto-publishes.</p>
           <NativeSelect value={voice} onChange={(e) => setVoice(e.target.value as AiVoice)}>
@@ -359,7 +545,7 @@ export function draftFromItem(item: {
     lengthCm: item.lengthCm != null ? String(item.lengthCm) : "",
     widthCm: item.widthCm != null ? String(item.widthCm) : "",
     heightCm: item.heightCm != null ? String(item.heightCm) : "",
-    postageProfileId: item.postageProfileId ?? "",
+    postageProfileId: item.postageProfileId ?? "vinted_medium",
     notes: item.notes ?? "",
     tags: item.tags.join(","),
     sku: item.sku ?? "",
@@ -377,7 +563,7 @@ export function ChannelPicker({
   onToggle: (id: string) => void;
 }) {
   if (accounts.length === 0) {
-    return <p className="text-sm text-muted">Connect Vinted or eBay first.</p>;
+    return <p className="text-sm text-muted">Connect this channel in Settings first.</p>;
   }
   return (
     <div className="flex flex-wrap gap-2">
@@ -389,11 +575,11 @@ export function ChannelPicker({
             type="button"
             onClick={() => onToggle(a.id)}
             className={cn(
-              "h-10 rounded-[var(--radius-sm)] border px-3 text-sm",
+              "min-h-11 rounded-[var(--radius-sm)] border px-3 text-sm",
               on ? "border-mark bg-ok-bg text-ink" : "border-line bg-raised text-muted",
             )}
           >
-            {CHANNELS[a.marketplace]?.short} · {a.mode === "oauth" ? "API" : "EXT"}
+            {CHANNELS[a.marketplace]?.label} · {a.mode === "oauth" ? "API" : "Bridge"}
           </button>
         );
       })}

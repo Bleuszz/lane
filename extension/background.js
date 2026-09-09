@@ -46,9 +46,14 @@ async function uploadVintedCookies() {
     const access = cookies.find((c) => c.name === "access_token_web")?.value;
     const refresh = cookies.find((c) => c.name === "refresh_token_web")?.value;
     if (!refresh) return;
-    await laneFetch("session", {
+    const saved = await laneFetch("session", {
       method: "POST",
       body: { accessToken: access ?? null, refreshToken: refresh },
+    });
+    await chrome.storage.local.set({
+      sessionCaptured: true,
+      sessionAt: Date.now(),
+      sessionUsername: saved?.username ?? null,
     });
   } catch {
     /* pairing not ready or cookies permission missing */

@@ -202,10 +202,28 @@ export async function ebayPublish(
         ...(item.brand ? { Brand: [item.brand] } : {}),
         ...(item.sizeUk ? { Size: [item.sizeUk] } : {}),
         ...(item.colour ? { Colour: [item.colour] } : {}),
+        ...(item.material ? { Material: [item.material] } : {}),
       },
       imageUrls: photos.slice(0, 12),
       ...(item.brand ? { brand: item.brand } : {}),
     },
+    ...(item.weightG
+      ? {
+          packageWeightAndSize: {
+            weight: { value: Math.max(0.01, item.weightG / 1000), unit: "KILOGRAM" },
+            ...(item.lengthCm && item.widthCm && item.heightCm
+              ? {
+                  dimensions: {
+                    length: item.lengthCm,
+                    width: item.widthCm,
+                    height: item.heightCm,
+                    unit: "CENTIMETER",
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
   });
   if (!inv.ok && inv.status !== 204) {
     throw Object.assign(new Error(`eBay inventory_item failed (HTTP ${inv.status}).`), { body: inv.text });

@@ -17,7 +17,8 @@ UK-first crosslister. One canonical inventory record; channel listings hang off 
 | Path | What |
 |---|---|
 | `instructions.txt` | Developer handoff: env, eBay RuName, Cloudflare, domains, what to ask the owner |
-| `extension/` | Chrome MV3 Lane Bridge (load unpacked) |
+| `extension/` | **Standalone** Chrome/Firefox MV3 Lane Bridge (own README) |
+| `src/lib/lane/listing-fields.ts` | Vinted vs eBay required fields |
 | `src/lib/lane/server/ebay.ts` | eBay Inventory API client |
 | `src/lib/lane/server/process.ts` | Job worker (OAuth jobs only) |
 | `src/lib/lane/server/bridge.ts` | Pairing-token API used by the extension |

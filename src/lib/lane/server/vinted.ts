@@ -217,6 +217,54 @@ export async function saveVintedSession(
   return { accountId: id, username: ident.login };
 }
 
+
+async function vintedFindBrand(access: string, name: string | null): Promise<number | null> {
+  if (!name) return null;
+  const q = encodeURIComponent(name);
+  for (const path of [`/api/v2/brands?search=${q}`, `/api/v2/brands/search?keyword=${q}`]) {
+    const r = await vintedFetch<{ brands?: Array<{ id?: number; title?: string; name?: string }> }>(access, "GET", path);
+    const list = r.json.brands ?? [];
+    const lower = name.toLowerCase();
+    const hit = list.find((b) => (b.title ?? b.name ?? "").toLowerCase() === lower)
+      ?? list.find((b) => (b.title ?? b.name ?? "").toLowerCase().includes(lower));
+    if (hit?.id) return Number(hit.id);
+  }
+  return null;
+}
+
+async function vintedFindColourIds(access: string, name: string | null): Promise<number[]> {
+  if (!name) return [];
+  const r = await vintedFetch<{ colors?: Array<{ id?: number; title?: string; code?: string }> }>(access, "GET", "/api/v2/colors");
+  const list = r.json.colors ?? [];
+  const lower = name.toLowerCase();
+  const hit = list.find((c) => (c.title ?? c.code ?? "").toLowerCase() === lower)
+    ?? list.find((c) => (c.title ?? "").toLowerCase().includes(lower));
+  return hit?.id ? [Number(hit.id)] : [];
+}
+
+async function vintedFindSizeId(access: string, catalogId: number | null, sizeLabel: string | null): Promise<number | null> {
+  if (!catalogId || !sizeLabel) return null;
+  const paths = [
+    `/api/v2/item_upload/sizes?catalog_id=${catalogId}`,
+    `/api/v2/catalogs/${catalogId}`,
+  ];
+  const lower = sizeLabel.toLowerCase();
+  for (const path of paths) {
+    const r = await vintedFetch<{ sizes?: unknown; size_groups?: unknown }>(access, "GET", path);
+    const raw = r.json.sizes ?? r.json.size_groups ?? [];
+    const list = Array.isArray(raw) ? raw : [];
+    const flat: Array<{ id?: number; title?: string; name?: string }> = [];
+    for (const row of list as Array<Record<string, unknown>>) {
+      if (Array.isArray(row.sizes)) flat.push(...(row.sizes as Array<{ id?: number; title?: string; name?: string }>));
+      else flat.push(row as { id?: number; title?: string; name?: string });
+    }
+    const hit = flat.find((s) => (s.title ?? s.name ?? "").toLowerCase() === lower)
+      ?? flat.find((s) => (s.title ?? s.name ?? "").toLowerCase().includes(lower));
+    if (hit?.id) return Number(hit.id);
+  }
+  return null;
+}
+
 const STATUS_ID: Record<string, number> = {
   new_with_tags: 6,
   new_without_tags: 1,
@@ -244,17 +292,26 @@ export async function vintedPublish(
     throw new Error("Vinted publish needs at least one photo Lane can fetch (https URL or data URL).");
   }
   const cat = findCategory(item.categoryCanonical);
+  const catalogId = cat?.vintedUk.catalogId ? Number(cat.vintedUk.catalogId) : null;
+  const brandId = await vintedFindBrand(access, item.brand);
+  const colourIds = await vintedFindColourIds(access, item.colour);
+  const sizeId = await vintedFindSizeId(access, catalogId, item.sizeUk);
+  const packageSizeId =
+    item.postageProfileId === "vinted_large" ? 3 : item.postageProfileId === "vinted_medium" ? 2 : 1;
   const payload = {
     item: {
       title: item.title.slice(0, 100),
       description: item.description || item.title,
       price: priceGbp,
       currency: "GBP",
-      catalog_id: cat?.vintedUk.catalogId ? Number(cat.vintedUk.catalogId) : undefined,
+      catalog_id: catalogId ?? undefined,
       status_id: STATUS_ID[item.condition] ?? 3,
-      package_size_id: 1,
+      package_size_id: packageSizeId,
       photo_ids: photoIds,
       is_unisex: item.gender === "unisex",
+      ...(brandId ? { brand_id: brandId } : {}),
+      ...(colourIds.length ? { color_ids: colourIds } : {}),
+      ...(sizeId ? { size_id: sizeId } : {}),
     },
   };
   const created = await vintedFetch<{ item?: { id?: number; url?: string }; id?: number }>(

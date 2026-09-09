@@ -13,10 +13,16 @@ function setStatus(paired) {
   statusEl.className = `pill${paired ? " ok" : ""}`;
 }
 
-chrome.storage.local.get(["origin", "token"], (stored) => {
+chrome.storage.local.get(["origin", "token", "sessionCaptured", "sessionUsername"], (stored) => {
   originEl.value = stored.origin ?? "";
   tokenEl.value = stored.token ?? "";
   setStatus(Boolean(stored.origin && stored.token?.startsWith("lnb_")));
+  const sessionEl = document.getElementById("session");
+  if (sessionEl) {
+    sessionEl.textContent = stored.sessionCaptured
+      ? `Session captured${stored.sessionUsername ? " · " + stored.sessionUsername : ""}.`
+      : "Session: not captured yet. Sign in on vinted.co.uk.";
+  }
 });
 
 document.getElementById("save").addEventListener("click", () => {

@@ -3,6 +3,8 @@ LANE — DEVELOPER HANDOFF
 Product: Lane (UK-first crosslisting SaaS)
 Owner: VEIL (GitHub: Bleuszz)
 Repo: https://github.com/Bleuszz/lane
+Drive: https://drive.google.com/drive/folders/1Mt51vCQELFEY7Ny2lhuotqcfpE76YEr_
+      (Lane-Bridge zip + this instructions file)
 Date: 9 September 2026
 
 Read this whole file before changing code or deploying. The control plane
@@ -385,6 +387,27 @@ Archive still hides (status=archived). Delete is gone.
 
 Canonical model: items 1—N channel_listings. Sales decrement quantity.
 qty 0 ⇒ enqueue delist on remaining live/queued/waiting listings.
+
+
+7e. NEW LISTING FORM — VINTED / EBAY / BOTH
+------------------------------------------
+New listing starts with three choices. The form then only shows
+fields that destination actually requires.
+
+  Vinted: photos, title (100), description (1000), category,
+          brand (or No brand), UK size, colour, condition,
+          parcel size (S/M/L), price.
+  eBay:   https photos, title (80), SKU (auto if blank),
+          category, condition, quantity, price, package weight
+          + dimensions, brand/size/colour as item specifics.
+  Both:   union. One Lane row, two jobs.
+
+Lane-only fields (cost, notes, tags) sit behind “Show Lane-only”.
+Delete still does not end live marketplace listings — Delist first.
+
+Chrome extension lives in /extension (standalone). README is in
+that folder. Zip of it is also on the owner’s Google Drive.
+
 
 
 9. PUBLISH — CLOUDFLARE (PREFERRED BY OWNER)

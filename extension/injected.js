@@ -213,6 +213,66 @@
     return id;
   }
 
+  async function findBrandId(name) {
+    if (!name) return null;
+    const q = encodeURIComponent(name);
+    for (const path of [`/api/v2/brands?search=${q}`, `/api/v2/brands/search?keyword=${q}`]) {
+      try {
+        const json = await vintedFetch(path);
+        const list = json.brands ?? [];
+        const lower = String(name).toLowerCase();
+        const hit =
+          list.find((b) => (b.title || b.name || "").toLowerCase() === lower) ||
+          list.find((b) => (b.title || b.name || "").toLowerCase().includes(lower));
+        if (hit?.id) return Number(hit.id);
+      } catch {
+        /* try next */
+      }
+    }
+    return null;
+  }
+
+  async function findColourIds(name) {
+    if (!name) return [];
+    try {
+      const json = await vintedFetch("/api/v2/colors");
+      const list = json.colors ?? [];
+      const lower = String(name).toLowerCase();
+      const hit =
+        list.find((c) => (c.title || c.code || "").toLowerCase() === lower) ||
+        list.find((c) => (c.title || "").toLowerCase().includes(lower));
+      return hit?.id ? [Number(hit.id)] : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async function findSizeId(catalogId, sizeLabel) {
+    if (!catalogId || !sizeLabel) return null;
+    const lower = String(sizeLabel).toLowerCase();
+    for (const path of [
+      `/api/v2/item_upload/sizes?catalog_id=${catalogId}`,
+      `/api/v2/catalogs/${catalogId}`,
+    ]) {
+      try {
+        const json = await vintedFetch(path);
+        const raw = json.sizes || json.size_groups || [];
+        const flat = [];
+        for (const row of raw) {
+          if (Array.isArray(row.sizes)) flat.push(...row.sizes);
+          else flat.push(row);
+        }
+        const hit =
+          flat.find((s) => (s.title || s.name || "").toLowerCase() === lower) ||
+          flat.find((s) => (s.title || s.name || "").toLowerCase().includes(lower));
+        if (hit?.id) return Number(hit.id);
+      } catch {
+        /* try next */
+      }
+    }
+    return null;
+  }
+
   async function publish(job) {
     const item = job.item;
     if (!item?.title) throw new Error("Job missing item payload.");
@@ -220,9 +280,12 @@
     const photos = item.photos ?? [];
     if (photos.length === 0) throw new Error("Vinted publish needs at least one photo.");
     const photoIds = [];
-    for (const p of photos.slice(0, 8)) {
+    for (const p of photos.slice(0, 12)) {
       photoIds.push(await uploadPhoto(p.url));
     }
+    const brandId = await findBrandId(item.brand);
+    const colourIds = await findColourIds(item.colour);
+    const sizeId = await findSizeId(catalogId, item.sizeUk);
     const payload = {
       item: {
         currency: "GBP",
@@ -231,10 +294,13 @@
         price: Number(item.priceGbp),
         catalog_id: catalogId,
         status_id: VINTED_STATUS[item.condition] ?? 3,
-        package_size_id: 1,
+        package_size_id: Number(item.packageSizeId) || 1,
         photo_ids: photoIds,
-        is_unisex: false,
+        is_unisex: item.gender === "unisex",
         item_attributes: [],
+        ...(brandId ? { brand_id: brandId } : {}),
+        ...(colourIds.length ? { color_ids: colourIds } : {}),
+        ...(sizeId ? { size_id: sizeId } : {}),
       },
     };
     const json = await vintedFetch("/api/v2/items", { method: "POST", json: payload });

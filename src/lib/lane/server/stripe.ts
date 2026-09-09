@@ -1,9 +1,25 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/env.server";
-import type { PlanId } from "@/lib/lane/types";
+import type { PlanId, StripeSetup } from "@/lib/lane/types";
+
+export function stripeSetup(): StripeSetup {
+  const prices = {
+    starter: Boolean(env("STRIPE_PRICE_STARTER")),
+    seller: Boolean(env("STRIPE_PRICE_SELLER")),
+    pro: Boolean(env("STRIPE_PRICE_PRO")),
+    aiPack: Boolean(env("STRIPE_PRICE_AI_PACK")),
+  };
+  const secret = Boolean(env("STRIPE_SECRET_KEY"));
+  return {
+    configured: secret && prices.starter,
+    secret,
+    webhook: Boolean(env("STRIPE_WEBHOOK_SECRET")),
+    prices,
+  };
+}
 
 export function stripeConfigured(): boolean {
-  return Boolean(env("STRIPE_SECRET_KEY") && env("STRIPE_PRICE_STARTER"));
+  return stripeSetup().configured;
 }
 
 export function stripePublishable(): string | undefined {
