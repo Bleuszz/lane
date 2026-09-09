@@ -5,37 +5,37 @@ UK-first crosslister. One canonical inventory record; channel listings hang off 
 **This is not a Crosslist clone and it never stores marketplace passwords.**
 
 - eBay UK — official REST OAuth (`sell.inventory`)
-- Vinted UK — Lane Bridge Chrome MV3 extension, using the seller’s signed-in browser session
-- Import up to 200 live listings
-- Universal form → queued publish
-- Mark sold → autodelist other live channels
-- Job log with request ids and retry
-- Honest `waiting_for_browser` / `extension_offline` when Chrome is asleep
+- Vinted UK — Lane Bridge and/or the Windows app WebView session
+- Other channels in `channels.ts` can be connected; publish adapters ship as they are wired
+- 7-day trial, then Starter £12 / month
+- Dark mode (same brand, inverted paper/ink)
+- Windows desktop app in `/desktop`
 
 ## Repo map
 
 | Path | What |
 |---|---|
-| `instructions.txt` | Developer handoff: env, eBay RuName, Cloudflare, domains, what to ask the owner |
-| `extension/` | **Standalone** Chrome/Firefox MV3 Lane Bridge (own README) |
-| `src/lib/lane/listing-fields.ts` | Vinted vs eBay required fields |
-| `src/lib/lane/server/ebay.ts` | eBay Inventory API client |
-| `src/lib/lane/server/process.ts` | Job worker (OAuth jobs only) |
-| `src/lib/lane/server/bridge.ts` | Pairing-token API used by the extension |
-| `src/routes/api/ebay/` | OAuth start + callback |
-| `src/routes/api/bridge/` | `/api/bridge/*` |
-| `migrations/` | Auth + product + live-adapter SQL |
+| `AGENT-PROMPT.md` | **Paste-this prompt** for the next coding agent |
+| `DESKTOP-BRIEF.md` | Pointer to that prompt |
+| `instructions.txt` | Developer handoff |
+| `desktop/` | Electron shell, setup wizard, WebView cookie capture |
+| `extension/` | Chrome/Firefox MV3 Lane Bridge |
+| `src/routes/download.tsx` | Public download page |
 
-## Local
+## Windows installer
+
+On a Windows PC with Node 20+:
 
 ```sh
-cp .env.example .env   # then fill secrets in your host, not necessarily a file
+cd desktop
+BUILD-ON-WINDOWS.bat
+# dist/Lane Setup.exe
+```
+
+## Local web app
+
+```sh
+cp .env.example .env
 npm install
 npm run dev            # 0.0.0.0:8080
 ```
-
-Auth schema: `migrations/0001_auth.sql`. Product: `0002_lane.sql`. Live adapters: `0003_live_adapters.sql`.
-
-## What will not work until the owner supplies keys
-
-Connect eBay without `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` / `EBAY_RU_NAME` fails with a real error. Vinted stays `extension_offline` until Lane Bridge heartbeats from a vinted.co.uk tab. There are no placeholder shops.
