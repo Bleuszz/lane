@@ -1,0 +1,32 @@
+:root {
+  --paper: #f2efe8;
+  --ink: #171512;
+  --muted: #6e6960;
+  --mark: #1a4a3c;
+  --mark-fg: #f4f1ea;
+  --line: #ddd7cc;
+  --surface: #fbf9f5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--paper); color: var(--ink);
+  font: 15px/1.5 "Segoe UI", "IBM Plex Sans", sans-serif; }
+body { display: grid; place-items: center; padding: 24px; }
+.card { width: min(440px, 100%); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 28px 28px 22px; min-height: 420px; display: flex; flex-direction: column; }
+.brand { margin: 0; font-weight: 600; letter-spacing: -0.03em; }
+.step { margin: 4px 0 16px; color: var(--muted); font-size: 12px; }
+h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.03em; margin: 0 0 12px; }
+p { margin: 0 0 12px; color: var(--ink); }
+.muted { color: var(--muted); }
+label { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; font-size: 14px; }
+input[type="text"] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; color: var(--ink); font: inherit; }
+.nav { margin-top: auto; display: flex; justify-content: flex-end; gap: 8px; padding-top: 16px; }
+button { height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); font: 500 13px/1 inherit; cursor: pointer; }
+button.primary { background: var(--mark); color: var(--mark-fg); border-color: var(--mark); }
+button[hidden] { display: none; }
+.dots { display: flex; gap: 6px; justify-content: center; margin-top: 16px; }
+.dots span { width: 7px; height: 7px; border-radius: 99px; background: var(--line); }
+.dots span.on { background: var(--mark); }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
