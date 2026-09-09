@@ -1,0 +1,39 @@
+{
+  "name": "lane-desktop",
+  "productName": "Lane",
+  "version": "0.1.0",
+  "description": "Lane desktop for Windows. Connect marketplaces by signing in on their real sites.",
+  "author": "Lane (UK)",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "dist:dir": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "uk.lane.desktop",
+    "productName": "Lane",
+    "copyright": "Lane (UK)",
+    "directories": { "output": "dist" },
+    "files": ["main.cjs", "preload.cjs", "channels.cjs", "wizard/**/*", "package.json"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "Lane Setup.${ext}",
+      "publisherName": "Lane (UK)"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lane",
+      "uninstallDisplayName": "Lane"
+    }
+  }
+}
