@@ -13,4 +13,4 @@ export const EBAY_CONNECT_COPY =
   "Official eBay REST OAuth. You will be sent to eBay to approve sell.inventory access. Requires EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_RU_NAME and Business Policy IDs on the server.";
 
 export const PHONE_CONNECT_COPY =
-  "Safari and Chrome on a phone cannot hand Vinted’s HttpOnly cookies to a website. Crosslist does this with an in-app browser. Lane’s in-app browser is the Windows app. On a phone, Firefox + Lane Bridge is the working path. 2FA still works inside the Windows Vinted window.";
+  "A phone browser cannot hand Vinted’s login cookies to a website. Generate a link, then tap Open in Lane on this Windows PC — the app opens Vinted, captures the session, and closes the window. Scanning the QR on a phone only works with Firefox + Lane Bridge on Android. Safari cannot capture the session.";

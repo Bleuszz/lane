@@ -1,13 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { connectAccount, disconnectAccount, getBootstrap, getVintedConnectStatus, rotatePairingToken, startVintedConnect } from "@/lib/lane/server/fns";
+import {
+  connectAccount,
+  disconnectAccount,
+  getBootstrap,
+  getVintedConnectStatus,
+  rotatePairingToken,
+  startVintedConnect,
+} from "@/lib/lane/server/fns";
 import { CHANNELS, channelList } from "@/lib/lane/channels";
 import { formatDateTime } from "@/lib/lane/format";
-import { EBAY_CONNECT_COPY, VINTED_CONNECT_COPY } from "@/lib/lane/copy";
+import { EBAY_CONNECT_COPY, PHONE_CONNECT_COPY, VINTED_CONNECT_COPY } from "@/lib/lane/copy";
+import { WINDOWS_DOWNLOAD_URL } from "@/lib/lane/download";
 import { Button, Panel } from "@/components/ui";
 import { ModeChip, StatusBadge } from "@/components/status";
 import { QrImage } from "@/components/qr";
+import { desktopApi } from "@/lib/lane/desktop";
+import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
+import type { MarketplaceId } from "@/lib/lane/types";
 
 export const Route = createFileRoute("/_app/settings/channels")({ component: ChannelsPage });
 
@@ -15,9 +26,25 @@ function ChannelsPage() {
   const qc = useQueryClient();
   const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
   const connect = useMutation({
-    mutationFn: async (marketplace: "vinted_uk" | "ebay_uk") => {
+    mutationFn: async (marketplace: MarketplaceId) => {
       const res = await connectAccount({ data: { marketplace } });
-      if (res.oauthUrl) window.location.assign(res.oauthUrl);
+      if (res.oauthUrl) {
+        window.location.assign(res.oauthUrl);
+        return res;
+      }
+      const desk = desktopApi();
+      const token = boot.data?.settings.pairingToken ?? "";
+      if (desk) {
+        toast("Sign in on the marketplace window. It closes when Lane has the session.");
+        if (desk.setPairing) await desk.setPairing(token, window.location.origin);
+        const r = await desk.connect(marketplace, { pairingToken: token, origin: window.location.origin });
+        if (!r.ok) throw new Error(r.error ?? "Connect window closed before a session was captured.");
+        toast.success(r.username ? `Connected as ${r.username}` : "Connected");
+        return res;
+      }
+      if (marketplace === "vinted_uk") {
+        toast("Download the Windows app to capture the session, or pair Lane Bridge below.");
+      }
       return res;
     },
     onSuccess: () => qc.invalidateQueries(),
@@ -46,25 +73,56 @@ function ChannelsPage() {
     const t = window.setInterval(() => {
       void getVintedConnectStatus({ data: { id: phone.id } }).then((s) => {
         setPhoneStatus(s.status);
-        if (s.status === "completed") void qc.invalidateQueries();
+        if (s.status === "completed") {
+          toast.success("Vinted connected");
+          void qc.invalidateQueries();
+        }
       });
-    }, 3000);
+    }, 2500);
     return () => window.clearInterval(t);
   }, [phone, phoneStatus, qc]);
 
+  const inDesktop = Boolean(desktopApi());
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const laneProtocol = phone
+    ? `lane://connect?marketplace=vinted_uk&token=${encodeURIComponent(token)}&origin=${encodeURIComponent(origin)}&id=${encodeURIComponent(phone.id)}&k=${encodeURIComponent(new URL(phone.url).searchParams.get("k") ?? "")}`
+    : `lane://connect?marketplace=vinted_uk&token=${encodeURIComponent(token)}&origin=${encodeURIComponent(origin)}`;
+
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted">
-        UK pack is default. eBay is official OAuth. Vinted: sign in on Vinted’s site from your phone (QR) or keep Lane
-        Bridge on a signed-in vinted.co.uk tab.
-      </p>
+      <div>
+        <h1 className="text-2xl font-medium tracking-[-0.03em]">Accounts</h1>
+        <p className="mt-1 text-sm text-muted">
+          {inDesktop
+            ? "Connect opens the real site. When you are signed in, Lane takes the session and closes the window."
+            : "One-click connect lives in the Windows app — it is the same Lane account you are signed into now."}
+        </p>
+      </div>
       {connect.error ? <p className="text-sm text-danger">{(connect.error as Error).message}</p> : null}
-      {ebayFlag === "connected" ? <p className="text-sm text-mark">eBay connected.</p> : null}
-      {ebayFlag === "missing_keys" ? (
-        <p className="text-sm text-danger">eBay keys are not set on the server. See instructions.txt.</p>
-      ) : null}
+      {ebayFlag === "connected" ? <p className="text-sm text-ok">eBay connected.</p> : null}
+      {ebayFlag === "missing_keys" ? <p className="text-sm text-danger">eBay keys are not set on the server.</p> : null}
       {ebayFlag === "denied" || ebayFlag === "error" ? (
         <p className="text-sm text-danger">eBay OAuth failed{ebayReason ? `: ${ebayReason}` : "."}</p>
+      ) : null}
+
+      {!inDesktop ? (
+        <Panel className="p-4">
+          <h2 className="text-sm font-medium">Windows app</h2>
+          <p className="mt-1 text-sm text-muted">
+            Sign in here (or in the app) with the same email. The app loads this website, then Connect captures Vinted
+            and closes the tab. Plan, inventory, and shops stay in sync.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a href={WINDOWS_DOWNLOAD_URL} className="inline-flex">
+              <Button size="sm">Download for Windows</Button>
+            </a>
+            <a href={laneProtocol} className="inline-flex">
+              <Button size="sm" variant="secondary">
+                Open in Lane
+              </Button>
+            </a>
+          </div>
+        </Panel>
       ) : null}
 
       <Panel className="p-4">
@@ -81,47 +139,39 @@ function ChannelsPage() {
             Rotate
           </Button>
         </div>
-        <p className="mt-2 text-[11px] text-subtle">
-          Paste this into the extension popup with this site's origin. Rotating immediately disconnects any already-paired
-          browser.
-        </p>
       </Panel>
 
       <Panel className="p-4">
-        <h2 className="text-sm font-medium">Connect Vinted from your phone</h2>
-        <p className="mt-1 text-sm text-muted">
-          Same idea as Crosslist’s App Store flow: you tap through to Vinted’s real login. A website cannot read
-          Vinted’s HttpOnly cookies the way a native in-app browser can, so this page opens a phone link that waits
-          until Firefox + Lane Bridge (Android) or desktop Chrome captures the session. After that, Lane stores the
-          session encrypted and can sync without the tab staying open.
-        </p>
+        <h2 className="text-sm font-medium">Connect Vinted from another device</h2>
+        <p className="mt-1 text-sm text-muted">{PHONE_CONNECT_COPY}</p>
         <Button className="mt-3" disabled={phoneMut.isPending} onClick={() => phoneMut.mutate()}>
-          {phoneMut.isPending ? "Creating link…" : "Create phone connect link"}
+          {phoneMut.isPending ? "Creating link…" : "Create connect link"}
         </Button>
         {phoneMut.error ? <p className="mt-2 text-sm text-danger">{(phoneMut.error as Error).message}</p> : null}
         {phone ? (
           <div className="mt-4 space-y-3">
-            <QrImage value={phone.url} alt="QR code for Vinted connect" />
+            <QrImage value={phone.url} alt="QR code for the Vinted connect page" />
             <p className="break-all font-mono text-[11px] text-muted">{phone.url}</p>
+            <p className="text-xs text-subtle">
+              Phone cameras open this page. On this PC, use Open in Lane so the Windows app does the capture. A phone
+              Safari/Chrome session cannot be sent to Lane.
+            </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" onClick={() => void navigator.clipboard.writeText(phone.url)}>
                 Copy link
               </Button>
               {"share" in navigator ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void navigator.share({ title: "Lane Vinted connect", url: phone.url })}
-                >
+                <Button size="sm" variant="secondary" onClick={() => void navigator.share({ title: "Lane Vinted connect", url: phone.url })}>
                   Share
                 </Button>
               ) : null}
+              <a href={laneProtocol} className="inline-flex">
+                <Button size="sm">Open capture in Windows app</Button>
+              </a>
             </div>
             <p className="text-sm">
               Status:{" "}
-              <span className="font-medium">
-                {phoneStatus === "completed" ? "Connected" : "Waiting for sign-in…"}
-              </span>
+              <span className="font-medium">{phoneStatus === "completed" ? "Connected" : "Waiting for sign-in…"}</span>
             </p>
           </div>
         ) : null}
@@ -135,7 +185,6 @@ function ChannelsPage() {
                 <p className="text-sm font-medium">{a.label}</p>
                 <p className="text-xs text-muted">
                   {a.remoteUsername ?? "Not identified yet"} · {CHANNELS[a.marketplace]?.site}
-                  {a.sandbox ? " · eBay sandbox" : ""}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -149,6 +198,11 @@ function ChannelsPage() {
             </p>
             {a.lastError ? <p className="mt-2 text-sm text-danger">{a.lastError}</p> : null}
             <div className="mt-3 flex flex-wrap gap-2">
+              {a.marketplace === "vinted_uk" && inDesktop ? (
+                <Button size="sm" disabled={connect.isPending} onClick={() => connect.mutate(a.marketplace)}>
+                  Reconnect
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="ghost"
@@ -163,16 +217,13 @@ function ChannelsPage() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {channelList({ includeDisabled: true }).map((c) => {
-          const connected = accounts.some((a) => a.marketplace === c.id);
+          const connected = accounts.some((a) => a.marketplace === c.id && a.status === "green");
           return (
             <Panel key={c.id} className="p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">{c.label}</p>
                 <ModeChip mode={c.mode} />
               </div>
-              <p className="mt-1 text-xs text-muted">
-                {c.enabled ? (c.priority === 0 ? "P0 · UK pack" : `P${c.priority}`) : "Not in MVP"}
-              </p>
               {c.id === "ebay_uk" ? <p className="mt-2 text-xs text-muted">{EBAY_CONNECT_COPY}</p> : null}
               {c.enabled ? (
                 <Button
@@ -180,16 +231,12 @@ function ChannelsPage() {
                   className="mt-3"
                   variant={connected ? "secondary" : "primary"}
                   disabled={connect.isPending}
-                  onClick={() => connect.mutate(c.id as "vinted_uk" | "ebay_uk")}
+                  onClick={() => connect.mutate(c.id)}
                 >
-                  {connected && c.id === "ebay_uk"
-                    ? "Reconnect eBay"
-                    : connected
-                      ? "Connect another account"
-                      : `Connect ${c.short}`}
+                  {connected ? `Reconnect ${c.short}` : `Connect ${c.short}`}
                 </Button>
               ) : (
-                <p className="mt-3 text-xs text-subtle">Ships later. Hidden from the day-one form.</p>
+                <p className="mt-3 text-xs text-subtle">Ships later. Adapter not wired.</p>
               )}
             </Panel>
           );

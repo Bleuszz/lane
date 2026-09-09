@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lane</title>
+    <style>
+      :root {
+        --paper: #0d0d0d;
+        --ink: #e8e8ea;
+        --muted: #9a9aa2;
+        --subtle: #6e6e76;
+        --line: #2a2a2e;
+        --raised: #1c1c1c;
+        --mark: #4d8dff;
+        --mark-fg: #0d0d0d;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font: 15px/1.5 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        min-height: 100%;
+        display: grid;
+        place-items: center;
+        padding: 32px 20px;
+      }
+      .card { width: min(440px, 100%); }
+      .mark { width: 20px; height: 20px; color: var(--mark); }
+      h1 {
+        margin: 16px 0 0;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+      }
+      p { color: var(--muted); margin: 12px 0 0; }
+      label {
+        display: block;
+        margin-top: 24px;
+        font-size: 12px;
+        color: var(--subtle);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      input {
+        margin-top: 8px;
+        width: 100%;
+        height: 44px;
+        border: 1px solid var(--line);
+        background: var(--raised);
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 0 12px;
+        font: inherit;
+      }
+      input:focus { outline: 2px solid var(--mark); outline-offset: 2px; }
+      button {
+        margin-top: 16px;
+        height: 44px;
+        width: 100%;
+        border: 0;
+        border-radius: 8px;
+        background: var(--mark);
+        color: var(--mark-fg);
+        font: 500 14px/1 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.4; cursor: default; }
+      .err { color: #f07167; font-size: 13px; margin-top: 10px; min-height: 1.2em; }
+      .hint { font-size: 12px; color: var(--subtle); margin-top: 16px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
+          <rect x="4" y="2.5" width="2.4" height="15" fill="currentColor" />
+          <rect x="13.6" y="2.5" width="2.4" height="15" fill="currentColor" />
+        </svg>
+        <h1>This is Lane. Point it at your account.</h1>
+        <p>
+          The Windows app is a shell around the Lane website — same login, same plan, same inventory.
+          Paste the URL from Cloudflare (or later, your own domain). Then sign in. Connect opens Vinted
+          in a real window and closes itself when the session is captured.
+        </p>
+        <form id="form">
+          <label for="url">Lane URL</label>
+          <input id="url" type="url" required placeholder="https://lane-xxxx.pages.dev" spellcheck="false" />
+          <button type="submit" id="go">Open Lane</button>
+          <p class="err" id="err"></p>
+        </form>
+        <p class="hint">You can change this later from File → Change Lane URL (press Alt).</p>
+      </div>
+    </main>
+    <script>
+      const form = document.getElementById("form");
+      const input = document.getElementById("url");
+      const err = document.getElementById("err");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        err.textContent = "";
+        const raw = input.value.trim();
+        let url;
+        try {
+          url = new URL(raw);
+        } catch {
+          err.textContent = "That doesn’t look like a URL.";
+          return;
+        }
+        if (url.protocol !== "https:" && url.protocol !== "http:") {
+          err.textContent = "Use http or https.";
+          return;
+        }
+        if (url.hostname === "github.com" || url.hostname === "www.github.com") {
+          err.textContent = "That’s the GitHub repo, not the Lane website. Paste the Cloudflare URL.";
+          return;
+        }
+        if (!window.lane || !window.lane.setAppUrl) {
+          err.textContent = "Desktop bridge missing. Restart Lane.exe.";
+          return;
+        }
+        await window.lane.setAppUrl(url.origin);
+      });
+    </script>
+  </body>
+</html>

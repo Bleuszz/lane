@@ -39,7 +39,7 @@ import {
 import { ebayConfigured, randomToken } from "./secret";
 import { conditionFromLabel } from "@/lib/lane/condition";
 import { ebayListInventory } from "./ebay";
-import { liveVintedToken, vintedCurrentUser, vintedListWardrobe } from "./vinted";
+import { liveVintedToken, vintedCurrentUser, vintedListWardrobe, vintedSocial } from "./vinted";
 import { stripeConfigured, stripeForm, priceIdFor, stripeSetup } from "./stripe";
 import { getRequest } from "@tanstack/react-start/server";
 
@@ -349,9 +349,8 @@ export const connectAccount = createServerFn({ method: "POST" })
       return { oauthUrl: "/api/ebay/start" };
     }
 
-    if (accounts.some((a) => a.marketplace === data.marketplace && a.label === (data.label || def.label))) {
-      throw new Error("That account is already connected.");
-    }
+    const existingSame = accounts.find((a) => a.marketplace === data.marketplace);
+    if (existingSame) return { id: existingSame.id };
 
     const id = makeId("acc");
     await sql`
@@ -1118,6 +1117,25 @@ export const completeOnboarding = createServerFn({ method: "POST" })
     await ensureUser(sql, context.userId);
     await sql`update user_settings set onboarding_complete = true, onboarding_step = 5 where user_id = ${context.userId}`;
     return { ok: true as const };
+  });
+
+export const getVintedSocial = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const accounts = await sql<{ id: string }>`
+      select id from marketplace_accounts
+      where user_id = ${context.userId} and marketplace = ${"vinted_uk"} and status = ${"green"}
+      limit 1
+    `;
+    if (!accounts[0]) return { likes: [], offers: [], connected: false as const };
+    try {
+      const { access } = await liveVintedToken(sql, context.userId, accounts[0].id);
+      const social = await vintedSocial(access);
+      return { ...social, connected: true as const };
+    } catch {
+      return { likes: [], offers: [], connected: true as const };
+    }
   });
 
 function csvEscape(value: string) {

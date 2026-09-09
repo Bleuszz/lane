@@ -1,14 +1,13 @@
 import { createFileRoute, Link, Navigate, useRouteContext } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { LEGAL_FOOTER } from "@/lib/lane/copy";
+import { WINDOWS_DOWNLOAD_URL } from "@/lib/lane/download";
 import { PLAN_DEFS } from "@/lib/lane/plans";
 import { formatMoney } from "@/lib/lane/format";
 import { desktopApi } from "@/lib/lane/desktop";
 import { LaneWordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui";
-
-const EXE = "https://drive.google.com/file/d/1xA-AdbuV1fZMP9XpfUui6JccytpRS7Vk/view";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -25,7 +24,7 @@ function Home() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {!inDesktop ? (
-            <a href={EXE} className="hidden text-sm text-muted hover:text-ink sm:inline">
+            <a href={WINDOWS_DOWNLOAD_URL} className="hidden text-sm text-muted hover:text-ink sm:inline">
               Download Windows
             </a>
           ) : null}
@@ -49,7 +48,7 @@ function Home() {
             <Button size="lg">Start 7-day free trial</Button>
           </Link>
           {!inDesktop ? (
-            <a href={EXE} className="inline-flex">
+            <a href={WINDOWS_DOWNLOAD_URL} className="inline-flex">
               <Button size="lg" variant="secondary">
                 Download for Windows
               </Button>

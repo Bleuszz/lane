@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSql } from "@/lib/db";
-import { saveVintedSession } from "@/lib/lane/server/vinted";
+import { saveVintedSession, tokensFromCookieJar } from "@/lib/lane/server/vinted";
 import { tokensEqual } from "@/lib/lane/server/secret";
 
 export const Route = createFileRoute("/api/vinted/connect/$")({
@@ -46,13 +46,21 @@ async function handle(request: Request): Promise<Response> {
   }
 
   if (request.method === "POST") {
-    const body = (await request.json().catch(() => ({}))) as { refreshToken?: string; accessToken?: string };
-    const refresh = String(body.refreshToken ?? "").trim();
-    if (!refresh) return json({ error: "refreshToken required" }, 400);
+    const body = (await request.json().catch(() => ({}))) as {
+      refreshToken?: string;
+      accessToken?: string;
+      cookies?: Array<{ name?: string; value?: string }>;
+    };
+    const jar = Array.isArray(body.cookies) ? body.cookies : null;
+    const fromJar = tokensFromCookieJar(jar);
+    const refresh = String(body.refreshToken ?? "").trim() || fromJar.refresh;
+    const access = String(body.accessToken ?? "").trim() || fromJar.access;
+    if (!refresh && !access) return json({ error: "refreshToken or accessToken required" }, 400);
     try {
       const saved = await saveVintedSession(sql, userId, {
-        accessToken: body.accessToken ?? null,
-        refreshToken: refresh,
+        accessToken: access || null,
+        refreshToken: refresh || access,
+        cookies: jar,
       });
       return json({ ok: true, username: saved.username, status: "completed" });
     } catch (err) {

@@ -12,7 +12,7 @@ export function applyTheme(theme: LaneTheme) {
   if (typeof document === "undefined") return;
   document.documentElement.dataset.theme = theme;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", theme === "dark" ? "#0a0a0b" : "#f4f4f5");
+  if (meta) meta.setAttribute("content", theme === "dark" ? "#0d0d0d" : "#f6f7f9");
 }
 
 export function persistTheme(theme: LaneTheme) {

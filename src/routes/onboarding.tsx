@@ -4,9 +4,11 @@ import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { completeOnboarding, connectAccount, getBootstrap, importRemote, previewRemote } from "@/lib/lane/server/fns";
 import { EBAY_CONNECT_COPY, EXTENSION_HONESTY, LEGAL_FOOTER, VINTED_CONNECT_COPY } from "@/lib/lane/copy";
+import { desktopApi } from "@/lib/lane/desktop";
 import { LaneWordmark } from "@/components/logo";
 import { Button } from "@/components/ui";
 import { ModeChip } from "@/components/status";
+import { toast } from "sonner";
 import { useState } from "react";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
@@ -32,6 +34,15 @@ function Onboarding() {
       const res = await connectAccount({ data: { marketplace } });
       if (res.oauthUrl) {
         window.location.assign(res.oauthUrl);
+        return res;
+      }
+      const desk = desktopApi();
+      if (desk && marketplace === "vinted_uk") {
+        toast("Sign in on Vinted. The window closes when Lane has the session.");
+        if (desk.setPairing) await desk.setPairing(token, window.location.origin);
+        const r = await desk.connect(marketplace, { pairingToken: token, origin: window.location.origin });
+        if (!r.ok) throw new Error(r.error ?? "Connect window closed before a session was captured.");
+        toast.success(r.username ? `Connected as ${r.username}` : "Connected");
       }
       return res;
     },
@@ -75,11 +86,10 @@ function Onboarding() {
 
         <ol className="mt-8 space-y-4">
           <li className="rounded-[var(--radius-md)] border border-line bg-surface p-4">
-            <h2 className="text-sm font-medium">1. Lane Bridge Chrome extension</h2>
+            <h2 className="text-sm font-medium">1. Lane Bridge (optional fallback)</h2>
             <p className="mt-1 text-sm text-muted">
-              Load the unpacked extension from the <span className="font-mono">extension/</span> folder in this repo
-              (chrome://extensions → Developer mode → Load unpacked). Pair it with this token. It only runs while a
-              tab is open on vinted.co.uk.
+              The Windows app is the main connect path. Lane Bridge is the fallback if you work in Chrome or Firefox.
+              Load the unpacked extension from the <span className="font-mono">extension/</span> folder.
             </p>
             <div className="mt-3 flex items-center gap-2">
               <code className="block flex-1 truncate rounded-[var(--radius-sm)] bg-raised px-2 py-2 font-mono text-[11px]">

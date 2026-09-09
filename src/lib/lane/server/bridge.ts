@@ -4,7 +4,7 @@ import { makeId } from "@/lib/lane/ids";
 import type { MarketplaceId } from "@/lib/lane/types";
 import { applySale, applyExtensionJobResult, markExtensionHealth } from "./process";
 import { loadItem } from "./map";
-import { saveVintedSession } from "./vinted";
+import { saveVintedSession, tokensFromCookieJar } from "./vinted";
 import { tokensEqual } from "./secret";
 
 export type BridgeUser = { userId: string; pairingToken: string };
@@ -91,11 +91,15 @@ export async function handleBridge(request: Request): Promise<Response> {
     }
     if (request.method === "POST" && path === "session") {
       const body = await readJson(request);
-      const refresh = body.refreshToken ? String(body.refreshToken) : "";
-      if (!refresh) return json(request, { error: "refreshToken required" }, 400);
+      const jar = Array.isArray(body.cookies) ? (body.cookies as Array<{ name?: string; value?: string }>) : null;
+      const fromJar = tokensFromCookieJar(jar);
+      const refresh = (body.refreshToken ? String(body.refreshToken) : "") || fromJar.refresh;
+      const access = (body.accessToken ? String(body.accessToken) : "") || fromJar.access;
+      if (!refresh && !access) return json(request, { error: "refreshToken or accessToken required" }, 400);
       const saved = await saveVintedSession(sql, user.userId, {
-        accessToken: body.accessToken ? String(body.accessToken) : null,
-        refreshToken: refresh,
+        accessToken: access || null,
+        refreshToken: refresh || access,
+        cookies: jar,
       });
       return json(request, { ok: true, username: saved.username });
     }

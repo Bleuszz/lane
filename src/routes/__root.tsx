@@ -23,7 +23,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "theme-color", content: "#0a0a0b" },
+      { name: "theme-color", content: "#0d0d0d" },
       {
         name: "description",
         content: "UK reseller crosslisting. One inventory, every channel. Sign in on the marketplace’s own page.",

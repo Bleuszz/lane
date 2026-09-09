@@ -80,6 +80,30 @@ export async function vintedCurrentUser(access: string): Promise<{ id: string; l
   return { id: String(user.id), login: String(user.login ?? "vinted") };
 }
 
+export function tokensFromCookieJar(
+  cookies?: Array<{ name?: string; value?: string }> | null,
+): { access: string; refresh: string } {
+  if (!Array.isArray(cookies)) return { access: "", refresh: "" };
+  const byName = (n: string) => cookies.find((c) => c.name === n)?.value || "";
+  let refresh = byName("refresh_token_web") || byName("refresh_token") || "";
+  let access = byName("access_token_web") || byName("access_token") || "";
+  for (const c of cookies) {
+    const name = String(c.name || "");
+    const value = String(c.value || "");
+    if (!value || value.length < 20) continue;
+    if (!refresh && /refresh[_-]?token/i.test(name)) refresh = value;
+    if (!access && /access[_-]?token/i.test(name)) access = value;
+    if (!access && /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(value) && value.length > 40) access = value;
+  }
+  return { access, refresh };
+}
+
+export type VintedSessionInput = {
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  cookies?: Array<{ name?: string; value?: string }> | null;
+};
+
 export type VintedRemote = {
   remoteId: string;
   title: string;
@@ -169,23 +193,37 @@ export async function liveVintedToken(
 export async function saveVintedSession(
   sql: Sql,
   userId: string,
-  tokens: { accessToken?: string | null; refreshToken: string },
+  tokens: VintedSessionInput,
 ): Promise<{ accountId: string; username: string }> {
-  const refreshed = await refreshVintedToken(tokens.refreshToken);
-  const access = tokens.accessToken || refreshed.access;
+  const fromJar = tokensFromCookieJar(tokens.cookies);
+  let access = tokens.accessToken ? String(tokens.accessToken) : fromJar.access;
+  let refresh = tokens.refreshToken ? String(tokens.refreshToken) : fromJar.refresh;
+  let expiresIn = 3600;
+  if (refresh) {
+    try {
+      const refreshed = await refreshVintedToken(refresh);
+      access = access || refreshed.access;
+      refresh = refreshed.refresh;
+      expiresIn = refreshed.expiresIn;
+    } catch {
+      if (!access) throw new Error("Vinted rejected the captured refresh token. Sign in again in the Connect window.");
+    }
+  }
+  if (!access) throw new Error("No Vinted access token in the captured session.");
   const ident = await vintedCurrentUser(access);
+  const storeRefresh = refresh || access;
   const existing = await sql<{ id: string }>`
     select id from marketplace_accounts
     where user_id = ${userId} and marketplace = ${"vinted_uk"}
     order by created_at asc limit 1
   `;
   const id = existing[0]?.id ?? makeId("acc");
-  const expires = new Date(Date.now() + refreshed.expiresIn * 1000).toISOString();
+  const expires = new Date(Date.now() + expiresIn * 1000).toISOString();
   if (existing[0]) {
     await sql`
       update marketplace_accounts set
         oauth_access_token = ${seal(access)},
-        oauth_refresh_token = ${seal(refreshed.refresh)},
+        oauth_refresh_token = ${seal(storeRefresh)},
         oauth_expires_at = ${expires},
         oauth_connected = ${true},
         remote_user_id = ${ident.id},
@@ -204,7 +242,7 @@ export async function saveVintedSession(
         oauth_connected, oauth_access_token, oauth_refresh_token, oauth_expires_at, sandbox
       ) values (
         ${id}, ${userId}, ${"vinted_uk"}, ${"extension"}, ${"Vinted UK"}, ${ident.id}, ${ident.login},
-        ${"green"}, ${true}, ${seal(access)}, ${seal(refreshed.refresh)}, ${expires}, ${false}
+        ${"green"}, ${true}, ${seal(access)}, ${seal(storeRefresh)}, ${expires}, ${false}
       )
     `;
   }
@@ -354,4 +392,45 @@ async function materialisePhoto(url: string): Promise<Blob | null> {
   const buf = await res.arrayBuffer();
   const type = res.headers.get("content-type") || "image/jpeg";
   return new Blob([buf], { type });
+}
+
+export type VintedLike = {
+  id: string;
+  actor: string;
+  title: string;
+  photoUrl: string | null;
+  at: string | null;
+};
+export type VintedOffer = {
+  id: string;
+  actor: string;
+  title: string;
+  priceGbp: number | null;
+  at: string | null;
+};
+
+export async function vintedSocial(access: string): Promise<{ likes: VintedLike[]; offers: VintedOffer[] }> {
+  const likes: VintedLike[] = [];
+  const offers: VintedOffer[] = [];
+  const n = await vintedFetch<Record<string, unknown>>(access, "GET", "/api/v2/notifications?page=1&per_page=30");
+  const raw = n.json.notifications ?? n.json.items ?? n.json.entries ?? n.json.data;
+  const list = (Array.isArray(raw) ? raw : []) as Array<Record<string, unknown>>;
+  for (const row of list) {
+    const type = String(row.type ?? row.entry_type ?? row.kind ?? row.subtype ?? "").toLowerCase();
+    const id = String(row.id ?? row.uuid ?? `${likes.length}-${offers.length}`);
+    const actorObj = (row.user ?? row.actor ?? row.from_user ?? {}) as Record<string, unknown>;
+    const actor = String(actorObj.login ?? actorObj.username ?? row.username ?? "Someone");
+    const item = (row.item ?? row.subject ?? {}) as Record<string, unknown>;
+    const title = String(item.title ?? row.title ?? row.body ?? "your item");
+    const photo = (item.photo as { url?: string } | undefined)?.url ?? null;
+    const at = row.created_at ? String(row.created_at) : row.updated_at ? String(row.updated_at) : null;
+    if (/favou?rite|like|hearted/.test(type)) {
+      likes.push({ id, actor, title, photoUrl: photo, at });
+    } else if (/offer|price_offer/.test(type)) {
+      const nested = row.offer as { price?: number; amount?: string } | undefined;
+      const price = Number(nested?.price ?? nested?.amount ?? row.price ?? 0);
+      offers.push({ id, actor, title, priceGbp: Number.isFinite(price) && price > 0 ? price : null, at });
+    }
+  }
+  return { likes: likes.slice(0, 12), offers: offers.slice(0, 12) };
 }
