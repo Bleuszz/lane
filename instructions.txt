@@ -3,7 +3,7 @@ LANE — DEVELOPER HANDOFF
 Product: Lane (UK-first crosslisting SaaS)
 Owner: VEIL (GitHub: Bleuszz)
 Repo: https://github.com/Bleuszz/lane
-Date: 8 September 2026
+Date: 9 September 2026
 
 Read this whole file before changing code or deploying. The control plane
 (this web app) is real. Marketplace side-effects are real only after the
@@ -21,14 +21,17 @@ placeholder accounts are purged on the next signed-in load.
 Now:
 
   • Connect Vinted creates an extension-mode account in status
-    extension_offline. It stays that way until Lane Bridge heartbeats.
+    extension_offline until Lane Bridge heartbeats OR a session token
+    is captured (phone QR / cookies API).
   • Connect eBay 302s to official eBay OAuth. No shop is inserted until
     the callback stores real tokens (AES-256-GCM sealed with
     BETTER_AUTH_SECRET).
-  • Vinted jobs never complete in the Lane tab. They sit in
-    waiting_for_browser until the extension POSTs /api/bridge/jobs/:id/result.
-  • eBay jobs run on the server via Inventory API
-    (location → inventory_item → offer → publish; withdraw on delist).
+  • Vinted jobs sit in waiting_for_browser unless a sealed refresh
+    token is on the account — then the worker runs them like eBay.
+  • eBay jobs run on the server via Inventory API.
+  • Inventory is 10-per-page with Select page / Select all / Delete.
+  • Billing Checkout hits Stripe when keys exist; otherwise the
+    switcher only changes caps (preview).
 
 If something “isn’t working” in the Grok live preview, that is expected:
 the preview cannot run a real Chrome extension or complete eBay OAuth
@@ -80,14 +83,27 @@ token lookup lives in src/lib/lane/server/bridge.ts.
 Copy .env.example into the host secret store (Vercel / Cloudflare /
 Hyperdrive). Never commit .env.
 
-Chrome extension (required for Vinted):
+Chrome / Firefox extension (required to capture a Vinted session):
 
   1. chrome://extensions → Developer mode → Load unpacked → ./extension
+     Firefox desktop: about:debugging#/runtime/this-firefox → Load Temporary
+     Add-on → extension/manifest.json
+     Firefox Android: Install Firefox from Play Store → Debug via
+     about:debugging from desktop OR sign the add-on (gecko id
+     lane-bridge@lane.app). Chrome on Android cannot run extensions.
   2. Sign in to Lane, open Settings → Channels, copy pairing token (lnb_…)
+     On the phone connect page the same token is shown after you scan the QR.
   3. Extension popup: Lane origin = the app URL with no trailing slash
      (local: http://127.0.0.1:8080). Grant host permission when prompted.
-  4. Sign in to https://www.vinted.co.uk and LEAVE THAT TAB OPEN.
+     Accept the cookies permission — Lane Bridge reads access_token_web
+     and refresh_token_web and POSTs them to /api/bridge/session.
+  4. Sign in to https://www.vinted.co.uk. The extension uploads the session
+     on pair, on each poll, and every minute via alarm. Once a sealed
+     refresh token is stored, the tab does not need to stay open for
+     server-side sync/publish (DataDome on datacentre IPs still parks
+     jobs as waiting_for_browser — then the tab IS required).
   5. Click Test in the popup. /api/bridge/me must return 200.
+
 
 
 4. ENVIRONMENT (ALL REQUIRED FOR LIVE EBAY)
@@ -230,16 +246,142 @@ regressed. Revert.
   src/routes/_app.import.tsx           remote + CSV
   src/routes/_app.activity.tsx         job log
   src/routes/_app.sold.tsx             GMV
-  src/routes/_app.settings.channels.tsx pairing token, OAuth, disconnect
-  src/lib/lane/server/fns.ts           server functions (no placeholders)
-  src/lib/lane/server/process.ts       OAuth worker + applyExtensionJobResult
-  src/lib/lane/server/ebay.ts          Inventory API
-  src/lib/lane/server/bridge.ts        pairing API
-  src/lib/lane/server/secret.ts        seal/unseal, OAuth state, ebayConfigured
-  migrations/0001_auth.sql
-  migrations/0002_lane.sql
-  migrations/0003_live_adapters.sql    tokens, pairing, ebay_offer_id
-  migrations/0004_honest_defaults.sql  extension_awake default false
+  src/routes/connect.vinted.$id.tsx    phone connect (no Lane login; secret in URL)
+  src/routes/api/vinted/connect/$.ts   status + token ingest for that session
+  src/routes/api/stripe/webhook.ts     Stripe HMAC webhook
+  src/lib/lane/server/vinted.ts        refresh_token → wardrobe / publish / delete
+  src/lib/lane/server/stripe.ts        Checkout + signature verify
+  src/routes/_app.settings.billing.tsx live Checkout when keys exist
+  src/routes/_app.inventory.index.tsx  10/page, select all, bulk delete
+  migrations/0005_connect_billing.sql  connect sessions + stripe customer ids
+
+
+7b. VINTED PHONE CONNECT — WHAT CROSSLIST ACTUALLY DOES
+-------------------------------------------------------
+Researched 9 Sep 2026.
+
+Crosslist desktop (their own docs):
+  “make sure you are logged into the correct Vinted account in a new
+  tab of the same browser you are using with Crosslist.”
+  Vinted autodelist is Chrome-extension based. The computer must stay
+  awake. This is NOT server-side Vinted OAuth — Vinted has no public
+  seller API.
+
+Crosslist iOS/Android (App Store):
+  Native app. Connect opens an in-app browser sheet (WKWebView /
+  Chrome Custom Tab) on vinted.co.uk. The user types email/password
+  or uses Apple/Google/2FA on Vinted’s real page. The native layer
+  then reads HttpOnly cookies (access_token_web, refresh_token_web)
+  from the WebView cookie store and uploads them to Crosslist
+  servers. Same pattern as Evriwhere’s published Vinted help:
+  “After you successfully sign in, Evriwhere securely captures the
+  authentication session from Vinted. The web browser sheet will
+  close on its own.”
+
+What a WEBSITE cannot do:
+  • Read HttpOnly cookies on vinted.co.uk from another origin.
+  • Iframe Vinted (X-Frame-Options).
+  • Reverse-proxy Vinted login (that is phishing — do not).
+  • Run an unpacked Chrome extension on iOS Safari.
+
+What Lane ships instead (honest, working):
+
+  1. Settings → Channels → “Create phone connect link”
+     QR (generated locally — do not send the secret URL to a
+     third-party QR CDN) + URL /connect/vinted/:id?k=secret (20 min).
+  2. Phone opens Vinted’s real login (email, Apple, Google, 2FA).
+  3. Capture paths that actually work:
+       a. Android Firefox (or desktop Chrome) + Lane Bridge.
+          Extension now has cookies permission and POSTs
+          refresh_token_web to /api/bridge/session. Tokens are
+          AES-256-GCM sealed on marketplace_accounts.oauth_*.
+       b. Advanced paste of refresh_token_web on the phone page
+          (never the password).
+  4. Once a refresh token is stored, Lane refreshes it via
+     POST https://www.vinted.co.uk/oauth/token
+     grant_type=refresh_token, client_id=web
+     and can sync wardrobe / publish / delist from the server.
+     Datacentre IPs are often DataDome-blocked — if so, jobs
+     park as waiting_for_browser and the extension is the fallback.
+
+  iPhone first-time capture still needs a native WebView (Crosslist
+  has an App Store binary; we do not). Do not fake a green connect
+  after “I’ve signed in” with no token. A follow-up iOS app using
+  WKWebView + HTTPCookieStore is the only way to match Crosslist’s
+  one-tap iPhone connect exactly.
+
+  Do NOT collect Vinted email+password on a Lane form even though
+  POST /oauth/token grant_type=password exists. Owner rule.
+
+
+7c. STRIPE BILLING — MAKE IT CHARGE
+-----------------------------------
+Plans (GBP, monthly, 3-day refund if < 20 live publishes):
+
+  Starter  £12   150 actions / 2 accounts     STRIPE_PRICE_STARTER
+  Seller   £24   600 actions / 6 accounts     STRIPE_PRICE_SELLER
+  Pro      £39   2000 actions / unlimited     STRIPE_PRICE_PRO
+  AI pack  £5    add-on, never auto-publishes STRIPE_PRICE_AI_PACK
+
+Code already in repo (no Stripe SDK — raw HTTPS):
+
+  src/lib/lane/server/stripe.ts
+  src/routes/api/stripe/webhook.ts     POST /api/stripe/webhook
+  startStripeCheckout / startStripePortal in fns.ts
+  Settings → Billing uses Checkout when stripeConfigured() is true.
+
+Do this in Stripe Dashboard (test first, then live):
+
+  1. Create a Product “Lane Starter” etc. Recurring monthly GBP.
+     Copy the price ids (price_...) into env. Same for AI pack.
+  2. Customer portal: Settings → Billing → Customer portal
+     (allow plan switch, cancel at period end).
+  3. Webhook endpoint:
+       https://YOUR_ORIGIN/api/stripe/webhook
+     Events:
+       checkout.session.completed
+       customer.subscription.updated
+       customer.subscription.deleted
+       invoice.payment_failed
+     Copy the signing secret → STRIPE_WEBHOOK_SECRET
+  4. Env:
+       STRIPE_SECRET_KEY=sk_...
+       STRIPE_PUBLISHABLE_KEY=pk_...   (optional; Checkout is hosted)
+       STRIPE_WEBHOOK_SECRET=whsec_...
+       STRIPE_PRICE_STARTER=price_...
+       STRIPE_PRICE_SELLER=price_...
+       STRIPE_PRICE_PRO=price_...
+       STRIPE_PRICE_AI_PACK=price_...
+  5. Smoke:
+       • Subscribe Starter with 4000 0000 0000 0002
+       • Webhook sets user_settings.plan, stripe_customer_id,
+         billing_status=active
+       • Manage billing opens the portal
+       • Cancel → billing_status=canceled
+       • Failed payment → past_due
+  6. When STRIPE_SECRET_KEY is set, the in-app “Switch” plan
+     buttons are disabled (they throw). Users must Checkout.
+     Without keys, Switch only changes caps — preview behaviour.
+
+Refund policy copy is already on the Billing page. Enforce the
+“< 20 live publishes” check in the portal cancellation flow or
+manually until you add a Stripe Customer Portal function.
+
+Do not put card numbers in Lane. Hosted Checkout only.
+
+
+7d. INVENTORY BULK + DELETE
+---------------------------
+Inventory list is 10 rows per page.
+
+  Header checkbox = this page
+  “Select all N” = every row matching the current filter
+  Bulk bar: Publish, Delist, Delete, find/replace
+  Delete removes Lane rows (photos, tags, channel_listings, jobs, sales).
+  It does NOT end live marketplace listings — Delist first.
+  Item page has a red Delete as well as Archive.
+
+Archive still hides (status=archived). Delete is gone.
 
 Canonical model: items 1—N channel_listings. Sales decrement quantity.
 qty 0 ⇒ enqueue delist on remaining live/queued/waiting listings.
@@ -342,10 +484,14 @@ something you cannot create:
       their email).
   [ ] Neon account (or permission to create).
   [ ] Domain choice A (which name) vs B (free hostname).
-  [ ] Stripe live keys, when you turn billing on (plans are Starter
-      £12 / Seller £24 / Pro £39 + AI pack £5; currently applied
-      in-app without charging).
+  [ ] Stripe live keys + price ids (Starter £12 / Seller £24 / Pro £39
+      + AI pack £5). Until those exist, Billing only changes caps.
+      See §7c. Report back if you need the owner’s Stripe account.
   [ ] A Vinted catalog leaf that will not resolve by name.
+  [ ] Apple Developer account — only if they insist on Crosslist-style
+      one-tap iPhone connect. That needs a native WKWebView app; a
+      website cannot do it. Firefox Android + Lane Bridge is the
+      working phone path today.
 
 If none of those apply — finish, deploy on the free Cloudflare
 hostname, pair the extension, run §7, and send them:
@@ -362,7 +508,8 @@ hostname, pair the extension, run §7, and send them:
   • Re-add SEED_WARDROBE to connectAccount or importRemote.
   • Insert usernames london_rails / lane_uk_shop.
   • Complete Vinted jobs from heartbeat() in the web app.
-  • Store Vinted cookies or passwords on the server.
+  • Store Vinted *passwords*. Sealed refresh_token_web after the user
+    signed in on Vinted’s own site is allowed.
   • Use a fake London warehouse address when location env is missing.
   • Mark the extension green from a button in the Lane tab.
   • Claim Cloudflare is live until you have deployed it from an

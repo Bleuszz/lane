@@ -39,6 +39,22 @@ async function laneFetch(path, { method = "GET", body } = {}) {
   return json;
 }
 
+async function uploadVintedCookies() {
+  if (!chrome.cookies?.getAll) return;
+  try {
+    const cookies = await chrome.cookies.getAll({ domain: "vinted.co.uk" });
+    const access = cookies.find((c) => c.name === "access_token_web")?.value;
+    const refresh = cookies.find((c) => c.name === "refresh_token_web")?.value;
+    if (!refresh) return;
+    await laneFetch("session", {
+      method: "POST",
+      body: { accessToken: access ?? null, refreshToken: refresh },
+    });
+  } catch {
+    /* pairing not ready or cookies permission missing */
+  }
+}
+
 const lastCatalogAt = { t: 0 };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -56,11 +72,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!granted) throw new Error("Lane origin permission was not granted.");
       }
       await chrome.storage.local.set({ origin, token });
+      await uploadVintedCookies();
       return { ok: true };
     }
     if (msg?.type === "POLL") {
       const cfg = await getConfig();
       if (!cfg.ready) return { paired: false, jobs: [] };
+      await uploadVintedCookies();
       const heartbeat = await laneFetch("heartbeat", {
         method: "POST",
         body: {
@@ -122,6 +140,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.alarms.create("lane-bridge-nudge", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(async () => {
+  await uploadVintedCookies();
   const tabs = await chrome.tabs.query({ url: ["https://www.vinted.co.uk/*", "https://vinted.co.uk/*"] });
   if (tabs.length === 0) return;
   for (const tab of tabs) {

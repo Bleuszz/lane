@@ -110,9 +110,14 @@ function Onboarding() {
                 {vinted.remoteUsername ? ` · ${vinted.remoteUsername}` : " · waiting for the extension to identify you"}
               </p>
             ) : (
-              <Button className="mt-3" disabled={connect.isPending} onClick={() => connect.mutate("vinted_uk")}>
-                Connect Vinted
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button disabled={connect.isPending} onClick={() => connect.mutate("vinted_uk")}>
+                  Connect Vinted
+                </Button>
+                <Link to="/settings/channels">
+                  <Button variant="secondary">Connect from phone</Button>
+                </Link>
+              </div>
             )}
           </li>
           <li className="rounded-[var(--radius-md)] border border-line bg-surface p-4">

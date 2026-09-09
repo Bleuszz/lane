@@ -22,10 +22,11 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "scripting", "alarms"],
+  "permissions": ["storage", "scripting", "alarms", "cookies"],
   "host_permissions": [
     "https://www.vinted.co.uk/*",
-    "https://vinted.co.uk/*"
+    "https://vinted.co.uk/*",
+    "*://*.vinted.co.uk/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
@@ -44,5 +45,14 @@
       "resources": ["injected.js"],
       "matches": ["https://www.vinted.co.uk/*", "https://vinted.co.uk/*"]
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "lane-bridge@lane.app",
+      "strict_min_version": "109.0"
+    },
+    "gecko_android": {
+      "strict_min_version": "120.0"
+    }
+  }
 }

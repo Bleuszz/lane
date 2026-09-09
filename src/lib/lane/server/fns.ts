@@ -39,6 +39,9 @@ import {
 import { ebayConfigured, randomToken } from "./secret";
 import { conditionFromLabel } from "@/lib/lane/condition";
 import { ebayListInventory } from "./ebay";
+import { liveVintedToken, vintedCurrentUser, vintedListWardrobe } from "./vinted";
+import { stripeConfigured, stripeForm, priceIdFor } from "./stripe";
+import { getRequest } from "@tanstack/react-start/server";
 
 const marketplaceSchema = z.string().refine(isMarketplaceId, "Unknown marketplace");
 
@@ -244,6 +247,7 @@ export const getBootstrap = createServerFn({ method: "GET" })
       draftCount: countMap.draft ?? 0,
       gmvGbp: num0(gmv[0]?.gmv),
       ebayConfigured: ebayConfigured(),
+      stripeConfigured: stripeConfigured(),
     };
   });
 
@@ -417,12 +421,46 @@ export const syncRemoteCatalog = createServerFn({ method: "POST" })
       return { source: "ebay" as const, upserted, waiting: false as const };
     }
 
+    if (account.marketplace === "vinted_uk" && account.hasServerSession) {
+      const { access, remoteUserId } = await liveVintedToken(sql, context.userId, account.id);
+      const userId = remoteUserId ?? (await vintedCurrentUser(access)).id;
+      const live = await vintedListWardrobe(access, userId);
+      let upserted = 0;
+      for (const row of live) {
+        const existing = await sql<{ id: string }>`
+          select id from remote_listings where account_id = ${account.id} and remote_id = ${row.remoteId} and user_id = ${context.userId}
+        `;
+        if (existing[0]) {
+          await sql`
+            update remote_listings set
+              url = ${row.url}, title = ${row.title}, description = ${row.description}, price_gbp = ${row.priceGbp},
+              status = ${row.status}, photo_url = ${row.photoUrl}, brand = ${row.brand}, size_label = ${row.sizeLabel},
+              category_name = ${row.categoryName}, condition_label = ${row.conditionLabel}, updated_at = now()
+            where id = ${existing[0].id}
+          `;
+        } else {
+          await sql`
+            insert into remote_listings (
+              id, user_id, account_id, marketplace, remote_id, url, title, description, price_gbp, quantity,
+              status, photo_url, category_name, brand, size_label, condition_label
+            ) values (
+              ${makeId("rmt")}, ${context.userId}, ${account.id}, ${"vinted_uk"}, ${row.remoteId}, ${row.url},
+              ${row.title}, ${row.description}, ${row.priceGbp}, ${1}, ${row.status}, ${row.photoUrl},
+              ${row.categoryName}, ${row.brand}, ${row.sizeLabel}, ${row.conditionLabel}
+            )
+          `;
+        }
+        upserted += 1;
+      }
+      return { source: "vinted" as const, upserted, waiting: false as const };
+    }
+
     return {
       source: "extension" as const,
       upserted: 0,
       waiting: true as const,
       message:
-        "Keep Chrome open on vinted.co.uk with Lane Bridge paired. The extension pushes your wardrobe here on each heartbeat.",
+        "No Vinted session on the server yet. Finish the phone connect link or keep Lane Bridge open on vinted.co.uk — the extension pushes your wardrobe on each heartbeat.",
     };
   });
 
@@ -671,6 +709,27 @@ export const archiveItemFn = createServerFn({ method: "POST" })
     const sql = await getSql();
     await sql`update items set status = 'archived', updated_at = now() where id = ${data.id} and user_id = ${context.userId}`;
     return { ok: true as const };
+  });
+
+export const deleteItemsFn = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { itemIds: string[] }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const ids = data.itemIds.filter(Boolean).slice(0, 200);
+    let deleted = 0;
+    for (const id of ids) {
+      const owned = await sql<{ id: string }>`select id from items where id = ${id} and user_id = ${context.userId}`;
+      if (!owned[0]) continue;
+      await sql`delete from item_photos where item_id = ${id} and user_id = ${context.userId}`;
+      await sql`delete from item_tags where item_id = ${id} and user_id = ${context.userId}`;
+      await sql`delete from channel_listings where item_id = ${id} and user_id = ${context.userId}`;
+      await sql`delete from jobs where item_id = ${id} and user_id = ${context.userId}`;
+      await sql`delete from sales where item_id = ${id} and user_id = ${context.userId}`;
+      await sql`delete from items where id = ${id} and user_id = ${context.userId}`;
+      deleted += 1;
+    }
+    return { deleted };
   });
 
 export const publishItems = createServerFn({ method: "POST" })
@@ -945,6 +1004,9 @@ export const setPlanFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { plan: PlanId; aiPack: boolean }) => d)
   .handler(async ({ context, data }) => {
+    if (stripeConfigured()) {
+      throw new Error("Card billing is on. Use Checkout or Manage billing — this switcher is preview-only.");
+    }
     const sql = await getSql();
     await ensureUser(sql, context.userId);
     await sql`
@@ -952,6 +1014,100 @@ export const setPlanFn = createServerFn({ method: "POST" })
       where user_id = ${context.userId}
     `;
     return { ok: true as const };
+  });
+
+function requestOrigin(): string {
+  const request = getRequest();
+  if (!request) throw new Error("No request");
+  const url = new URL(request.url);
+  const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.host;
+  return `${proto}://${host}`;
+}
+
+export const startVintedConnect = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await ensureUser(sql, context.userId);
+    const id = makeId("vtc");
+    const secret = randomToken("vts", 18);
+    const expires = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+    await sql`
+      insert into vinted_connect_sessions (id, user_id, secret, status, expires_at)
+      values (${id}, ${context.userId}, ${secret}, ${"pending"}, ${expires})
+    `;
+    const origin = requestOrigin();
+    const url = `${origin}/connect/vinted/${id}?k=${encodeURIComponent(secret)}`;
+    return { id, url, expiresAt: expires };
+  });
+
+export const getVintedConnectStatus = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<Record<string, unknown>>`
+      select * from vinted_connect_sessions where id = ${data.id} and user_id = ${context.userId}
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("Connect session not found");
+    return {
+      status: String(row.status),
+      error: row.error ? String(row.error) : null,
+      accountId: row.account_id ? String(row.account_id) : null,
+    };
+  });
+
+export const startStripeCheckout = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { plan: PlanId; aiPack: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    if (!stripeConfigured()) {
+      throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_* (see instructions.txt).");
+    }
+    const sql = await getSql();
+    const settings = await ensureUser(sql, context.userId);
+    const price = priceIdFor(data.plan);
+    if (!price) throw new Error(`No Stripe price id for plan ${data.plan}.`);
+    const origin = requestOrigin();
+    const params: Record<string, string | number | undefined> = {
+      mode: "subscription",
+      success_url: `${origin}/settings/billing?checkout=success`,
+      cancel_url: `${origin}/settings/billing?checkout=cancel`,
+      "client_reference_id": context.userId,
+      "metadata[userId]": context.userId,
+      "metadata[plan]": data.plan,
+      "metadata[aiPack]": data.aiPack ? "1" : "0",
+      "line_items[0][price]": price,
+      "line_items[0][quantity]": 1,
+      "subscription_data[metadata][userId]": context.userId,
+      "subscription_data[metadata][plan]": data.plan,
+    };
+    if (data.aiPack && process.env.STRIPE_PRICE_AI_PACK) {
+      params["line_items[1][price]"] = process.env.STRIPE_PRICE_AI_PACK;
+      params["line_items[1][quantity]"] = 1;
+    }
+    if (settings.stripeCustomerId) params.customer = settings.stripeCustomerId;
+    const session = await stripeForm("checkout/sessions", params);
+    const url = String(session.url ?? "");
+    if (!url) throw new Error("Stripe did not return a checkout URL.");
+    return { url };
+  });
+
+export const startStripePortal = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    if (!stripeConfigured()) throw new Error("Stripe is not configured.");
+    const sql = await getSql();
+    const settings = await ensureUser(sql, context.userId);
+    if (!settings.stripeCustomerId) throw new Error("No Stripe customer yet. Subscribe first.");
+    const origin = requestOrigin();
+    const session = await stripeForm("billing_portal/sessions", {
+      customer: settings.stripeCustomerId,
+      return_url: `${origin}/settings/billing`,
+    });
+    return { url: String(session.url ?? "") };
   });
 
 export const completeOnboarding = createServerFn({ method: "POST" })

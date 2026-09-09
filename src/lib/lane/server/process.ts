@@ -9,6 +9,7 @@ import { applyPricingRule } from "@/lib/lane/pricing";
 import type { MarketplaceId } from "@/lib/lane/types";
 import { asPlan, loadItem, mapAccount, mapRule, mapSettings } from "./map";
 import { ebayPublish, ebayUpdateOffer, ebayWithdraw, ensureMerchantLocation, refreshEbayToken } from "./ebay";
+import { liveVintedToken, vintedDelete, vintedPublish } from "./vinted";
 import { unseal, seal } from "./secret";
 
 export type JobRow = {
@@ -38,7 +39,13 @@ export async function enqueueJob(
 ): Promise<string> {
   const id = makeId("job");
   const mode = CHANNELS[opts.marketplace]?.mode ?? "extension";
-  const initial = mode === "extension" ? "waiting_for_browser" : "queued";
+  let initial = mode === "extension" ? "waiting_for_browser" : "queued";
+  if (mode === "extension") {
+    const tok = await sql<{ oauth_refresh_token: string | null }>`
+      select oauth_refresh_token from marketplace_accounts where id = ${opts.accountId} and user_id = ${opts.userId}
+    `;
+    if (tok[0]?.oauth_refresh_token) initial = "queued";
+  }
   await sql`
     insert into jobs (
       id, user_id, type, status, marketplace, account_id, item_id, channel_listing_id,
@@ -185,6 +192,9 @@ export async function processJob(
 
     if (marketplace === "ebay_uk") {
       await runEbayJob(sql, userId, job);
+    } else if (marketplace === "vinted_uk" && source === "worker") {
+      const parked = await runVintedJob(sql, userId, job);
+      if (parked) return { ok: false, error: "waiting_for_browser" };
     } else if (source === "extension") {
       throw new Error("Extension jobs must complete via the Lane Bridge result API, not the server worker.");
     } else {
@@ -324,6 +334,57 @@ async function runEbayJob(sql: Sql, userId: string, job: JobRow) {
   }
 }
 
+async function runVintedJob(sql: Sql, userId: string, job: JobRow): Promise<boolean> {
+  if (!job.account_id) throw new Error("Job missing account");
+  let access: string;
+  try {
+    ({ access } = await liveVintedToken(sql, userId, job.account_id));
+  } catch {
+    await sql`
+      update jobs set status = 'waiting_for_browser', error_message = ${"Vinted session not on the server yet. Pair Lane Bridge or finish phone connect."}, updated_at = now()
+      where id = ${job.id} and user_id = ${userId}
+    `;
+    return true;
+  }
+
+  if (job.type === "delist") {
+    const rows = await sql<{ remote_id: string | null }>`
+      select remote_id from channel_listings where id = ${job.channel_listing_id} and user_id = ${userId}
+    `;
+    if (rows[0]?.remote_id) await vintedDelete(access, rows[0].remote_id);
+    await sql`
+      update channel_listings set remote_status = 'ended', quantity_on_channel = 0, last_synced_at = now(), last_error = null, updated_at = now()
+      where id = ${job.channel_listing_id} and user_id = ${userId}
+    `;
+    return false;
+  }
+
+  if (!job.item_id || !job.channel_listing_id) throw new Error("Job missing item/channel");
+  const item = await loadItem(sql, userId, job.item_id);
+  if (!item) throw new Error("Canonical item missing");
+  const listing = item.channels.find((c) => c.id === job.channel_listing_id);
+  if (!listing) throw new Error("Channel listing missing");
+  const rules = (await sql<Record<string, unknown>>`select * from pricing_rules where user_id = ${userId}`).map(mapRule);
+  const price = listing.channelPriceGbp ?? applyPricingRule(item.basePriceGbp, rules.find((r) => r.marketplace === "vinted_uk"));
+  const cat = findCategory(item.categoryCanonical);
+  const published = await vintedPublish(access, item, price);
+  await sql`
+    update channel_listings set
+      remote_id = ${published.remoteId},
+      url = ${published.url},
+      mapped_category = ${cat?.vintedUk.name ?? null},
+      mapped_category_id = ${cat?.vintedUk.catalogId ?? null},
+      channel_price_gbp = ${price},
+      remote_status = 'live',
+      last_synced_at = now(),
+      last_error = null,
+      quantity_on_channel = ${1},
+      updated_at = now()
+    where id = ${listing.id} and user_id = ${userId}
+  `;
+  return false;
+}
+
 export async function refreshItemStatus(sql: Sql, userId: string, itemId: string) {
   const itemRows = await sql<{ status: string; quantity: number }>`
     select status, quantity from items where id = ${itemId} and user_id = ${userId}
@@ -414,7 +475,7 @@ export async function tickOauthJobs(sql: Sql, userId: string) {
     join marketplace_accounts a on a.id = j.account_id
     where j.user_id = ${userId}
       and j.status = 'queued'
-      and a.mode = 'oauth'
+      and (a.mode = 'oauth' or a.oauth_refresh_token is not null)
     order by j.created_at asc
     limit 3
   `;

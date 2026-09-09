@@ -45,8 +45,9 @@ function ImportPage() {
       <div>
         <h1 className="text-xl font-medium tracking-[-0.02em]">Import</h1>
         <p className="mt-1 text-sm text-muted">
-          Pull live listings from a connected account. eBay fetches via OAuth. Vinted is pushed by Lane Bridge from
-          your signed-in tab. Title + price or photo hash attaches to an existing canonical item instead of duplicating.
+          Pull live listings from a connected account. eBay fetches via OAuth. Vinted fetches from a captured session
+          when one exists, otherwise Lane Bridge pushes the wardrobe from a signed-in tab. Title + price or photo hash
+          attaches to an existing canonical item instead of duplicating.
         </p>
       </div>
       {accounts.length === 0 ? (
@@ -71,12 +72,15 @@ function ImportPage() {
           </div>
           {sync.data?.waiting ? <p className="text-sm text-muted">{sync.data.message}</p> : null}
           {sync.data && !sync.data.waiting ? (
-            <p className="text-sm text-muted">Synced {sync.data.upserted} listings from eBay.</p>
+            <p className="text-sm text-muted">
+              Synced {sync.data.upserted} listings from {sync.data.source === "vinted" ? "Vinted" : sync.data.source === "ebay" ? "eBay" : "the extension"}.
+            </p>
           ) : null}
           {sync.error ? <p className="text-sm text-danger">{(sync.error as Error).message}</p> : null}
           {rows.length === 0 ? (
             <Panel className="p-6 text-sm text-muted">
-              Nothing synced yet. For Vinted, pair Lane Bridge and leave vinted.co.uk open. For eBay, click Sync after OAuth.
+              Nothing synced yet. For Vinted, finish phone connect or pair Lane Bridge on vinted.co.uk. For eBay, click
+              Sync after OAuth.
             </Panel>
           ) : null}
           <Panel className="overflow-hidden">

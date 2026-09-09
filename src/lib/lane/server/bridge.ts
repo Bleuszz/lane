@@ -4,6 +4,7 @@ import { makeId } from "@/lib/lane/ids";
 import type { MarketplaceId } from "@/lib/lane/types";
 import { applySale, applyExtensionJobResult, markExtensionHealth } from "./process";
 import { loadItem } from "./map";
+import { saveVintedSession } from "./vinted";
 import { tokensEqual } from "./secret";
 
 export type BridgeUser = { userId: string; pairingToken: string };
@@ -87,6 +88,16 @@ export async function handleBridge(request: Request): Promise<Response> {
         errorBody: body.errorBody ? String(body.errorBody) : undefined,
       });
       return json(request, { ok: true });
+    }
+    if (request.method === "POST" && path === "session") {
+      const body = await readJson(request);
+      const refresh = body.refreshToken ? String(body.refreshToken) : "";
+      if (!refresh) return json(request, { error: "refreshToken required" }, 400);
+      const saved = await saveVintedSession(sql, user.userId, {
+        accessToken: body.accessToken ? String(body.accessToken) : null,
+        refreshToken: refresh,
+      });
+      return json(request, { ok: true, username: saved.username });
     }
     if (request.method === "POST" && path === "identity") {
       const body = await readJson(request);

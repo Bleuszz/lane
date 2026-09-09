@@ -47,6 +47,7 @@ export function mapSettings(row: Record<string, unknown>): UserSettingsView {
     actionsLimit: limit,
     actionsRemaining: Math.max(0, limit - used),
     billingStatus: String(row.billing_status ?? "active"),
+    stripeCustomerId: row.stripe_customer_id ? String(row.stripe_customer_id) : null,
   };
 }
 
@@ -67,6 +68,7 @@ export function mapAccount(row: Record<string, unknown>): AccountView {
     oauthConnected: bool(row.oauth_connected),
     sandbox: bool(row.sandbox),
     forceError: row.force_error ? String(row.force_error) : null,
+    hasServerSession: Boolean(row.oauth_refresh_token),
     createdAt: iso(row.created_at) ?? new Date().toISOString(),
   };
 }

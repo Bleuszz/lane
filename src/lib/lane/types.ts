@@ -202,6 +202,7 @@ export type AccountView = {
   oauthConnected: boolean;
   sandbox: boolean;
   forceError: string | null;
+  hasServerSession: boolean;
   createdAt: string;
 };
 
@@ -278,6 +279,7 @@ export type UserSettingsView = {
   actionsLimit: number;
   actionsRemaining: number;
   billingStatus: string;
+  stripeCustomerId: string | null;
 };
 
 export type InboxPayload = {
@@ -297,6 +299,7 @@ export type BootstrapPayload = {
   draftCount: number;
   gmvGbp: number;
   ebayConfigured: boolean;
+  stripeConfigured: boolean;
 };
 
 export type ItemDraft = {

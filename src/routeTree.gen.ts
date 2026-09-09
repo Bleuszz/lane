@@ -32,6 +32,9 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiBridgeSplatRouteImport } from './routes/api/bridge/$'
 import { Route as ApiEbayCallbackRouteImport } from './routes/api/ebay/callback'
 import { Route as ApiEbayStartRouteImport } from './routes/api/ebay/start'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as ConnectVintedIdRouteImport } from './routes/connect.vinted.$id'
+import { Route as ApiVintedConnectSplatRouteImport } from './routes/api/vinted/connect/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -147,6 +150,21 @@ const ApiEbayStartRoute = ApiEbayStartRouteImport.update({
   path: '/api/ebay/start',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectVintedIdRoute = ConnectVintedIdRouteImport.update({
+  id: '/connect/vinted/$id',
+  path: '/connect/vinted/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVintedConnectSplatRoute = ApiVintedConnectSplatRouteImport.update({
+  id: '/api/vinted/connect/$',
+  path: '/api/vinted/connect/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -169,8 +187,11 @@ export interface FileRoutesByFullPath {
   '/api/bridge/$': typeof ApiBridgeSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/connect/vinted/$id': typeof ConnectVintedIdRoute
   '/inventory/': typeof AppInventoryIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/api/vinted/connect/$': typeof ApiVintedConnectSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -191,8 +212,11 @@ export interface FileRoutesByTo {
   '/api/bridge/$': typeof ApiBridgeSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/connect/vinted/$id': typeof ConnectVintedIdRoute
   '/inventory': typeof AppInventoryIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/api/vinted/connect/$': typeof ApiVintedConnectSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -217,8 +241,11 @@ export interface FileRoutesById {
   '/api/bridge/$': typeof ApiBridgeSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/connect/vinted/$id': typeof ConnectVintedIdRoute
   '/_app/inventory/': typeof AppInventoryIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/api/vinted/connect/$': typeof ApiVintedConnectSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -243,8 +270,11 @@ export interface FileRouteTypes {
     | '/api/bridge/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
+    | '/api/stripe/webhook'
+    | '/connect/vinted/$id'
     | '/inventory/'
     | '/settings/'
+    | '/api/vinted/connect/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -265,8 +295,11 @@ export interface FileRouteTypes {
     | '/api/bridge/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
+    | '/api/stripe/webhook'
+    | '/connect/vinted/$id'
     | '/inventory'
     | '/settings'
+    | '/api/vinted/connect/$'
   id:
     | '__root__'
     | '/'
@@ -290,8 +323,11 @@ export interface FileRouteTypes {
     | '/api/bridge/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
+    | '/api/stripe/webhook'
+    | '/connect/vinted/$id'
     | '/_app/inventory/'
     | '/_app/settings/'
+    | '/api/vinted/connect/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -303,6 +339,9 @@ export interface RootRouteChildren {
   ApiBridgeSplatRoute: typeof ApiBridgeSplatRoute
   ApiEbayCallbackRoute: typeof ApiEbayCallbackRoute
   ApiEbayStartRoute: typeof ApiEbayStartRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
+  ConnectVintedIdRoute: typeof ConnectVintedIdRoute
+  ApiVintedConnectSplatRoute: typeof ApiVintedConnectSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -468,6 +507,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEbayStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect/vinted/$id': {
+      id: '/connect/vinted/$id'
+      path: '/connect/vinted/$id'
+      fullPath: '/connect/vinted/$id'
+      preLoaderRoute: typeof ConnectVintedIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/vinted/connect/$': {
+      id: '/api/vinted/connect/$'
+      path: '/api/vinted/connect/$'
+      fullPath: '/api/vinted/connect/$'
+      preLoaderRoute: typeof ApiVintedConnectSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -538,6 +598,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBridgeSplatRoute: ApiBridgeSplatRoute,
   ApiEbayCallbackRoute: ApiEbayCallbackRoute,
   ApiEbayStartRoute: ApiEbayStartRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
+  ConnectVintedIdRoute: ConnectVintedIdRoute,
+  ApiVintedConnectSplatRoute: ApiVintedConnectSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

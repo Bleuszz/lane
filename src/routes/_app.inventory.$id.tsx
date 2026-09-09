@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   archiveItemFn,
   cloneItemFn,
+  deleteItemsFn,
   delistListings,
   getBootstrap,
   getItemFn,
@@ -80,6 +81,21 @@ function ItemPage() {
             }
           >
             Archive
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Delete this listing from Lane? Live marketplace listings are not ended. Delist first if you want them taken down.",
+                )
+              ) {
+                return;
+              }
+              void deleteItemsFn({ data: { itemIds: [id] } }).then(() => nav({ to: "/inventory" }));
+            }}
+          >
+            Delete
           </Button>
         </div>
       </div>
