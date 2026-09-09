@@ -19,7 +19,8 @@ The Windows app **is this website** in Chromium. Sign in with the same account s
 
 | Path | What |
 |---|---|
-| `CLOUDFLARE-PROMPT.md` | Hand this to a VM agent to get a free `*.pages.dev` / `*.workers.dev` URL |
+| `CLOUDFLARE-PROMPT.md` | Paste into Cursor to **update** the existing free `*.pages.dev` / `*.workers.dev` deploy |
+| `CURSOR-CLOUDFLARE.md` | One-screen pointer at that prompt |
 | `instructions.txt` | Developer handoff: env, eBay RuName, Cloudflare, domains |
 | `desktop/` | Electron shell. `main.cjs` opens the marketplace, reads cookies, closes |
 | `extension/` | **Standalone** Chrome/Firefox MV3 Lane Bridge |
@@ -41,7 +42,7 @@ npm run dev
 
 ## Windows
 
-The site page is `/download`. It points at Drive file `Lane-Windows.zip` (`WINDOWS_FILE_ID` in `src/lib/lane/download.ts`).
+The site page is `/download`. It points at Drive file `Lane-Windows.zip` (`WINDOWS_FILE_ID` in `src/lib/lane/download.ts`, currently `1ggyKPwn0notrnwO671M1IIZ-UCzo0wFr`).
 
 Unzip, run `Lane.exe`, paste the Lane URL from Cloudflare, sign in. Connect Vinted → sign in on their site → the window closes when the session is captured.
 
