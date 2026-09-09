@@ -7,8 +7,8 @@ module.exports = {
     origin: "https://www.vinted.co.uk",
     startUrl: "https://www.vinted.co.uk",
     cookieHints: ["refresh_token_web", "access_token_web", "_vinted_fr_session"],
-    signedInWhen: (url, names) =>
-      names.includes("refresh_token_web") || /\/member\//.test(url) || /wardrobe/.test(url),
+    signedInWhen: (_url, names) =>
+      names.includes("refresh_token_web") || names.includes("access_token_web"),
   },
   ebay_uk: {
     id: "ebay_uk",
