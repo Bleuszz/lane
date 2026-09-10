@@ -1,6 +1,7 @@
+import { PublishPreview } from "@/components/publish-preview";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createItemFn, getBootstrap, getSettingsExtras, publishItems, saveTemplateFn } from "@/lib/lane/server/fns";
+import { createItemFn, getBootstrap, getSettingsExtras, updateItemFn, publishItems, saveTemplateFn } from "@/lib/lane/server/fns";
 import { ChannelPicker, EMPTY_DRAFT, ItemForm, ListingTargetPicker } from "@/components/item-form";
 import { Button, Input } from "@/components/ui";
 import { useMemo, useState } from "react";
@@ -14,6 +15,8 @@ function NewPage() {
   const qc = useQueryClient();
   const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
   const extras = useQuery({ queryKey: ["settings-extras"], queryFn: () => getSettingsExtras() });
+  const [review, setReview] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ItemDraft>(EMPTY_DRAFT);
   const [target, setTarget] = useState<ListingTarget | null>(null);
   const [accountIds, setAccountIds] = useState<string[]>([]);
@@ -56,7 +59,9 @@ function NewPage() {
             ? draft.sku.trim() || `LN-${Date.now().toString(36).toUpperCase()}`
             : draft.sku,
       };
-      const { id } = await createItemFn({ data: payload });
+      let id = savedId;
+      if (id) await updateItemFn({ data: { id, draft: payload } });
+      else { const created = await createItemFn({ data: payload }); id = created.id; setSavedId(id); }
       if (andPublish && accountIds.length) {
         await publishItems({ data: { itemIds: [id], accountIds } });
       }
@@ -71,6 +76,7 @@ function NewPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {review && <PublishPreview draft={draft} accounts={accounts.filter(a => accountIds.includes(a.id))} rules={extras.data?.rules ?? []} onClose={() => setReview(false)} onConfirm={() => create.mutateAsync(true)}/>}
       <div>
         <h1 className="text-xl font-medium tracking-[-0.02em]">New listing</h1>
         <p className="mt-1 text-sm text-muted">
@@ -109,8 +115,8 @@ function NewPage() {
           />
           {err ? <p className="text-sm text-danger">{err}</p> : null}
           <div className="flex flex-wrap items-center gap-2">
-            <Button disabled={create.isPending} onClick={() => create.mutate(true)}>
-              {create.isPending ? "Saving…" : accountIds.length ? "Save and queue publish" : "Save draft"}
+            <Button disabled={create.isPending} onClick={() => accountIds.length ? setReview(true) : create.mutate(false)}>
+              {create.isPending ? "Saving…" : accountIds.length ? "Review and publish" : "Save draft"}
             </Button>
             <Button variant="secondary" disabled={create.isPending} onClick={() => create.mutate(false)}>
               Save draft only

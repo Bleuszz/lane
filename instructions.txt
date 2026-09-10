@@ -1,3 +1,8 @@
+CURRENT HANDOFF: Read progress.txt, docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md first.
+The historical notes below describe the earlier prototype. New instructions supersede
+old prices, AI add-ons, global seller defaults and build-time migrations. Do not deploy
+or spend while the owner is away. Current scope is Vinted UK and eBay UK only.
+
 LANE — DEVELOPER HANDOFF
 ========================
 Product: Lane (UK-first crosslisting SaaS)

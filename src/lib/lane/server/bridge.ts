@@ -1,8 +1,10 @@
+import { claimJob, recoverExpiredJobs } from "./operations";
+import { reserveListingAction, recordActivation } from "./events";
 import { getSql, type Sql } from "@/lib/db";
 import { findCategory } from "@/lib/lane/categories";
 import { makeId } from "@/lib/lane/ids";
 import type { MarketplaceId } from "@/lib/lane/types";
-import { applySale, applyExtensionJobResult, markExtensionHealth } from "./process";
+import { applySale, applyExtensionJobResult, markExtensionHealth, reserveJobHourly } from "./process";
 import { loadItem } from "./map";
 import { saveVintedSession, tokensFromCookieJar } from "./vinted";
 import { tokensEqual } from "./secret";
@@ -82,6 +84,7 @@ export async function handleBridge(request: Request): Promise<Response> {
       const body = await readJson(request);
       await applyExtensionJobResult(sql, user.userId, id, {
         ok: Boolean(body.ok),
+        claimToken: body.claimToken ? String(body.claimToken) : undefined,
         remoteId: body.remoteId ? String(body.remoteId) : undefined,
         url: body.url ? String(body.url) : undefined,
         error: body.error ? String(body.error) : undefined,
@@ -101,6 +104,7 @@ export async function handleBridge(request: Request): Promise<Response> {
         refreshToken: refresh || access,
         cookies: jar,
       });
+      await recordActivation(sql, user.userId, "source_connected", "vinted_uk");
       return json(request, { ok: true, username: saved.username });
     }
     if (request.method === "POST" && path === "identity") {
@@ -130,6 +134,8 @@ export async function handleBridge(request: Request): Promise<Response> {
         itemId,
         marketplace: "vinted_uk",
         via: "extension_poll",
+        remoteId: body.remoteId ? String(body.remoteId) : undefined,
+        eventId: body.eventId ? String(body.eventId) : undefined,
         soldPriceGbp: body.soldPriceGbp != null ? Number(body.soldPriceGbp) : undefined,
       });
       return json(request, { ok: true });
@@ -176,8 +182,7 @@ async function bridgeHeartbeat(sql: Sql, userId: string, body: Record<string, un
   await sql`
     update marketplace_accounts
     set last_heartbeat_at = now(),
-        status = case when status in ('paused', 'needs_reauth', 'rate_limited') then status else 'green' end,
-        last_error = null,
+        status = case when status = 'extension_offline' and remote_user_id is not null then 'green' else status end,
         updated_at = now()
     where user_id = ${userId} and mode = 'extension'
   `;
@@ -197,19 +202,22 @@ async function applyIdentity(sql: Sql, userId: string, body: Record<string, unkn
     update marketplace_accounts
     set remote_username = coalesce(${username}, remote_username),
         remote_user_id = coalesce(${remoteUserId}, remote_user_id),
+        status = case when status = 'paused' then status else 'green' end,
+        last_error = null,
         updated_at = now()
     where user_id = ${userId} and marketplace = ${"vinted_uk"}
   `;
 }
 
 async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
+  await recoverExpiredJobs(sql, userId);
   const rows = jobId
     ? await sql<Record<string, unknown>>`
         select j.*, i.title as item_title
         from jobs j
         left join items i on i.id = j.item_id
         where j.user_id = ${userId} and j.id = ${jobId}
-          and j.status in ('waiting_for_browser', 'uploading_photos', 'creating', 'running')
+          and j.status = 'waiting_for_browser'
       `
     : await sql<Record<string, unknown>>`
         select j.*, i.title as item_title
@@ -218,13 +226,26 @@ async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
         left join items i on i.id = j.item_id
         where j.user_id = ${userId}
           and a.mode = 'extension'
-          and j.status in ('waiting_for_browser', 'uploading_photos', 'creating')
+          and j.status = 'waiting_for_browser'
         order by j.created_at asc
-        limit 8
+        limit 1
       `;
 
   const out = [];
   for (const row of rows) {
+    const claim = await claimJob(sql, userId, String(row.id), makeId("lease"), "extension");
+    if (!claim) continue;
+    try {
+      if (claim.type === "publish" || claim.type === "relist") {
+        await reserveJobHourly(sql, userId, claim.id, String(row.account_id));
+        await reserveListingAction(sql, userId, claim.request_id, claim.type);
+      }
+    } catch (error) {
+      await sql`update jobs set status = 'error', lease_token = null, lease_expires_at = null,
+        error_message = ${error instanceof Error ? error.message : "Publishing allowance unavailable."}, updated_at = now()
+        where id = ${claim.id} and user_id = ${userId} and lease_token = ${claim.lease_token}`;
+      continue;
+    }
     const item = row.item_id ? await loadItem(sql, userId, String(row.item_id)) : null;
     const cat = findCategory(item?.categoryCanonical);
     const listing = item?.channels.find((c) => c.id === String(row.channel_listing_id ?? ""));
@@ -234,6 +255,7 @@ async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
       status: String(row.status),
       marketplace: String(row.marketplace ?? "vinted_uk") as MarketplaceId,
       requestId: String(row.request_id),
+      claimToken: claim.lease_token,
       accountId: row.account_id ? String(row.account_id) : null,
       itemId: row.item_id ? String(row.item_id) : null,
       channelListingId: row.channel_listing_id ? String(row.channel_listing_id) : null,
@@ -267,6 +289,11 @@ async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
 }
 
 type CatalogItem = {
+  photoUrls?: string[];
+  categoryId?: string | null;
+  categoryPath?: string | null;
+  material?: string | null;
+  attributes?: Record<string, unknown>;
   remoteId: string;
   url?: string | null;
   title: string;
@@ -332,6 +359,8 @@ export async function upsertCatalog(sql: Sql, userId: string, body: Record<strin
         )
       `;
     }
+    const photoUrls = Array.isArray(item.photoUrls) ? item.photoUrls.filter((url: unknown) => typeof url === "string" && /^https?:\/\//i.test(url)).slice(0, 12) : [];
+    await sql`update remote_listings set photo_urls = ${JSON.stringify(photoUrls)}::jsonb, source_category_id = ${item.categoryId ?? null}, source_category_path = ${item.categoryPath ?? null}, material = ${item.material ?? null}, source_attributes = ${JSON.stringify(item.attributes ?? {})}::jsonb where account_id = ${accountId} and remote_id = ${String(item.remoteId)} and user_id = ${userId}`;
     n += 1;
   }
   return n;

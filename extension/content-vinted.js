@@ -7,6 +7,7 @@
 const MSG = "LANE_BRIDGE";
 let busy = false;
 let lastSoldCheck = 0;
+let lastCatalogCheck = 0;
 
 (function injectMain() {
   if (document.documentElement.dataset.laneBridge === "1") return;
@@ -45,6 +46,7 @@ async function runJob(job) {
     const ack = await chrome.runtime.sendMessage({
       type: "JOB_RESULT",
       jobId: job.id,
+      claimToken: job.claimToken,
       ok: true,
       remoteId: result?.remoteId ?? job.listing?.remoteId ?? null,
       url: result?.url ?? job.listing?.url ?? null,
@@ -55,6 +57,7 @@ async function runJob(job) {
   await chrome.runtime.sendMessage({
     type: "JOB_RESULT",
     jobId: job.id,
+    claimToken: job.claimToken,
     ok: false,
     error: `Lane Bridge does not handle job type ${job.type} on Vinted.`,
   });
@@ -68,7 +71,10 @@ async function poll() {
     let catalog = [];
     try {
       identity = (await callPage("identity")) ?? identity;
-      catalog = (await callPage("wardrobe")) ?? [];
+      if (Date.now() - lastCatalogCheck > 120_000) {
+        catalog = (await callPage("wardrobe")) ?? [];
+        lastCatalogCheck = Date.now();
+      }
     } catch {
       /* user may not be signed in yet */
     }
@@ -90,6 +96,7 @@ async function poll() {
         await chrome.runtime.sendMessage({
           type: "JOB_RESULT",
           jobId: job.id,
+      claimToken: job.claimToken,
           ok: false,
           error: err instanceof Error ? err.message : String(err),
           errorBody: err && typeof err === "object" && "body" in err ? String(err.body) : undefined,

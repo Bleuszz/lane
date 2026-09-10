@@ -1,96 +1,29 @@
 import { createFileRoute, Link, Navigate, useRouteContext } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { LEGAL_FOOTER } from "@/lib/lane/copy";
 import { PLAN_DEFS } from "@/lib/lane/plans";
-import { formatMoney } from "@/lib/lane/format";
-import { desktopApi } from "@/lib/lane/desktop";
+import { HELP } from "@/lib/lane/help";
 import { LaneWordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui";
+import { ArrowUpRight, Check, ArrowRight, Shirt, ScanLine, SlidersHorizontal, Layers3 } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Home });
-
 function Home() {
   const { sessionUser } = useRouteContext({ from: "__root__" });
   const { user } = useCurrentUserState();
   if (user || sessionUser) return <Navigate to="/inbox" />;
-  const inDesktop = Boolean(desktopApi());
-
-  return (
-    <main className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-        <LaneWordmark />
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {!inDesktop ? (
-            <Link to="/download" className="hidden text-sm text-muted hover:text-ink sm:inline">
-              Download Windows
-            </Link>
-          ) : null}
-          <Link to="/login" className="text-sm text-muted hover:text-ink">
-            Sign in
-          </Link>
-        </div>
-      </header>
-      <section className="mx-auto max-w-5xl px-5 pb-16 pt-16 md:pt-24">
-        <p className="text-xs uppercase tracking-[0.16em] text-muted">UK · GBP · one inventory</p>
-        <h1 className="mt-4 max-w-xl text-4xl font-medium leading-[1.08] tracking-[-0.04em] md:text-6xl">
-          List once. Stay in sync.
-        </h1>
-        <p className="mt-5 max-w-lg text-[16px] leading-relaxed text-muted">
-          You keep one inventory. Lane lists it on Vinted, eBay and the rest. You sign in on those sites — Lane never
-          takes the password. When something sells, the others come down. The Windows app is this website in a shell:
-          same account, same plan, same shops.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link to="/login">
-            <Button size="lg">Start 7-day free trial</Button>
-          </Link>
-          {!inDesktop ? (
-            <Link to="/download" className="inline-flex">
-              <Button size="lg" variant="secondary">
-                Download for Windows
-              </Button>
-            </Link>
-          ) : null}
-        </div>
-        <p className="mt-4 max-w-lg text-sm text-subtle">
-          {inDesktop
-            ? "You're in the Windows app. Sign in with the same Lane account. Connect opens Vinted and closes itself when the session is captured."
-            : "Unzip, double-click Lane.exe, paste your Lane URL, then sign in. Connect opens the real marketplace. When you are signed in, the window closes on its own. Starter is " +
-              formatMoney(PLAN_DEFS.starter.priceGbp) +
-              " a month after the trial if you stay."}
-        </p>
-
-        <div className="mt-16 grid gap-3 md:grid-cols-3">
-          {Object.values(PLAN_DEFS).map((p) => (
-            <div key={p.id} className="rounded-[var(--radius-lg)] border border-line bg-surface p-5">
-              <p className="text-sm font-medium">{p.name}</p>
-              <p className="mt-2 font-mono text-2xl tabular tracking-tight">
-                {formatMoney(p.priceGbp)}
-                <span className="text-sm text-muted">/mo</span>
-              </p>
-              <p className="mt-3 text-sm text-muted">{p.notes.join(". ")}</p>
-            </div>
-          ))}
-        </div>
-        <footer className="mt-16 max-w-2xl text-[11px] leading-relaxed text-subtle">
-          <p>{LEGAL_FOOTER}</p>
-          <p className="mt-3">
-            <Link to="/download" className="hover:text-ink">
-              Download Windows
-            </Link>
-            {" · "}
-            <Link to="/legal/privacy" className="hover:text-ink">
-              Privacy
-            </Link>
-            {" · "}
-            <Link to="/legal/terms" className="hover:text-ink">
-              Terms
-            </Link>
-          </p>
-        </footer>
-      </section>
-    </main>
-  );
+  return <main className="marketing min-h-screen bg-paper text-ink">
+    <header className="mx-auto flex h-24 max-w-7xl items-center justify-between gap-5 px-6 lg:px-12"><LaneWordmark/><nav className="flex items-center gap-6 text-sm"><a className="hidden text-muted hover:text-ink sm:block" href="#how">How it works</a><a className="hidden text-muted hover:text-ink sm:block" href="#pricing">Pricing</a><Link to="/help" className="text-muted hover:text-ink">Help</Link><ThemeToggle/><Link to="/login" className="rounded-full border border-line-strong px-5 py-2.5">Sign in <span className="ml-2">↗</span></Link></nav></header>
+    <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 pb-20 pt-10 lg:grid-cols-[1fr_1fr] lg:px-12 lg:pb-28 lg:pt-16">
+      <div><p className="eyebrow flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-mark"/> A little less listing. A lot more selling.</p><h1 className="mt-7 max-w-xl font-serif text-[clamp(3.3rem,6vw,5.8rem)] leading-[.98] tracking-[-.055em]">Good finds.<br/>Fewer forms.</h1><p className="mt-7 max-w-md text-lg leading-8 text-muted">Your next marketplace shouldn’t mean starting again. Bring your listings into Lane, fill the gaps and keep moving.</p><div className="mt-9 flex flex-wrap gap-4"><Link to="/login" className="inline-flex items-center gap-8 rounded-full bg-mark px-7 py-4 text-sm font-semibold text-mark-fg hover:bg-mark-hover">Open Lane <ArrowUpRight size={18}/></Link><a href="#how" className="inline-flex items-center gap-2 px-3 py-4 text-sm">Take a look <ArrowRight size={16}/></a></div><p className="mt-5 text-xs text-muted">UK reseller beta · Vinted + eBay workflows · AI is optional</p></div>
+      <div className="listing-stage relative rounded-[28px] p-6 sm:p-10">
+        <div className="mb-5 flex items-center justify-between text-xs"><span className="font-medium tracking-wide">FROM YOUR RAIL, TO ANOTHER SHOP.</span><span>01 / 03</span></div>
+        <div className="overflow-hidden rounded-2xl border border-black/10 bg-surface"><div className="grid grid-cols-[.85fr_1fr]"><div className="grid aspect-[.85] place-items-center bg-[#d9dfd2]"><Shirt size={110} strokeWidth={.8} className="text-[#4b5c41]" aria-label="Illustrated shirt"/></div><div className="flex flex-col justify-center p-5"><span className="text-[10px] uppercase tracking-widest text-muted">Imported from Vinted</span><h2 className="mt-3 font-serif text-2xl leading-tight">The everyday<br/>linen shirt</h2><p className="mt-3 text-xs text-muted">Olive · Medium · £24</p><span className="mt-4 self-start rounded-full bg-ok-bg px-2.5 py-1 text-[10px] text-ok">Source details kept</span></div></div><div className="space-y-3 p-5"><div className="flex items-center justify-between"><span className="text-sm font-semibold">Ready for another marketplace?</span><span className="text-xs font-semibold">eBay</span></div>{[["Brand & size", "From your listing"], ["Colour", "From your listing"], ["Material", "Review AI suggestion"]].map(([name, state]) => <div className="flex items-center justify-between gap-3 border-b border-line pb-2 text-xs" key={name}><span>{name}</span><span className="flex items-center gap-1 text-muted">{state}<Check size={12}/></span></div>)}<div className="rounded-lg bg-raised p-3 text-xs leading-relaxed"><span className="font-medium">You stay in charge.</span> Review suggested details before they become part of your listing.</div></div></div><p className="mt-4 text-[10px] tracking-wide opacity-70">ILLUSTRATIVE WORKFLOW · NOT A LIVE SELLER LISTING</p>
+      </div>
+    </section>
+    <div className="border-y border-line"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6 px-6 py-6 lg:px-12"><p className="text-xs text-muted">One workspace. More places to sell.</p><div className="flex gap-8 text-xl font-semibold tracking-tight"><span>Vinted</span><span>eBay</span></div><Link to="/help" className="text-xs text-muted underline underline-offset-4">Explore connection support</Link></div></div>
+    <section id="how" className="mx-auto max-w-7xl px-6 py-24 lg:px-12"><div className="max-w-xl"><p className="eyebrow">Made for the work between sales</p><h2 className="mt-4 font-serif text-4xl leading-tight tracking-tight sm:text-5xl">A second listing.<br/>Without the second shift.</h2></div><div className="mt-12 grid gap-10 md:grid-cols-3">{[{ icon: Layers3, number: "01", title: "Bring what you have", body: "Import into one inventory. Keep your source details together, then choose where the item goes next." }, { icon: ScanLine, number: "02", title: "Mind the gaps", body: "See the details eBay needs for that category. Optional AI looks for answers in your text and shows its evidence." }, { icon: SlidersHorizontal, number: "03", title: "Make it yours", body: "Tidy your photos, review the details and publish when you’re ready. Your edits stay yours." }].map((f) => <article key={f.number} className="border-t border-line pt-6"><div className="flex justify-between"><f.icon size={24} strokeWidth={1.3}/><span className="font-mono text-xs text-muted">{f.number}</span></div><h3 className="mt-7 text-xl font-medium">{f.title}</h3><p className="mt-3 max-w-sm text-sm leading-7 text-muted">{f.body}</p></article>)}</div></section>
+    <section id="pricing" className="border-y border-line bg-surface"><div className="mx-auto max-w-7xl px-6 py-20 lg:px-12"><div className="flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">Proposed launch pricing</p><h2 className="mt-4 font-serif text-4xl tracking-tight">Start small. Keep your options.</h2></div><p className="max-w-xs text-sm leading-6 text-muted">Every supported connection is included. Photo cleanup costs no AI credits.</p></div><div className="mt-12 grid md:grid-cols-3">{Object.values(PLAN_DEFS).map((p) => <div key={p.id} className={`border-t border-line px-0 py-8 md:px-7 ${p.id !== "pro" ? "md:border-r" : ""}`}><p className="text-sm font-semibold">{p.name}</p><p className="mt-4 text-5xl tracking-tight">£{p.priceGbp}<span className="ml-1 text-sm text-muted">/ month</span></p><p className="mt-6 text-sm">{p.actions.toLocaleString()} listing actions</p><p className="mt-2 text-sm">{p.aiCredits ? `${p.aiCredits} AI credits included` : "Normal crosslisting, no AI"}</p><p className="mt-2 text-sm text-muted">All supported marketplaces</p><Link to="/login" className="mt-8 flex items-center justify-between border-b border-line-strong pb-3 text-sm font-medium">Explore {p.name}<ArrowUpRight size={16}/></Link></div>)}</div><p className="mt-5 text-xs text-muted">Subscriptions open after live workflow verification. No payment is taken by this page.</p></div></section>
+    <section className="mx-auto grid max-w-7xl gap-10 px-6 py-24 md:grid-cols-[.7fr_1fr] lg:px-12"><div><p className="eyebrow">Before you ask</p><h2 className="mt-4 font-serif text-4xl tracking-tight">Good questions.<br/>Straight answers.</h2><Link to="/help" className="mt-6 inline-flex items-center gap-3 text-sm text-mark">Visit the help centre <ArrowUpRight size={16}/></Link></div><div>{HELP.filter((_, i) => [1, 4, 5, 6].includes(i)).map((f) => <details key={f.question} className="border-b border-line py-5"><summary className="cursor-pointer text-sm font-medium">{f.question}</summary><p className="mt-4 text-sm leading-7 text-muted">{f.answer}</p></details>)}</div></section>
+    <footer className="border-t border-line"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6 px-6 py-8 lg:px-12"><LaneWordmark/><p className="text-xs text-muted">An independent workspace for UK resellers.</p><div className="flex gap-5 text-xs text-muted"><Link to="/help">Help</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/terms">Terms</Link></div></div></footer>
+  </main>;
 }

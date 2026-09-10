@@ -27,7 +27,7 @@ import {
 import { useEffect, useState } from "react";
 
 const NAV = [
-  { to: "/inbox", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/inbox", label: "Today", icon: LayoutDashboard },
   { to: "/inventory", label: "Products", icon: Package },
   { to: "/new", label: "New listing", icon: Plus },
   { to: "/import", label: "Import", icon: Upload },
@@ -61,7 +61,7 @@ export function AppShell() {
     <div className="min-h-screen bg-paper text-ink">
       <ExtensionBridge bootstrap={data} />
       <div className="flex min-h-screen">
-        <aside className="hidden w-[240px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <aside className="hidden w-[220px] shrink-0 flex-col border-r border-line bg-surface md:flex">
           <div className="flex h-14 items-center px-4">
             <Link to="/inbox" className="flex items-center">
               <LaneWordmark />
@@ -83,7 +83,7 @@ export function AppShell() {
                   to={item.to}
                   className={cn(
                     "flex h-10 items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-sm transition-colors duration-[var(--motion-quick)]",
-                    isActive ? "bg-raised text-ink" : "text-muted hover:bg-raised/70 hover:text-ink",
+                    isActive ? "bg-mark text-mark-fg" : "text-muted hover:bg-raised/70 hover:text-ink",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.75} />
@@ -105,7 +105,7 @@ export function AppShell() {
                   to={item.to}
                   className={cn(
                     "flex h-10 items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-sm transition-colors duration-[var(--motion-quick)]",
-                    isActive ? "bg-raised text-ink" : "text-muted hover:bg-raised/70 hover:text-ink",
+                    isActive ? "bg-mark text-mark-fg" : "text-muted hover:bg-raised/70 hover:text-ink",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.75} />
@@ -177,6 +177,7 @@ export function AppShell() {
               </span>
             ) : null}
             <div className="ml-auto flex items-center gap-1">
+              <Link to="/help" className="mr-3 text-xs text-muted hover:text-ink">Help & guides</Link>
               <ThemeToggle />
               {isPending ? (
                 <div className="h-8 w-8 animate-pulse rounded-full bg-ink/10" />

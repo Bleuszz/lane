@@ -1,3 +1,6 @@
+import { selectEbayOffer, liveEbayReceipt, selectSellerPolicy, type EbayOffer } from "./ebay-operations";
+import { sourceAspects, validateAspects } from "../aspects";
+import { ebayAspectRules } from "./taxonomy";
 import { env } from "@/lib/env.server";
 import { ebayEnv } from "./secret";
 import type { Condition, ItemView } from "@/lib/lane/types";
@@ -50,6 +53,7 @@ async function tokenRequest(body: URLSearchParams): Promise<{
       Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
     },
     body,
+    signal: AbortSignal.timeout(30_000),
   });
   const json = (await res.json()) as Record<string, unknown>;
   if (!res.ok) {
@@ -101,6 +105,7 @@ export async function ebayFetch<T = Record<string, unknown>>(
       ...extraHeaders,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
   let json = {} as T;
@@ -128,48 +133,77 @@ export async function ebayUser(accessToken: string): Promise<{ username: string;
 
 export async function ensureMerchantLocation(accessToken: string, key: string): Promise<string> {
   const get = await ebayFetch(accessToken, "GET", `/sell/inventory/v1/location/${encodeURIComponent(key)}`);
-  if (get.ok || get.status === 200) return key;
-  const line1 = env("EBAY_LOCATION_LINE1");
-  const city = env("EBAY_LOCATION_CITY");
-  const postcode = env("EBAY_LOCATION_POSTCODE");
-  if (!line1 || !city || !postcode) {
-    throw new Error(
-      "eBay needs a merchant location. Set EBAY_LOCATION_LINE1, EBAY_LOCATION_CITY and EBAY_LOCATION_POSTCODE to a real GB dispatch address.",
-    );
+  if (get.ok) return key;
+  if (get.status !== 404) throw Object.assign(new Error("Could not verify this shop's eBay dispatch location."), { body: get.text });
+  const list = await ebayFetch<{ locations?: { merchantLocationKey?: string; merchantLocationStatus?: string }[] }>(
+    accessToken, "GET", "/sell/inventory/v1/location?limit=100");
+  if (!list.ok) throw Object.assign(new Error("Could not read this shop's dispatch locations."), { body: list.text });
+  const enabled = (list.json.locations ?? []).filter((location) => location.merchantLocationStatus === "ENABLED" && location.merchantLocationKey);
+  if (enabled.length === 1) return enabled[0].merchantLocationKey!;
+  throw new Error(enabled.length ? "Choose this shop's dispatch location before publishing." : "Add a real dispatch location to this eBay shop before publishing.");
+}
+
+async function sellerPolicies(accessToken: string, settings: Record<string, unknown>) {
+  const result: Record<string, string> = {};
+  for (const kind of ["fulfillment", "payment", "return"]) {
+    const field = `${kind}PolicyId`;
+    const response = await ebayFetch<Record<string, Record<string, unknown>[]>>(
+      accessToken, "GET", `/sell/account/v1/${kind}_policy?marketplace_id=EBAY_GB`);
+    if (!response.ok) throw Object.assign(new Error(`Could not read this shop's ${kind} policies.`), { body: response.text });
+    result[field] = selectSellerPolicy(response.json[`${kind}Policies`] ?? [], field,
+      typeof settings[field] === "string" ? settings[field] as string : undefined);
   }
-  const created = await ebayFetch(accessToken, "POST", `/sell/inventory/v1/location/${encodeURIComponent(key)}`, {
-    location: {
-      address: {
-        addressLine1: line1,
-        city,
-        postalCode: postcode,
-        country: "GB",
-      },
-    },
-    name: env("EBAY_LOCATION_NAME") ?? "Lane dispatch",
-    merchantLocationStatus: "ENABLED",
-    locationTypes: ["WAREHOUSE"],
-  });
-  if (!created.ok && created.status !== 204 && created.status !== 409) {
-    throw Object.assign(new Error(`eBay inventory location failed (HTTP ${created.status}).`), { body: created.text });
+  return result;
+}
+
+async function reconcileOffer(accessToken: string, sku: string, offerId?: string | null): Promise<EbayOffer | undefined> {
+  if (offerId) {
+    const response = await ebayFetch<EbayOffer>(accessToken, "GET", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}`);
+    if (!response.ok) throw Object.assign(new Error("Could not reconcile the saved eBay offer. No new offer was created."), { body: response.text });
+    return response.json;
   }
-  return key;
+  const response = await ebayFetch<{ offers?: EbayOffer[]; errors?: { errorId?: number }[] }>(accessToken, "GET",
+    `/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}&marketplace_id=EBAY_GB&format=FIXED_PRICE`);
+  if (!response.ok) {
+    // Accept only eBay's explicit missing-resource response, never authentication,
+    // throttling or server failures. All ambiguous lookups stop publication.
+    if ([400, 404].includes(response.status) && response.json.errors?.length && response.json.errors.every((error) => error.errorId === 25710)) return undefined;
+    throw Object.assign(new Error("Could not check existing eBay offers. No new offer was created."), { body: response.text });
+  }
+  return selectEbayOffer(response.json.offers ?? [], sku);
 }
 
 function conditionEnum(c: Condition): string {
-  const map: Record<Condition, string> = {
+  if (c === "unknown") throw new Error("Confirm item condition before publishing to eBay.");
+  const map: Partial<Record<Condition, string>> = {
     new_with_tags: "NEW",
     new_without_tags: "NEW_OTHER",
     very_good: "USED_VERY_GOOD",
     good: "USED_GOOD",
     satisfactory: "USED_ACCEPTABLE",
   };
-  return map[c] ?? "USED_GOOD";
+  return map[c]!;
 }
 
 function skuFor(item: ItemView): string {
-  const raw = (item.sku || item.id).replace(/[^A-Za-z0-9]+/g, "").slice(0, 50);
-  return raw || item.id.replace(/[^A-Za-z0-9]/g, "").slice(0, 50);
+  // User-editable SKU labels can collide or change. Canonical IDs are stable.
+  return `LANE_${Buffer.from(item.id).toString("base64url")}`.slice(0, 50);
+}
+
+export async function ebayReconcileListing(accessToken: string, item: ItemView, offerId?: string | null) {
+  return liveEbayReceipt(await reconcileOffer(accessToken, skuFor(item), offerId));
+}
+
+function selectedPhotoUrls(item: ItemView): string[] {
+  if (!item.photos.length) throw new Error("eBay requires at least one publicly reachable HTTPS photo.");
+  return item.photos.map((photo, index) => {
+    let url: URL;
+    try { url = new URL(photo.url); } catch { throw new Error(`Photo ${index + 1} needs a public HTTPS URL before publishing to eBay.`); }
+    if (url.protocol !== "https:" || !url.hostname) {
+      throw new Error(`Photo ${index + 1} needs a public HTTPS URL. Host the edited image or remove it from this listing first.`);
+    }
+    return photo.url;
+  });
 }
 
 export async function ebayPublish(
@@ -179,18 +213,26 @@ export async function ebayPublish(
   priceGbp: number,
   quantity: number,
   existingOfferId?: string | null,
+  settings: Record<string, unknown> = {},
+  saveReceipt?: (receipt: { offerId: string; sku: string }) => Promise<void>,
+  beforeWrite?: () => Promise<void>,
 ): Promise<{ listingId: string; offerId: string; sku: string; url: string }> {
-  const sku = skuFor(item);
+  const photos = selectedPhotoUrls(item);
+  let sku = skuFor(item);
+  const remote = await reconcileOffer(accessToken, sku, existingOfferId);
+  const alreadyLive = liveEbayReceipt(remote);
+  if (alreadyLive) return alreadyLive;
+  if (remote?.sku) sku = remote.sku;
   const cat = findCategory(item.categoryCanonical);
   const categoryId = cat?.ebayUk.id;
-  if (!categoryId) {
+  if (!categoryId || !cat?.ebayUk.confirmed) {
     throw new Error(`eBay category is unconfirmed for ${cat?.path ?? item.categoryCanonical ?? "this item"}. Pick a confirmed leaf before publishing.`);
   }
-  const photos = item.photos.map((p) => p.url).filter((u) => /^https?:\/\//i.test(u));
-  if (photos.length === 0) {
-    throw new Error("eBay requires at least one publicly reachable http(s) photo URL.");
-  }
+  const aspects = sourceAspects(item);
+  const fieldErrors = validateAspects(await ebayAspectRules(categoryId), aspects);
+  if (fieldErrors.length) throw new Error(fieldErrors.join(" "));
 
+  await beforeWrite?.();
   const inv = await ebayFetch(accessToken, "PUT", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`, {
     availability: { shipToLocationAvailability: { quantity } },
     condition: conditionEnum(item.condition),
@@ -198,12 +240,7 @@ export async function ebayPublish(
     product: {
       title: item.title.slice(0, 80),
       description: item.description || item.title,
-      aspects: {
-        ...(item.brand ? { Brand: [item.brand] } : {}),
-        ...(item.sizeUk ? { Size: [item.sizeUk] } : {}),
-        ...(item.colour ? { Colour: [item.colour] } : {}),
-        ...(item.material ? { Material: [item.material] } : {}),
-      },
+      aspects,
       imageUrls: photos.slice(0, 12),
       ...(item.brand ? { brand: item.brand } : {}),
     },
@@ -229,21 +266,19 @@ export async function ebayPublish(
     throw Object.assign(new Error(`eBay inventory_item failed (HTTP ${inv.status}).`), { body: inv.text });
   }
 
-  let offerId = existingOfferId ?? null;
+  let offerId = remote?.offerId ?? existingOfferId ?? null;
   if (!offerId) {
+    const listingPolicies = await sellerPolicies(accessToken, settings);
+    await beforeWrite?.();
     const offer = await ebayFetch<{ offerId?: string }>(accessToken, "POST", "/sell/inventory/v1/offer", {
       sku,
-      marketplaceId: env("EBAY_MARKETPLACE_ID") ?? "EBAY_GB",
+      marketplaceId: "EBAY_GB",
       format: "FIXED_PRICE",
       listingDescription: item.description || item.title,
       availableQuantity: quantity,
       quantityLimitPerBuyer: 1,
       pricingSummary: { price: { value: priceGbp.toFixed(2), currency: "GBP" } },
-      listingPolicies: {
-        fulfillmentPolicyId: env("EBAY_FULFILLMENT_POLICY_ID"),
-        paymentPolicyId: env("EBAY_PAYMENT_POLICY_ID"),
-        returnPolicyId: env("EBAY_RETURN_POLICY_ID"),
-      },
+      listingPolicies,
       categoryId,
       merchantLocationKey: locationKey,
       includeCatalogProductDetails: true,
@@ -251,14 +286,17 @@ export async function ebayPublish(
     if (!offer.ok) {
       throw Object.assign(
         new Error(
-          `eBay createOffer failed (HTTP ${offer.status}). You must opt in to Business Policies and set EBAY_FULFILLMENT_POLICY_ID, EBAY_PAYMENT_POLICY_ID, EBAY_RETURN_POLICY_ID.`,
+          `eBay createOffer failed (HTTP ${offer.status}). Check this shop's business policies and dispatch location.`,
         ),
         { body: offer.text },
       );
     }
     offerId = String(offer.json.offerId ?? "");
+    if (!offerId) throw new Error("eBay createOffer returned no offer ID. Reconcile before retrying.");
   }
 
+  await saveReceipt?.({ offerId: offerId!, sku });
+  await beforeWrite?.();
   const pub = await ebayFetch<{ listingId?: string }>(
     accessToken,
     "POST",
@@ -268,6 +306,7 @@ export async function ebayPublish(
     throw Object.assign(new Error(`eBay publishOffer failed (HTTP ${pub.status}).`), { body: pub.text });
   }
   const listingId = String(pub.json.listingId ?? "");
+  if (!listingId) throw new Error("eBay did not return a listing ID. Reconcile before retrying.");
   return {
     listingId,
     offerId: offerId!,
@@ -283,90 +322,112 @@ export async function ebayUpdateOffer(
   item: ItemView,
   priceGbp: number,
   quantity: number,
+  beforeWrite?: () => Promise<void>,
 ) {
-  await ebayFetch(accessToken, "PUT", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`, {
-    availability: { shipToLocationAvailability: { quantity } },
+  const photos = selectedPhotoUrls(item);
+  const currentItem = await ebayFetch<Record<string, unknown>>(accessToken, "GET", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`);
+  const currentOffer = await ebayFetch<Record<string, unknown>>(accessToken, "GET", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}`);
+  if (!currentItem.ok || !currentOffer.ok) throw new Error("Could not read the current eBay listing. No update was sent.");
+  const { sku: _sku, locale: _locale, ...inventoryBody } = currentItem.json;
+  const product = (inventoryBody.product ?? {}) as Record<string, unknown>;
+  await beforeWrite?.();
+  const updated = await ebayFetch(accessToken, "PUT", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`, {
+    ...inventoryBody,
+    availability: { ...((inventoryBody.availability ?? {}) as Record<string, unknown>), shipToLocationAvailability: { quantity } },
     condition: conditionEnum(item.condition),
-    product: {
-      title: item.title.slice(0, 80),
-      description: item.description || item.title,
-      imageUrls: item.photos.map((p) => p.url).filter((u) => /^https?:\/\//i.test(u)).slice(0, 12),
-    },
+    product: { ...product, title: item.title.slice(0, 80), description: item.description || item.title,
+      aspects: { ...((product.aspects ?? {}) as Record<string, string[]>), ...sourceAspects(item) },
+      imageUrls: photos.slice(0, 12) },
   });
+  if (!updated.ok) throw Object.assign(new Error(`eBay inventory update failed (HTTP ${updated.status}).`), { body: updated.text });
+  const { offerId: _offerId, listing: _listing, status: _status, ...offerBody } = currentOffer.json;
+  await beforeWrite?.();
   const r = await ebayFetch(accessToken, "PUT", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}`, {
-    availableQuantity: quantity,
-    pricingSummary: { price: { value: priceGbp.toFixed(2), currency: "GBP" } },
+    ...offerBody, availableQuantity: quantity,
+    pricingSummary: { ...((offerBody.pricingSummary ?? {}) as Record<string, unknown>), price: { value: priceGbp.toFixed(2), currency: "GBP" } },
     listingDescription: item.description || item.title,
   });
-  if (!r.ok && r.status !== 204) {
-    throw Object.assign(new Error(`eBay update offer failed (HTTP ${r.status}).`), { body: r.text });
-  }
+  if (!r.ok) throw Object.assign(new Error(`eBay update offer failed (HTTP ${r.status}).`), { body: r.text });
 }
 
-export async function ebayWithdraw(accessToken: string, offerId: string) {
-  const r = await ebayFetch(accessToken, "POST", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}/withdraw`, {
-    listingId: undefined,
-  });
-  if (!r.ok && r.status !== 204) {
-    const alt = await ebayFetch(
-      accessToken,
-      "POST",
-      `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}/withdraw`,
-      {},
-    );
-    if (!alt.ok && alt.status !== 204) {
-      throw Object.assign(new Error(`eBay withdraw failed (HTTP ${alt.status}).`), { body: alt.text });
-    }
-  }
+export async function ebayWithdraw(accessToken: string, offerId: string, beforeWrite?: () => Promise<void>) {
+  const before = await ebayFetch<EbayOffer>(accessToken, "GET", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}`);
+  if (!before.ok) throw Object.assign(new Error("Could not verify whether the eBay listing has ended."), { body: before.text });
+  if (before.json.status === "UNPUBLISHED") return;
+  await beforeWrite?.();
+  const r = await ebayFetch(accessToken, "POST", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}/withdraw`, {});
+  if (!r.ok) throw Object.assign(new Error(`eBay withdraw failed (HTTP ${r.status}). Recheck before retrying.`), { body: r.text });
 }
 
-export async function ebayListInventory(accessToken: string): Promise<
-  {
-    sku: string;
-    title: string;
-    priceGbp: number | null;
-    quantity: number;
-    listingId: string | null;
-    offerId: string | null;
-    url: string | null;
-    photoUrl: string | null;
-  }[]
-> {
+export type EbayInventoryImport = {
+  sku: string;
+  title: string;
+  description: string | null;
+  priceGbp: number | null;
+  quantity: number | null;
+  listingId: string | null;
+  offerId: string | null;
+  url: string | null;
+  photoUrl: string | null;
+  photoUrls: string[];
+  categoryId: string | null;
+  categoryName: string | null;
+  brand: string | null;
+  sizeLabel: string | null;
+  colour: string | null;
+  material: string | null;
+  /** Original eBay enum and description, never an invented canonical condition. */
+  condition: string | null;
+  conditionDescription: string | null;
+  aspects: Record<string, string[]>;
+  status: string | null;
+};
+
+export async function ebayListInventory(accessToken: string): Promise<EbayInventoryImport[]> {
   const inv = await ebayFetch<{ inventoryItems?: Array<Record<string, unknown>> }>(
-    accessToken,
-    "GET",
-    "/sell/inventory/v1/inventory_item?limit=100",
-  );
-  if (!inv.ok) {
-    throw Object.assign(new Error(`eBay inventory list failed (HTTP ${inv.status}).`), { body: inv.text });
-  }
-  const items = inv.json.inventoryItems ?? [];
-  const out = [];
-  for (const row of items) {
+    accessToken, "GET", "/sell/inventory/v1/inventory_item?limit=100");
+  if (!inv.ok) throw Object.assign(new Error(`eBay inventory list failed (HTTP ${inv.status}).`), { body: inv.text });
+  const out: EbayInventoryImport[] = [];
+  for (const row of inv.json.inventoryItems ?? []) {
     const sku = String(row.sku ?? "");
     const product = (row.product ?? {}) as Record<string, unknown>;
-    const offers = await ebayFetch<{ offers?: Array<Record<string, unknown>> }>(
-      accessToken,
-      "GET",
-      `/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,
-    );
-    const offer = offers.json.offers?.[0];
-    const listingId = offer?.listing ? String((offer.listing as { listingId?: string }).listingId ?? "") : "";
-    const price = offer?.pricingSummary
-      ? Number((offer.pricingSummary as { price?: { value?: string } }).price?.value ?? 0)
-      : null;
+    const offer = await reconcileOffer(accessToken, sku);
+    const listingId = offer?.listing?.listingId ?? null;
+    const priceValue = (offer?.pricingSummary as { price?: { value?: string; currency?: string } } | undefined)?.price;
+    const price = priceValue?.value != null && priceValue.currency === "GBP" ? Number(priceValue.value) : null;
+    const photoUrls = Array.isArray(product.imageUrls) ? product.imageUrls.filter((value): value is string => typeof value === "string" && value.length > 0) : [];
+    const aspects: Record<string, string[]> = {};
+    if (product.aspects && typeof product.aspects === "object" && !Array.isArray(product.aspects)) {
+      for (const [name, values] of Object.entries(product.aspects)) {
+        if (Array.isArray(values)) aspects[name] = values.filter((value): value is string => typeof value === "string");
+      }
+    }
+    const aspect = (...names: string[]) => {
+      const key = Object.keys(aspects).find((key) => names.some((name) => name.toLowerCase() === key.toLowerCase()));
+      return key ? aspects[key][0] ?? null : null;
+    };
+    const quantity = (row.availability as { shipToLocationAvailability?: { quantity?: number } } | undefined)?.shipToLocationAvailability?.quantity;
     out.push({
       sku,
-      title: String(product.title ?? sku),
-      priceGbp: price,
-      quantity: Number(
-        ((row.availability as { shipToLocationAvailability?: { quantity?: number } } | undefined)
-          ?.shipToLocationAvailability?.quantity ?? 1),
-      ),
-      listingId: listingId || null,
-      offerId: offer?.offerId ? String(offer.offerId) : null,
+      title: typeof product.title === "string" ? product.title : "",
+      description: typeof product.description === "string" ? product.description : typeof offer?.listingDescription === "string" ? offer.listingDescription : null,
+      priceGbp: price != null && Number.isFinite(price) ? price : null,
+      quantity: typeof quantity === "number" && Number.isInteger(quantity) && quantity >= 0 ? quantity : null,
+      listingId,
+      offerId: offer?.offerId ?? null,
       url: listingId ? `https://www.ebay.co.uk/itm/${listingId}` : null,
-      photoUrl: Array.isArray(product.imageUrls) ? String(product.imageUrls[0] ?? "") || null : null,
+      photoUrl: photoUrls[0] ?? null,
+      photoUrls,
+      categoryId: typeof offer?.categoryId === "string" ? offer.categoryId : null,
+      categoryName: typeof offer?.categoryName === "string" ? offer.categoryName : null,
+      brand: typeof product.brand === "string" ? product.brand : aspect("Brand"),
+      sizeLabel: aspect("Size"),
+      colour: aspect("Colour", "Color"),
+      material: aspect("Material"),
+      condition: typeof row.condition === "string" ? row.condition : null,
+      conditionDescription: typeof row.conditionDescription === "string" ? row.conditionDescription : null,
+      aspects,
+      status: offer?.listing?.listingStatus ?? offer?.status ?? null,
     });
   }
   return out;

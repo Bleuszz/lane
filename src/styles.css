@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 
   --color-paper: #0d0d0d;
@@ -52,31 +52,31 @@
 }
 
 html[data-theme="light"] {
-  --color-paper: #f6f7f9;
-  --color-ink: #17181b;
-  --color-surface: #ffffff;
-  --color-raised: #f0f2f5;
-  --color-muted: #5c616b;
-  --color-subtle: #8a909a;
-  --color-line: #e6e8ee;
-  --color-line-strong: #d3d7e0;
-  --color-mark: #2563eb;
-  --color-mark-hover: #1d4ed8;
-  --color-mark-fg: #ffffff;
+  --color-paper: #f6f4ee;
+  --color-ink: #252b25;
+  --color-surface: #fffefb;
+  --color-raised: #eceee6;
+  --color-muted: #636b62;
+  --color-subtle: #737b71;
+  --color-line: #dedfd6;
+  --color-line-strong: #c3c8bb;
+  --color-mark: #315640;
+  --color-mark-hover: #244330;
+  --color-mark-fg: #fffefb;
   --color-warn: #b45309;
   --color-warn-bg: #fff7ed;
   --color-danger: #b91c1c;
   --color-danger-bg: #fef2f2;
   --color-ok: #047857;
   --color-ok-bg: #ecfdf5;
-  --color-secondary: #f0f2f5;
-  --color-background: #f6f7f9;
-  --color-foreground: #17181b;
-  --color-card: #ffffff;
-  --color-primary: #2563eb;
-  --color-primary-foreground: #ffffff;
-  --color-border: #e6e8ee;
-  --color-ring: #2563eb;
+  --color-secondary: #eceee6;
+  --color-background: #f6f4ee;
+  --color-foreground: #252b25;
+  --color-card: #fffefb;
+  --color-primary: #315640;
+  --color-primary-foreground: #fffefb;
+  --color-border: #dedfd6;
+  --color-ring: #315640;
   --shadow-panel: 0 1px 0 rgba(23, 24, 27, 0.04), 0 12px 32px -20px rgba(23, 24, 27, 0.16);
 }
 
@@ -126,4 +126,13 @@ html[data-theme="light"] {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .eyebrow { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: var(--color-muted); }
+  .page-title { margin-top: .5rem; font-size: clamp(1.7rem, 3vw, 2.5rem); letter-spacing: -.04em; line-height: 1.15; font-weight: 600; }
+  .listing-stage { background: #e5dac0; color: #30362c; }
+  html[data-theme="dark"] .listing-stage { background: #34382c; color: #eeeadd; }
+  .photo-dialog { margin: auto; max-height: 92vh; overflow: auto; }
+  .marketing summary::marker { color: var(--color-mark); }
 }

@@ -1,5 +1,7 @@
 import { bool, iso, num, num0 } from "@/lib/lane/format";
-import { actionLimit } from "@/lib/lane/plans";
+import { TRIAL_ACTION_LIMIT } from "@/lib/lane/plans";
+import { entitlements } from "../entitlements";
+import { recordActivation } from "./events";
 import { CHANNELS } from "@/lib/lane/channels";
 import type {
   AccountStatus,
@@ -33,10 +35,20 @@ export function asPlan(v: unknown): PlanId {
 export function mapSettings(row: Record<string, unknown>): UserSettingsView {
   const plan = asPlan(row.plan);
   const used = num0(row.actions_used_month);
-  const limit = actionLimit(plan);
+  const trialStartedAt = iso(row.trial_started_at);
+  const trialEndsAt = iso(row.trial_ends_at);
+  const trialActionsUsed = num0(row.trial_actions_used);
+  const billingStatus = String(row.billing_status ?? "trialing");
+  const access = entitlements({ plan, billingStatus, trialEndsAt, trialActionsUsed, actionsUsedMonth: used });
+  const limit = access.actionsLimit;
   return {
     plan,
-    aiPack: bool(row.ai_pack),
+    trialStartedAt, trialEndsAt, trialActionsUsed, trialActionsLimit: TRIAL_ACTION_LIMIT,
+    trialActive: access.trialActive, canPublish: access.canPublish,
+    aiPack: access.aiCreditsLimit > 0 && bool(row.ai_autofill_enabled),
+    aiAutofillEnabled: bool(row.ai_autofill_enabled),
+    aiCreditsUsed: num0(row.ai_credits_used),
+    aiCreditsLimit: access.aiCreditsLimit,
     onboardingStep: num0(row.onboarding_step),
     onboardingComplete: bool(row.onboarding_complete),
     extensionEnabled: bool(row.extension_enabled),
@@ -45,8 +57,8 @@ export function mapSettings(row: Record<string, unknown>): UserSettingsView {
     actionsUsedMonth: used,
     actionsMonth: row.actions_month ? String(row.actions_month) : null,
     actionsLimit: limit,
-    actionsRemaining: Math.max(0, limit - used),
-    billingStatus: String(row.billing_status ?? "active"),
+    actionsRemaining: access.actionsRemaining,
+    billingStatus,
     stripeCustomerId: row.stripe_customer_id ? String(row.stripe_customer_id) : null,
   };
 }
@@ -110,13 +122,14 @@ export function mapChannel(
 
 export function mapItemBase(row: Record<string, unknown>): Omit<ItemView, "tags" | "photos" | "channels"> {
   return {
+    channelFields: (row.channel_fields ?? {}) as ItemView["channelFields"],
     id: String(row.id),
     sku: row.sku ? String(row.sku) : null,
     title: String(row.title),
     description: String(row.description ?? ""),
     brand: row.brand ? String(row.brand) : null,
     categoryCanonical: row.category_canonical ? String(row.category_canonical) : null,
-    condition: (String(row.condition ?? "good") as Condition),
+    condition: (String(row.condition ?? "unknown") as Condition),
     sizeUk: row.size_uk ? String(row.size_uk) : null,
     sizeEu: row.size_eu ? String(row.size_eu) : null,
     sizeUs: row.size_us ? String(row.size_us) : null,
@@ -231,6 +244,9 @@ async function purgePreviewPlaceholders(sql: Sql, userId: string) {
 
 export async function ensureUser(sql: Sql, userId: string): Promise<UserSettingsView> {
   await sql`insert into user_settings (user_id, actions_month, extension_awake) values (${userId}, ${monthKey()}, ${false}) on conflict (user_id) do nothing`;
+  await recordActivation(sql, userId, "user_signup");
+  const trial = await sql`select user_id from user_settings where user_id = ${userId} and trial_started_at is not null`;
+  if (trial.length) await recordActivation(sql, userId, "trial_started");
   await purgePreviewPlaceholders(sql, userId);
 
   const rows = await sql<Record<string, unknown>>`select * from user_settings where user_id = ${userId}`;
@@ -246,7 +262,7 @@ export async function ensureUser(sql: Sql, userId: string): Promise<UserSettings
   );
   if (settings.actionsMonth !== monthKey()) {
     await sql`update user_settings set actions_used_month = 0, actions_month = ${monthKey()} where user_id = ${userId}`;
-    settings = { ...settings, actionsUsedMonth: 0, actionsMonth: monthKey(), actionsRemaining: settings.actionsLimit };
+    settings = mapSettings((await sql<Record<string, unknown>>`select * from user_settings where user_id = ${userId}`)[0] ?? {});
   }
 
   const profiles = await sql`select id from shipping_profiles where user_id = ${userId} limit 1`;
@@ -265,11 +281,12 @@ export async function ensureUser(sql: Sql, userId: string): Promise<UserSettings
 
   const rules = await sql`select id from pricing_rules where user_id = ${userId} limit 1`;
   if (rules.length === 0) {
-    await sql`insert into pricing_rules (id, user_id, marketplace, kind, amount) values (${makeId("pr")}, ${userId}, ${"ebay_uk"}, ${"round_99"}, ${null})`;
-    await sql`insert into pricing_rules (id, user_id, marketplace, kind, amount, undercut_marketplace) values (${makeId("pr")}, ${userId}, ${"vinted_uk"}, ${"undercut"}, ${1}, ${"ebay_uk"})`;
+    await sql`insert into pricing_rules (id, user_id, marketplace, kind, amount) values (${makeId("pr")}, ${userId}, ${"ebay_uk"}, ${"flat"}, ${null})`;
+    await sql`insert into pricing_rules (id, user_id, marketplace, kind, amount, undercut_marketplace) values (${makeId("pr")}, ${userId}, ${"vinted_uk"}, ${"flat"}, ${null}, ${null})`;
   }
 
-  return settings;
+  const usage = await sql<{ used: number }>`select used from ai_credit_usage where user_id = ${userId} and month = ${new Date().toISOString().slice(0, 7)}`;
+  return { ...settings, aiCreditsUsed: Number(usage[0]?.used ?? 0) };
 }
 
 export async function loadAccounts(sql: Sql, userId: string): Promise<AccountView[]> {

@@ -1,3 +1,4 @@
+import { PublishPreview } from "@/components/publish-preview";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/lib/lane/server/fns";
 import { CHANNELS } from "@/lib/lane/channels";
 import { formatDateTime, formatMoney } from "@/lib/lane/format";
-import { ChannelPicker, ItemForm, draftFromItem } from "@/components/item-form";
+import { ChannelPicker, ItemForm, ListingTargetPicker, draftFromItem } from "@/components/item-form";
 import type { ListingTarget } from "@/lib/lane/listing-fields";
 import { Button, Panel } from "@/components/ui";
 import { ModeChip, StatusBadge } from "@/components/status";
@@ -32,6 +33,8 @@ function ItemPage() {
   const itemQ = useQuery({ queryKey: ["item", id], queryFn: () => getItemFn({ data: { id } }) });
   const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
   const extras = useQuery({ queryKey: ["settings-extras"], queryFn: () => getSettingsExtras() });
+  const [targetOverride, setTargetOverride] = useState<ListingTarget | null>(null);
+  const [review, setReview] = useState(false);
   const [draft, setDraft] = useState<ItemDraft | null>(null);
   const [accountIds, setAccountIds] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
@@ -48,17 +51,23 @@ function ItemPage() {
     onSuccess: () => qc.invalidateQueries(),
   });
 
+  if (itemQ.isError) return <p className="text-sm text-danger">Could not load this item. Return to inventory and try again.</p>;
   if (itemQ.isPending || !draft) return <div className="h-64 animate-pulse rounded-[var(--radius-md)] bg-secondary" />;
   if (itemQ.isError) return <p className="text-sm text-danger">Item not found.</p>;
   const item = itemQ.data;
   const picked = (boot.data?.accounts ?? []).filter((a) => accountIds.includes(a.id));
   const wantsEbay = item.channels.some((c) => c.marketplace === "ebay_uk") || picked.some((a) => a.marketplace === "ebay_uk");
   const wantsVinted = item.channels.some((c) => c.marketplace === "vinted_uk") || picked.some((a) => a.marketplace === "vinted_uk");
-  const listingTarget: ListingTarget = wantsEbay && wantsVinted ? "both" : wantsEbay ? "ebay" : "vinted";
+  const listingTarget: ListingTarget = targetOverride ?? (wantsEbay && wantsVinted ? "both" : wantsEbay ? "ebay" : "vinted");
 
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {review && <PublishPreview draft={draft} accounts={picked} rules={extras.data?.rules ?? []} onClose={() => setReview(false)} onConfirm={async () => {
+        await save.mutateAsync();
+        const result = await publishItems({data:{itemIds:[id],accountIds}});
+        setMsg(`Queued ${result.queued} job(s).`); void qc.invalidateQueries();
+      }}/>}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link to="/inventory" className="text-xs text-muted hover:text-ink">
@@ -112,6 +121,7 @@ function ItemPage() {
         </Panel>
       ) : null}
 
+      <ListingTargetPicker value={listingTarget} onChange={setTargetOverride}/>
       <ItemForm
         draft={draft}
         onChange={setDraft}
@@ -162,8 +172,10 @@ function ItemPage() {
                       </Button>
                       <Button
                         size="sm"
+                        disabled={item.quantity !== 1}
+                        title={item.quantity !== 1 ? "Per-unit sale entry is not available yet" : undefined}
                         onClick={() =>
-                          markSoldFn({ data: { itemId: id, marketplace: c.marketplace, via: c.mode === "oauth" ? "webhook" : "extension_poll" } }).then(() => {
+                          markSoldFn({ data: { itemId: id, marketplace: c.marketplace, via: "manual" } }).then(() => {
                             setMsg("Sale recorded. Other live channels queued for delist if qty is now 0.");
                             void qc.invalidateQueries();
                           })
@@ -193,14 +205,9 @@ function ItemPage() {
           <Button
             className="mt-3"
             disabled={accountIds.length === 0}
-            onClick={() =>
-              save.mutateAsync().then(() => publishItems({ data: { itemIds: [id], accountIds } })).then((r) => {
-                setMsg(`Queued ${r.queued} job(s).`);
-                void qc.invalidateQueries();
-              })
-            }
+            onClick={() => setReview(true)}
           >
-            Queue publish
+            Review and publish
           </Button>
         </section>
       ) : null}

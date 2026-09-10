@@ -1,3 +1,4 @@
+import { normalizeVintedSource } from "../vinted-source";
 import { env } from "@/lib/env.server";
 import type { Sql } from "@/lib/db";
 import { findCategory } from "@/lib/lane/categories";
@@ -104,19 +105,7 @@ export type VintedSessionInput = {
   cookies?: Array<{ name?: string; value?: string }> | null;
 };
 
-export type VintedRemote = {
-  remoteId: string;
-  title: string;
-  description: string | null;
-  priceGbp: number;
-  photoUrl: string | null;
-  brand: string | null;
-  sizeLabel: string | null;
-  categoryName: string | null;
-  conditionLabel: string | null;
-  url: string;
-  status: string;
-};
+export type VintedRemote = ReturnType<typeof normalizeVintedSource>;
 
 export async function vintedListWardrobe(access: string, userId: string): Promise<VintedRemote[]> {
   const out: VintedRemote[] = [];
@@ -134,22 +123,7 @@ export async function vintedListWardrobe(access: string, userId: string): Promis
     for (const it of items) {
       const id = String(it.id ?? "");
       if (!id) continue;
-      const photo = it.photo as { url?: string } | undefined;
-      const price = it.price as { amount?: string } | string | number | undefined;
-      const amount = typeof price === "object" && price ? Number(price.amount) : Number(price ?? 0);
-      out.push({
-        remoteId: id,
-        title: String(it.title ?? "Untitled"),
-        description: it.description ? String(it.description) : null,
-        priceGbp: Number.isFinite(amount) ? amount : 0,
-        photoUrl: photo?.url ?? null,
-        brand: it.brand_title ? String(it.brand_title) : null,
-        sizeLabel: it.size_title ? String(it.size_title) : null,
-        categoryName: it.catalog_id ? String(it.catalog_id) : null,
-        conditionLabel: it.status_title ? String(it.status_title) : null,
-        url: String(it.url ?? `${HOST}/items/${id}`),
-        status: it.is_closed ? "ended" : "live",
-      });
+      out.push(normalizeVintedSource(it));
     }
     if (items.length < 96) break;
   }
@@ -330,6 +304,7 @@ export async function vintedPublish(
     throw new Error("Vinted publish needs at least one photo Lane can fetch (https URL or data URL).");
   }
   const cat = findCategory(item.categoryCanonical);
+  if (item.condition === "unknown") throw new Error("Confirm the item condition before publishing.");
   const catalogId = cat?.vintedUk.catalogId ? Number(cat.vintedUk.catalogId) : null;
   const brandId = await vintedFindBrand(access, item.brand);
   const colourIds = await vintedFindColourIds(access, item.colour);

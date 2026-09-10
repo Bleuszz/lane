@@ -4,14 +4,14 @@ import type { PlanId, StripeSetup } from "@/lib/lane/types";
 
 export function stripeSetup(): StripeSetup {
   const prices = {
-    starter: Boolean(env("STRIPE_PRICE_STARTER")),
-    seller: Boolean(env("STRIPE_PRICE_SELLER")),
-    pro: Boolean(env("STRIPE_PRICE_PRO")),
+    starter: Boolean(env("STRIPE_PRICE_V2_STARTER")),
+    seller: Boolean(env("STRIPE_PRICE_V2_SELLER")),
+    pro: Boolean(env("STRIPE_PRICE_V2_PRO")),
     aiPack: Boolean(env("STRIPE_PRICE_AI_PACK")),
   };
   const secret = Boolean(env("STRIPE_SECRET_KEY"));
   return {
-    configured: secret && prices.starter,
+    configured: secret && prices.starter && prices.seller && prices.pro && Boolean(env("STRIPE_WEBHOOK_SECRET")) && env("LANE_BILLING_V2_READY") === "true",
     secret,
     webhook: Boolean(env("STRIPE_WEBHOOK_SECRET")),
     prices,
@@ -27,16 +27,16 @@ export function stripePublishable(): string | undefined {
 }
 
 export function priceIdFor(plan: PlanId): string | undefined {
-  if (plan === "starter") return env("STRIPE_PRICE_STARTER");
-  if (plan === "seller") return env("STRIPE_PRICE_SELLER");
-  if (plan === "pro") return env("STRIPE_PRICE_PRO");
+  if (plan === "starter") return env("STRIPE_PRICE_V2_STARTER");
+  if (plan === "seller") return env("STRIPE_PRICE_V2_SELLER");
+  if (plan === "pro") return env("STRIPE_PRICE_V2_PRO");
   return undefined;
 }
 
 export function planForPriceId(priceId: string): PlanId | null {
-  if (priceId === env("STRIPE_PRICE_STARTER")) return "starter";
-  if (priceId === env("STRIPE_PRICE_SELLER")) return "seller";
-  if (priceId === env("STRIPE_PRICE_PRO")) return "pro";
+  if (priceId === env("STRIPE_PRICE_V2_STARTER") || priceId === env("STRIPE_PRICE_STARTER")) return "starter";
+  if (priceId === env("STRIPE_PRICE_V2_SELLER") || priceId === env("STRIPE_PRICE_SELLER")) return "seller";
+  if (priceId === env("STRIPE_PRICE_V2_PRO") || priceId === env("STRIPE_PRICE_PRO")) return "pro";
   return null;
 }
 

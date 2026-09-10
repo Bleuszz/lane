@@ -1,6 +1,6 @@
 # Lane product plan
 
-Status: implementation branch; not a production launch. Updated 10 September 2026.
+Status: implementation branch; not a production launch. Updated 10 September 2026. Delivery stages and acceptance gates are in [ROADMAP.md](ROADMAP.md); [CONNECTORS.md](CONNECTORS.md) records expansion dependencies; [ECONOMICS_DEPLOYMENT.md](ECONOMICS_DEPLOYMENT.md) contains reproducible cost scenarios.
 
 ## Product promise
 
@@ -11,10 +11,13 @@ Keep your existing listing workflow. Prepare another marketplace's listing with 
 1. Preserve imported attributes and photos; add extensible eBay item specifics with live taxonomy validation.
 2. Optional AI completion: source-supported suggestions, explicit review, no overwriting seller values, monthly credit limits enforced on the server. Starter works without AI.
 3. Redesign the landing page, app navigation, item workflow, connection catalogue and billing around a restrained resale-workroom identity: warm paper, dark green, clear type, fewer decorative cards, useful status.
-4. All supported marketplaces available on every tier. Show the full service catalogue and distinguish implemented connectors from planned ones. Never mark a placeholder as connected. Next connectors need each service's permitted integration and credentials; priority Depop, Etsy, Shopify, WooCommerce, then Facebook/Gumtree and region-specific services.
-5. Production gate: per-seller eBay policies/photo hosting, marketplace smoke tests, durable database, token configuration, sold-event deduplication and unattended jobs. No universal stock-sync guarantee before this passes.
+4. Continue the redesign and Photo studio while making Vinted-to-eBay UK the immediate working path. Browser image adjustments cover crop, rotate, exposure and framing with no image-generation API cost. They do not remove backgrounds. Preserve originals and disclose that enhanced images must retain the item's actual colour and visible defects.
+5. All supported marketplaces available on every tier. Show the service catalogue and distinguish implemented connectors from planned ones. Never mark a placeholder as connected. Depop, Etsy, Shopify, WooCommerce, Facebook and Gumtree remain planned; each needs its own integration, eligibility and live verification before support is advertised.
+6. Production gate: per-seller eBay policies/photo hosting, marketplace smoke tests, durable database, token configuration, sold-event deduplication and unattended jobs. No universal stock-sync guarantee before this passes.
 
 ## Proposed launch pricing
+
+Trial: seven days, no card, 25 publish/relist actions for the trial's entire lifetime, zero AI credits. The action allowance does not reset at a month boundary. Expiry must be enforced by the server, while viewing and exporting existing work remains available.
 
 Starter: £9/month, 150 publish/relist actions, all supported channels, unlimited account slots, no AI credits.
 
@@ -22,7 +25,9 @@ Seller: £19/month, 600 actions, 150 AI credits, optional autofill, all Starter 
 
 Pro: £29/month, 2,000 actions, 500 AI credits, same complete connectors. Scale the allowance rather than withholding essential reliability features.
 
-One successful AI request uses one credit; failed requests restore the reservation. Credits reset by UTC calendar month, do not roll over and never trigger automatic overage charges. Connection count is not a proxy for live integration support. Prices are proposed and must be reflected in fresh billing Prices before checkout is enabled. Existing paid subscriptions must not be silently repriced. Verify tax registration and customer-price presentation before launch; no automatic tax setting is enabled by this plan.
+AI is opt-in. One request returning useful, validated suggestions uses one credit; failed requests or no useful suggestions restore the credit reservation. The provider can still charge Lane for those attempts. Paid allowances reset by UTC calendar month, do not roll over and never trigger automatic overage charges. A separate server attempt limit of twice the monthly AI credit allowance bounds retries, including refunded attempts. A provider-cost guard reserves $0.10 before each request against a $3 Seller/$8 Pro monthly budget and reconciles reported cost; unknown cost retains the reservation. Expensive requests or repeated failures can pause AI before all credits are used. Disclose this beside allowances and in the FAQ. Validate this behaviour before live billing; the economic stress test shows why an attempt limit alone is insufficient.
+
+Connection count is not a proxy for live integration support. Prices are provisional and must be reflected in fresh billing Prices before checkout is enabled. Keep live billing disabled until entitlements, concurrency, trial expiry, webhooks and invoice reconciliation have been tested. Existing paid subscriptions must not be silently repriced. Verify tax registration and customer-price presentation before launch; no automatic tax setting is enabled by this plan.
 
 ## Differentiators to prove
 
@@ -30,9 +35,16 @@ One successful AI request uses one credit; failed requests restore the reservati
 - Required-field checklist driven by the destination category, with permitted values.
 - AI shows the supporting listing text; empty/unknown beats invented fabric, dimensions or condition.
 - Keep manual edits, expose remaining unknowns, and make accepted values editable.
+- Photo studio with reversible local adjustments, before/after review and consistent product framing. Background removal is a separate future feature requiring a tested, commercially usable model or provider and its own cost allowance.
 - Clear connection health and recovery instructions; no false connected badges.
 - One inventory, reusable templates, existing bulk edit/price rules and export without AI lock-in.
 - Next: per-marketplace price previews, duplicate warnings, resumable batch publishing and reliable sold-event history. Existing fee estimates require current fee verification before being marketed as exact profit.
+
+## Ease of use is a release requirement
+
+The first session should answer three questions: what is connected, which item is ready, and what still needs the seller's attention. Use one obvious next action, familiar marketplace wording, compact progress and plain recovery messages. Show advanced options only when needed. Mobile layouts must preserve readable labels, touch targets and review controls.
+
+FAQ and contextual help must explain: supported versus planned channels; how reconnecting works; what an action counts as; trial expiry; what AI can and cannot infer; refunded AI credits versus attempt limits; photo editing versus background removal; whether the browser must stay open; how sold events are detected; data export and cancellation. Answers must match tested behaviour. Avoid unverified claims such as 'all platforms', 'instant stock sync', 'never oversell' or 'most advanced'.
 
 ## Acquisition sequence
 

@@ -222,7 +222,7 @@ function ChannelsPage() {
             <Panel key={c.id} className="p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">{c.label}</p>
-                <ModeChip mode={c.mode} />
+                <span className="rounded-full bg-raised px-2 py-1 text-[11px] text-muted">{c.enabled ? "Beta connector" : "Planned"}</span>
               </div>
               {c.id === "ebay_uk" ? <p className="mt-2 text-xs text-muted">{EBAY_CONNECT_COPY}</p> : null}
               {c.enabled ? (
@@ -236,7 +236,7 @@ function ChannelsPage() {
                   {connected ? `Reconnect ${c.short}` : `Connect ${c.short}`}
                 </Button>
               ) : (
-                <p className="mt-3 text-xs text-subtle">Ships later. Adapter not wired.</p>
+                <p className="mt-3 text-xs text-subtle">Planned integration · not available to connect yet.</p>
               )}
             </Panel>
           );

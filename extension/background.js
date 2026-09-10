@@ -111,6 +111,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         method: "POST",
         body: {
           ok: Boolean(msg.ok),
+          claimToken: msg.claimToken ?? null,
           remoteId: msg.remoteId ?? null,
           url: msg.url ?? null,
           error: msg.error ?? null,

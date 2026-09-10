@@ -1,0 +1,65 @@
+LANE — IMPLEMENTATION CHECKPOINT
+Updated: 2026-09-10 22:42 UTC
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting
+
+STATUS
+Substantial local implementation complete; not deployed or production verified.
+Only Vinted UK and eBay UK are in the live implementation scope.
+Other marketplaces remain architecture/roadmap entries.
+No spending, purchases, paid AI calls, real publish/delist actions or deployment.
+
+IMPLEMENTED
+- Redesigned landing page, app palette, help centre, billing and accessible forms.
+- Destination review screen with selected photos, fields, pricing rules and blockers.
+- Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
+- Source normalization preserves photos, category identity, UK size ranges, colours,
+  brand and unknown condition/material; neutral per-marketplace field overrides.
+- Atomic item/photo/tag creation; transactional source imports and item edits.
+- Durable job intent deduplication, atomic claims/leases, guarded retries, eBay
+  offer reconciliation, sale-event deduplication and transactional delist outbox.
+- Seven-day no-card trial: 25 publish/relist actions, zero AI credits.
+- Optional AI extraction with evidence/allowed-value checks, manual override protection,
+  credit ledger, usage estimates, refunds and monthly provider-cost guards.
+- First-crosslist checklist and first-occurrence activation events.
+- Proposed GBP9/19/29 plans; checkout gated until pricing/billing is verified.
+- Builds no longer automatically migrate a database. Windows scripts are portable.
+
+VERIFICATION
+- TypeScript: pass.
+- Focused core tests: 18 pass in full suite, including actual PGlite persistence,
+  concurrency, rollback, limits, photo preservation and mocked eBay failures.
+- Existing auth/app-data tests: 55 pass.
+- Full portable suite: 269 tests, 251 pass, 18 fail. The same 18 inherited template
+  failures concern missing .grok skills/config/auth fixtures, Grok metadata and
+  Windows symlink permissions. They are not hidden or skipped.
+- Build: passed; final repeat follows remaining UI refinements.
+- Scoped ESLint: zero errors, five warnings before final cleanup.
+- Browser: landing and first-run dashboard inspected; synthetic draft save/reload
+  works; Photo studio exported a 1200x1200 JPEG and preserved both images on reload.
+- Two owner-provided Vinted pages inspected (six and seven photos). Synthetic
+  source-shaped mapping tests pass. No authenticated real import/publish verified.
+
+USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
+1. Existing eBay developer application credentials/RuName and seller authorization
+   are needed to test current taxonomy, seller policies/location and real receipts.
+   Enter credentials in a secret store, not a GitHub issue or chat.
+2. A logged-in Vinted session paired with the updated local bridge is needed for
+   authenticated wardrobe import. Public listing inspection is not that test.
+3. Staging host/database selection, access and explicit deployment go-ahead.
+   No infrastructure or accounts have been purchased/created to bypass this.
+4. Real marketplace actions remain paused until the owner confirms the test item
+   and intended action. Eight more diverse owned items are needed for the ten-item benchmark.
+5. AI/billing secrets are optional for later paid-feature verification, not local work.
+
+NEXT ACTIONS
+- Finish seller-policy/location selection and core safety review where possible locally.
+- Complete final typecheck/core tests/build, inspect changed UI, push followup checkpoint.
+- Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
+
+COMPUTE
+Account-wide weekly usage: 25% consumed, 75% remaining at latest check.
+Separate five-hour window: unavailable (not assumed unused).
+Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
+Preserve at least 60 percentage points for staging, real connector diagnosis and
+pilot fixes. Recheck at meaningful checkpoints; avoid repeated broad research.

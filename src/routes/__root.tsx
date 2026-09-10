@@ -23,7 +23,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "theme-color", content: "#0d0d0d" },
+      { name: "theme-color", content: "#f6f4ee" },
       {
         name: "description",
         content: "UK reseller crosslisting. One inventory, every channel. Sign in on the marketplace’s own page.",
@@ -64,7 +64,7 @@ function RootDocument() {
     applyTheme(readTheme());
   }, []);
   return (
-    <html lang="en-GB" data-theme="dark" suppressHydrationWarning>
+    <html lang="en-GB" data-theme="light" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script

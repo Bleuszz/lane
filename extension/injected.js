@@ -105,11 +105,16 @@
       priceGbp: price,
       quantity: raw.is_closed ? 0 : 1,
       photoUrl: photo,
+      photoUrls: (raw.photos ?? []).map((p) => p.url || p.full_size_url).filter(Boolean).slice(0, 12),
       brand: raw.brand?.title || raw.brand_dto?.title || null,
       sizeLabel: raw.size_title || raw.size || null,
       categoryName: raw.catalog?.title || raw.catalog_title || null,
+      categoryId: raw.catalog_id != null ? String(raw.catalog_id) : raw.catalog?.id != null ? String(raw.catalog.id) : null,
+      categoryPath: typeof raw.catalog_path === "string" ? raw.catalog_path : null,
+      material: typeof raw.material === "string" ? raw.material : raw.material_title || null,
+      attributes: { itemAttributes: Array.isArray(raw.item_attributes) ? raw.item_attributes.slice(0, 50).map((a) => ({ id: a.id ?? null, name: a.name ?? a.title ?? null, value: typeof a.value === "string" ? a.value : null })) : [] },
       colour: Array.isArray(raw.color) ? raw.color.map((c) => c.title).join(", ") : raw.color || null,
-      conditionLabel: raw.status || raw.status_title || null,
+      conditionLabel: raw.status_title || ({6:"New with tags",1:"New without tags",2:"Very good",3:"Good",4:"Satisfactory"})[raw.status_id ?? raw.status] || null,
       status: raw.is_closed ? (raw.item_closing_action === "sold" ? "sold" : "ended") : "live",
     };
   }
@@ -276,6 +281,7 @@
   async function publish(job) {
     const item = job.item;
     if (!item?.title) throw new Error("Job missing item payload.");
+    if (!item.condition || item.condition === "unknown") throw new Error("Confirm the item condition in Lane before publishing.");
     const catalogId = await resolveCatalog(job);
     const photos = item.photos ?? [];
     if (photos.length === 0) throw new Error("Vinted publish needs at least one photo.");

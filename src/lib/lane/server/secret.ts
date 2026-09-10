@@ -4,7 +4,7 @@ import { env } from "@/lib/env.server";
 function key(): Buffer {
   const secret = env("BETTER_AUTH_SECRET");
   if (!secret) {
-    if (env("GROK_PROJECT_ID")) {
+    if (env("GROK_PROJECT_ID") || process.env.NODE_ENV === "production") {
       throw new Error("BETTER_AUTH_SECRET is required to encrypt marketplace tokens.");
     }
     return createHash("sha256").update("lane-preview-only-not-for-production").digest();
