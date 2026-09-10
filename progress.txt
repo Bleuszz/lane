@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 23:06 UTC (11 September BST)
+Updated: 2026-09-10 23:15 UTC (11 September BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -12,6 +12,9 @@ No spending, purchases, paid AI calls, real publish/delist actions or deployment
 IMPLEMENTED
 - Redesigned landing page, app palette, help centre, billing and accessible forms.
 - Destination review screen with selected photos, fields, pricing rules and blockers.
+- Mobile inventory cards, compact header, modal navigation/focus restoration and
+  scroll-safe preview. Bulk actions require explicit selection; shortcuts ignore controls.
+- Saved drafts can be previewed before connecting an account; actual publish stays gated.
 - Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
 - Source normalization preserves photos, category identity, UK size ranges, colours,
   brand and unknown condition/material; neutral per-marketplace field overrides.
@@ -31,7 +34,8 @@ IMPLEMENTED
 - Builds no longer automatically migrate a database. Windows scripts are portable.
 
 VERIFICATION
-- TypeScript: pass. Billing-specific ESLint: zero errors/warnings.
+- TypeScript and production build: pass again after mobile UI changes.
+- Mobile-change and billing-file ESLint: zero errors/warnings.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
 - Focused core tests: 22 pass in the latest focused run, including actual PGlite persistence,
@@ -45,6 +49,8 @@ VERIFICATION
 - Local worker HTTP smoke check: 503 when unconfigured, as intended.
 - Browser: landing and first-run dashboard inspected; synthetic draft save/reload
   works; Photo studio exported a 1200x1200 JPEG and preserved both images on reload.
+- Narrow-screen QA at 362x698: cards, selection, modal focus/restore, draft preview,
+  no-account publish block and Photo studio checked. No page horizontal overflow.
 - Two owner-provided Vinted pages inspected (six and seven photos). Synthetic
   source-shaped mapping tests pass. No authenticated real import/publish verified.
 
@@ -64,15 +70,17 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
 
 NEXT ACTIONS
 - Verify policy/location selectors against the authorized eBay account when available.
-- Finish mobile UI/review-dialog QA, typed taxonomy/condition mappings and authenticated
-  Vinted detail preservation. Live data is needed for the connector checks.
+- Add a per-item destination review to the existing bulk-publish path, which currently
+  only shows selected accounts. Broaden narrow-screen testing to connected destinations.
+- Verify typed taxonomy/condition mappings and authenticated Vinted detail preservation.
+  Live data is needed for the connector checks.
 - Configure the worker trigger only after staging approval; verify real sold-event ingestion.
 - Finish public photo uploads; verify billing events and portal behavior in Stripe test mode
   when authorized credentials are available. Local webhook replay/isolation tests now pass.
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 28% consumed, 72% remaining at latest check.
+Account-wide weekly usage: 29% consumed, 71% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -81,5 +89,6 @@ pilot fixes. Recheck at meaningful checkpoints; avoid repeated broad research.
 PUSHED CHECKPOINTS
 4c293f3: core redesign, source preservation, reliability and AI/trial controls.
 07ac8ab: seller settings, protected worker, account guards and final handoff.
+f280508: signed billing reconciliation and durable replay protection.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

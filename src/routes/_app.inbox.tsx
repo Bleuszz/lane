@@ -57,7 +57,7 @@ function InboxPage() {
               ? `Vinted is connected as ${vinted.remoteUsername ?? "your shop"}.`
               : inDesktop
                 ? "Connect Vinted: sign in on their site. The window closes when Lane has the session."
-                : "Connect Vinted in the Windows app so Lane can capture the session and close the window."}
+                : "Connect your Vinted shop to start importing. Account setup guides you through Lane Bridge or the Windows app."}
           </p>
         </div>
         <Link to="/settings/channels">
@@ -66,7 +66,7 @@ function InboxPage() {
       </div>
 
       <ActivationChecklist data={data}/>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           ["Live", data.liveCount],
           ["Draft", data.draftCount],

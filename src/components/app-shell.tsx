@@ -1,3 +1,4 @@
+import { Modal } from "./modal";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { UserButton } from "@/lib/auth/gates";
@@ -157,13 +158,15 @@ export function AppShell() {
           <header className="flex h-14 items-center gap-3 border-b border-line bg-surface px-3 md:px-5">
             <button
               type="button"
-              className="grid h-10 w-10 place-items-center rounded-[var(--radius-sm)] md:hidden"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-sm)] md:hidden"
               onClick={() => setOpen(true)}
               aria-label="Open menu"
+              aria-haspopup="dialog"
+              aria-expanded={open}
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="md:hidden">
+            <div className="shrink-0 md:hidden">
               <LaneWordmark />
             </div>
             {data ? (
@@ -177,7 +180,7 @@ export function AppShell() {
               </span>
             ) : null}
             <div className="ml-auto flex items-center gap-1">
-              <Link to="/help" className="mr-3 text-xs text-muted hover:text-ink">Help & guides</Link>
+              <Link to="/help" className="mr-1 inline-flex min-h-11 items-center whitespace-nowrap px-1 text-xs text-muted hover:text-ink sm:mr-3"><span className="sm:hidden">Help</span><span className="hidden sm:inline">Help & guides</span></Link>
               <ThemeToggle />
               {isPending ? (
                 <div className="h-8 w-8 animate-pulse rounded-full bg-ink/10" />
@@ -193,12 +196,11 @@ export function AppShell() {
       </div>
 
       {open ? (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <button type="button" className="absolute inset-0 bg-ink/30" onClick={() => setOpen(false)} aria-label="Close menu" />
-          <div className="absolute inset-y-0 left-0 w-72 bg-surface p-3 shadow-[var(--shadow-panel)]">
+        <Modal label="Navigation" onClose={() => setOpen(false)} className="m-0 mr-auto h-dvh max-h-dvh w-[min(18rem,90vw)] rounded-none border-y-0 border-l-0 p-3">
+          <div>
             <div className="mb-3 flex items-center justify-between">
               <LaneWordmark />
-              <button type="button" className="grid h-10 w-10 place-items-center" onClick={() => setOpen(false)}>
+              <button type="button" className="grid h-11 w-11 place-items-center" aria-label="Close menu" onClick={() => setOpen(false)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -221,7 +223,7 @@ export function AppShell() {
               </p>
             ))}
           </div>
-        </div>
+        </Modal>
       ) : null}
     </div>
   );

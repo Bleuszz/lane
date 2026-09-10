@@ -208,10 +208,10 @@ function ItemPage() {
           </div>
           <Button
             className="mt-3"
-            disabled={accountIds.length === 0}
+            disabled={save.isPending}
             onClick={() => setReview(true)}
           >
-            Review and publish
+            {accountIds.length ? "Review and publish" : "Preview listing"}
           </Button>
         </section>
       ) : null}

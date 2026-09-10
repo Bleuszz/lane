@@ -1,3 +1,4 @@
+import { Modal } from "@/components/modal";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bulkEdit, deleteItemsFn, delistListings, exportCsv, getBootstrap, getInventory, publishItems } from "@/lib/lane/server/fns";
@@ -55,7 +56,8 @@ function InventoryPage() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
+      if (publishOpen || document.querySelector("dialog[open]") || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+      if (t?.closest("input, textarea, select, button, a, [contenteditable='true'], [role='button']")) return;
       if (e.key === "j") setCursor((c) => Math.min(pageRows.length - 1, c + 1));
       if (e.key === "k") setCursor((c) => Math.max(0, c - 1));
       if (e.key === " " && pageRows[cursor]) {
@@ -63,7 +65,7 @@ function InventoryPage() {
         toggle(pageRows[cursor]!.id);
       }
       if (e.key === "Enter" && pageRows[cursor]) nav({ to: "/inventory/$id", params: { id: pageRows[cursor]!.id } });
-      if (e.key === "p" || e.key === "P") setPublishOpen(true);
+      if ((e.key === "p" || e.key === "P") && selected.size > 0) setPublishOpen(true);
       if (e.key === "d" || e.key === "D") void onDelist();
       if (e.key === "Escape") setSelected(new Set());
     }
@@ -89,7 +91,7 @@ function InventoryPage() {
     });
   }
 
-  const ids = selected.size ? [...selected] : pageRows[cursor] ? [pageRows[cursor]!.id] : [];
+  const ids = [...selected];
 
   const pub = useMutation({
     mutationFn: () => publishItems({ data: { itemIds: ids, accountIds } }),
@@ -147,7 +149,7 @@ function InventoryPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-medium tracking-[-0.02em]">Inventory</h1>
-          <p className="mt-1 text-sm text-muted">10 per page · select all · j/k move · space select · Enter open</p>
+          <p className="mt-1 text-sm text-muted"><span className="md:hidden">Your products, photos and shopfronts in one place.</span><span className="hidden md:inline">10 per page · j/k move · space select · Enter open</span></p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/new">
@@ -213,7 +215,23 @@ function InventoryPage() {
       {remove.error ? <p className="mt-2 text-sm text-danger">{(remove.error as Error).message}</p> : null}
 
       <Panel className="mt-4 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="divide-y divide-line md:hidden">
+          {pageRows.length === 0 ? <p className="p-5 text-sm text-muted">No products found. Import your wardrobe or add a listing.</p> : pageRows.map(row => (
+            <article key={row.id} className={cn("p-3", selected.has(row.id) && "bg-secondary/60")}>
+              <div className="flex items-start gap-3">
+                <label className="flex h-11 w-8 shrink-0 items-center justify-center"><input type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label={`Select ${row.title}`} className="h-4 w-4 accent-mark" /></label>
+                <Link to="/inventory/$id" params={{id:row.id}} className="flex min-w-0 flex-1 gap-3">
+                  <span className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-raised">{row.primaryPhotoUrl && <img src={row.primaryPhotoUrl} alt="" className="h-full w-full object-cover"/>}</span>
+                  <span className="min-w-0"><span className="block break-words text-sm font-medium">{row.title}</span><span className="mt-1 block text-xs text-muted">{row.brand || "Brand not set"}</span><span className="mt-2 block font-semibold tabular">{formatMoney(row.basePriceGbp)}</span></span>
+                </Link>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs"><StatusBadge status={row.status}/><span className="text-muted">Qty {row.quantity}</span><span className="ml-auto text-muted">{formatAge(row.createdAt)}</span></div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">{row.channels.length ? row.channels.map(c => <span key={c.id}>{CHANNELS[c.marketplace]?.short} · {c.remoteStatus}</span>) : "Not listed yet"}</div>
+              {row.sku && <p className="mt-2 break-all font-mono text-[11px] text-muted">{row.sku}</p>}
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-line text-[11px] uppercase tracking-[0.1em] text-muted">
               <tr>
@@ -280,11 +298,12 @@ function InventoryPage() {
       </Panel>
 
       {publishOpen ? (
-        <div className="fixed inset-0 z-30 grid place-items-center bg-ink/30 p-4">
-          <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-line bg-surface p-5">
+        <Modal label={`Publish ${ids.length} item(s)`} onClose={() => setPublishOpen(false)} canClose={!pub.isPending}>
+          <div>
             <h2 className="text-sm font-medium">Publish {ids.length} item(s)</h2>
-            <p className="mt-1 text-sm text-muted">eBay jobs run on the server. Vinted uses a captured session if one exists, otherwise Lane Bridge.</p>
+            <p className="mt-1 text-sm text-muted">Choose where these selected products should be published. Check each saved listing before queueing the batch.</p>
             <div className="mt-3 space-y-2">
+              {!boot.data?.accounts.length && <p className="text-sm text-muted">No shops connected yet. <Link to="/settings/channels" className="text-mark underline" onClick={() => setPublishOpen(false)}>Connect an account</Link> to publish.</p>}
               {(boot.data?.accounts ?? []).map((a) => (
                 <label key={a.id} className="flex h-10 items-center gap-2 text-sm">
                   <input
@@ -294,19 +313,19 @@ function InventoryPage() {
                       setAccountIds((cur) => (cur.includes(a.id) ? cur.filter((x) => x !== a.id) : [...cur, a.id]))
                     }
                   />
-                  {CHANNELS[a.marketplace]?.label} · {a.hasServerSession ? "session" : a.mode === "oauth" ? "API" : "EXT"}
+                  {CHANNELS[a.marketplace]?.label} · {a.label}
                 </label>
               ))}
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setPublishOpen(false)}>Cancel</Button>
+              <Button variant="secondary" disabled={pub.isPending} onClick={() => setPublishOpen(false)}>Cancel</Button>
               <Button disabled={pub.isPending || accountIds.length === 0} onClick={() => pub.mutate()}>
                 {pub.isPending ? "Queueing…" : "Queue publish"}
               </Button>
             </div>
             {pub.error ? <p className="mt-2 text-sm text-danger">{(pub.error as Error).message}</p> : null}
           </div>
-        </div>
+        </Modal>
       ) : null}
     </div>
   );
