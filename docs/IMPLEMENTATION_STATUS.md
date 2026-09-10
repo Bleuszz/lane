@@ -24,7 +24,7 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 
 ## Test baseline
 
-The portable full runner exposes 273 tests: 255 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 24 pass in the current run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
+The portable full runner exposes 278 tests: 260 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 27 pass in the current full run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
 
 Builds and migrations are separate operations. Node 24.14 was used locally. No remote database was migrated.
 
@@ -59,4 +59,14 @@ Queue creation now locks all selected item parents in a transaction, checks owne
 
 Verification: 24 focused tests pass, including new hash invalidation/coverage and PGlite ownership/rollback checks. TypeScript, changed-file ESLint and production build pass. Browser checks at localhost:8081 used the synthetic draft and a newly created offline Vinted placeholder (no credential/session). The actual preparation endpoint showed both photos and its destination rule price, blocked incomplete fields/offline approval, and kept final batch confirmation disabled. No publish attempt was made. Connected success and full PostgreSQL concurrency remain staging checks. The last full-suite result remains 255 pass / 18 inherited failures; it predates these two new tests.
 
-Remaining dispatch gap: workers currently load item content at execution. The review hash protects confirmation/queueing, but does not yet freeze later edits between queueing and dispatch. Add an immutable job snapshot or dispatch-time content check before claiming that the reviewed version is guaranteed to be the published version. Cleaned-photo delivery also remains a release gate.
+The dispatch gap identified in this checkpoint is addressed by the immutable snapshots below. Cleaned-photo delivery remains a release gate.
+
+## Immutable queued listing content — 11 September BST
+
+Publish, relist and user-requested update jobs now reference owner-scoped immutable snapshots of listing data and destination price. A content hash deduplicates identical revisions; private cost/notes, account credentials and live receipts are excluded. Retries preserve the original snapshot reference. Both eBay processing and Vinted bridge delivery load that saved revision. Current item state still controls sold/archive handling and caps quantity at the smaller of current stock and the queued amount. Missing/invalid/foreign or legacy snapshot references fail closed instead of taking the latest edited content.
+
+Partial sales produced by `lane_record_sale` retain their stock-update path. These jobs are identified by their authoritative sale/request relationship and use a quantity-only eBay request; they do not require a content snapshot or rewrite price, description or photos. The adapter checks each returned SKU/offer status rather than trusting an HTTP success alone. See [eBay quantity-update guidance](https://www.developer.ebay.com/api-docs/sell/static/inventory/bulk-updates.html).
+
+Verification: the full portable suite now reports 278 tests, 260 pass and the same 18 inherited template failures. All 27 focused core checks pass within that suite. Real PGlite tests cover actual enqueue/claim and bridge dispatch after subsequent edits, duplicate enqueue retaining its first snapshot, stock reduction/increase caps, owner/item isolation, missing snapshots and no bridge dispatch/credit consumption after sale. The sale-outbox identity and quantity-only request are tested; eBay network results remain mocked. TypeScript, changed-file lint and production build pass.
+
+Limits: snapshot references preserve the selected photo URLs, not the remote bytes if a source URL later changes/expires. Current category mapping code and seller policy configuration are still checked at execution. Cross-marketplace sale races and live receipts require the existing reconciliation/staging tests. Pre-snapshot content jobs require operator review, not automatic conversion to today's data. This branch has no deployed users or known live jobs needing migration.

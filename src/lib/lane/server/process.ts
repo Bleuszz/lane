@@ -1,3 +1,4 @@
+import { loadListingSnapshot, storeListingSnapshot } from "./listing-snapshots";
 import type { Sql } from "@/lib/db";
 import { CHANNELS } from "@/lib/lane/channels";
 import { findCategory } from "@/lib/lane/categories";
@@ -8,7 +9,7 @@ import { claimJob, recoverExpiredJobs, renewJobLease, intentKey, saleEventKey, t
 import { applyPricingRule } from "@/lib/lane/pricing";
 import type { MarketplaceId } from "@/lib/lane/types";
 import { loadItem, mapAccount, mapRule } from "./map";
-import { ebayPublish, ebayReconcileListing, ebayUpdateOffer, ebayWithdraw, ensureMerchantLocation, refreshEbayToken } from "./ebay";
+import { ebayPublish, ebayReconcileListing, ebayUpdateOffer, ebayUpdateQuantity, ebayWithdraw, ensureMerchantLocation, refreshEbayToken } from "./ebay";
 import { unseal, seal } from "./secret";
 
 export type JobRow = ClaimedJob;
@@ -25,6 +26,16 @@ export async function enqueueJob(
     payload?: Record<string, unknown>;
   },
 ): Promise<string> {
+  const payload = { ...opts.payload };
+  if (["publish", "relist", "update"].includes(opts.type)) {
+    if (!opts.itemId) throw new Error("Listing action requires an item.");
+    const item = await loadItem(sql, opts.userId, opts.itemId);
+    if (!item || ["sold", "archived"].includes(item.status)) throw new Error("This item is unavailable for listing.");
+    const listing = item.channels.find(c=>c.id===opts.channelListingId);
+    const rules = (await sql<Record<string,unknown>>`select * from pricing_rules where user_id=${opts.userId}`).map(mapRule);
+    const price = listing?.channelPriceGbp ?? applyPricingRule(item.basePriceGbp,rules.find(r=>r.marketplace===opts.marketplace));
+    payload.listingSnapshotId = await storeListingSnapshot(sql,opts.userId,item,price);
+  }
   const id = makeId("job");
   const mode = CHANNELS[opts.marketplace]?.mode ?? "extension";
   const initial = mode === "extension" ? "waiting_for_browser" : "queued";
@@ -33,7 +44,7 @@ export async function enqueueJob(
     insert into jobs (id, user_id, type, status, marketplace, account_id, item_id, channel_listing_id,
       request_id, payload, idempotency_key)
     values (${id}, ${opts.userId}, ${opts.type}, ${initial}, ${opts.marketplace}, ${opts.accountId},
-      ${opts.itemId}, ${opts.channelListingId}, ${makeId("req")}, ${JSON.stringify(opts.payload ?? {})}, ${key})
+      ${opts.itemId}, ${opts.channelListingId}, ${makeId("req")}, ${JSON.stringify(payload)}, ${key})
     on conflict (user_id, idempotency_key) where idempotency_key is not null and status in
       ('queued', 'waiting_for_browser', 'uploading_photos', 'creating', 'running', 'error')
     do update set updated_at = jobs.updated_at
@@ -197,6 +208,13 @@ export async function processJob(
   }
 }
 
+export async function isSaleStockJob(sql: Sql, userId: string, job: Pick<JobRow,"type"|"item_id"|"channel_listing_id"|"request_id">) {
+  if (job.type !== "update" || !job.item_id || !job.channel_listing_id) return false;
+  const rows = await sql`select id from sales where user_id=${userId} and item_id=${job.item_id}
+    and id || ':' || ${job.channel_listing_id} = ${job.request_id} limit 1`;
+  return rows.length === 1;
+}
+
 async function runEbayJob(sql: Sql, userId: string, job: JobRow) {
   if (!job.account_id) throw new Error("Job missing account");
   const { access, locationKey, settings } = await liveEbayToken(sql, userId, job.account_id);
@@ -221,12 +239,22 @@ async function runEbayJob(sql: Sql, userId: string, job: JobRow) {
   }
 
   if (!job.item_id || !job.channel_listing_id) throw new Error("Job missing item/channel");
-  const item = await loadItem(sql, userId, job.item_id);
-  if (!item) throw new Error("Canonical item missing");
+  const current = await loadItem(sql, userId, job.item_id);
+  if (!current) throw new Error("Canonical item missing");
+  if (await isSaleStockJob(sql,userId,job)) {
+    const receipts = await sql<{ebay_offer_id:string|null;ebay_sku:string|null}>`select ebay_offer_id,ebay_sku from channel_listings where id=${job.channel_listing_id} and user_id=${userId}`;
+    if (!receipts[0]?.ebay_offer_id || !receipts[0]?.ebay_sku) throw new Error("Reconcile the eBay offer before synchronising stock.");
+    const quantity = ["sold","archived"].includes(current.status) ? 0 : current.quantity;
+    await ebayUpdateQuantity(access,receipts[0].ebay_offer_id,receipts[0].ebay_sku,quantity,()=>renewJobLease(sql,userId,job.id,job.lease_token));
+    await sql`update channel_listings set quantity_on_channel=${quantity},last_synced_at=now(),last_error=null,updated_at=now() where id=${job.channel_listing_id} and user_id=${userId}`;
+    return;
+  }
+  // Stock/sold handling remains current; the public listing body is immutable.
+  const frozen = await loadListingSnapshot(sql,userId,job.payload,current);
+  const item = frozen.item;
   const listing = item.channels.find((c) => c.id === job.channel_listing_id);
   if (!listing) throw new Error("Channel listing missing");
-  const rules = (await sql<Record<string, unknown>>`select * from pricing_rules where user_id = ${userId}`).map(mapRule);
-  const price = listing.channelPriceGbp ?? applyPricingRule(item.basePriceGbp, rules.find((r) => r.marketplace === "ebay_uk"));
+  const price = frozen.priceGbp;
   if (item.quantity <= 0 || item.status === "sold" || item.status === "archived") {
     const saved = await sql<{ ebay_offer_id: string | null }>`select ebay_offer_id from channel_listings where id = ${listing.id} and user_id = ${userId}`;
     const remote = await ebayReconcileListing(access, item, saved[0]?.ebay_offer_id);

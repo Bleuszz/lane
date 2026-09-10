@@ -1,8 +1,8 @@
 # Compute continuity
 
-Last reading: 2026-09-10 23:24 UTC; account-wide weekly window 31% used, 69% remaining. Separate five-hour window unavailable; it is not assumed unused. Reset: 17 September 2026 18:56:45 BST. No reset credits available; none redeemed.
+Last reading: 2026-09-10 23:37 UTC; account-wide weekly window 32% used, 68% remaining. Separate five-hour window unavailable; it is not assumed unused. Reset: 17 September 2026 18:56:45 BST. No reset credits available; none redeemed.
 
-Continuation checkpoints: 22% used at recovery, then 23%, 25%, 26%, 27%, 28%, 29%, 30%, 31%. The rounded meter is shared across the account, so these differences are not precise Lane-only billing measurements. No paid provider inference occurred.
+Continuation checkpoints: 22% used at recovery, then 23%, 25%, 26%, 27%, 28%, 29%, 30%, 31%, 32%. The rounded meter is shared across the account, so these differences are not precise Lane-only billing measurements. No paid provider inference occurred.
 
 Use the saved implementation/test evidence instead of repeating research. Next verification priorities: real source import and taxonomy/policy checks, failure/reconciliation checks, then staging/paid-pilot readiness. Budget guardrails for planning: up to four additional percentage points for integration diagnosis, five for fixes and four for release verification, reassessing at each boundary. These are ceilings for re-planning, not promises about token cost. Preserve at least 60 account percentage points where possible for the remaining week and unexpected failures.
 

@@ -12,6 +12,7 @@ export type ClaimedJob = {
   account_id: string | null; item_id: string | null; channel_listing_id: string | null;
   request_id: string; attempt: number; max_attempts: number; lease_token: string;
   needs_reconciliation: boolean;
+  payload?: unknown;
 };
 
 /** A conditional UPDATE is atomic on both PostgreSQL and PGLite. No select-then-write race. */

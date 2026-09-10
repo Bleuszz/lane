@@ -128,3 +128,24 @@ test("eBay import retains every source photo and specific while absent fields re
     assert.deepEqual(unknown.photoUrls, []);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("sale stock update changes quantity only and checks per-offer failure", async()=>{
+  const {ebayUpdateQuantity}=await loadEbay();
+  const originalFetch=globalThis.fetch;
+  let response={responses:[{sku:"stable-sku",offerId:"offer-one",statusCode:200}]};
+  let checked=false;
+  globalThis.fetch=async(url,opts)=>{
+    assert.equal(new URL(url).pathname,"/sell/inventory/v1/bulk_update_price_quantity");
+    assert.equal(checked,true);
+    assert.deepEqual(JSON.parse(opts.body),{requests:[{sku:"stable-sku",shipToLocationAvailability:{quantity:2},offers:[{offerId:"offer-one",availableQuantity:2}]}]});
+    return Response.json(response);
+  };
+  try {
+    await ebayUpdateQuantity("local-fixture","offer-one","stable-sku",2,async()=>{checked=true;});
+    response={responses:[{sku:"stable-sku",offerId:"offer-one",statusCode:400}]};
+    await assert.rejects(ebayUpdateQuantity("local-fixture","offer-one","stable-sku",2),/not fully confirmed/);
+    response={responses:[]};
+    await assert.rejects(ebayUpdateQuantity("local-fixture","offer-one","stable-sku",2),/not fully confirmed/);
+  } finally {globalThis.fetch=originalFetch;}
+});

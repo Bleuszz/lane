@@ -352,6 +352,17 @@ export async function ebayUpdateOffer(
   if (!r.ok) throw Object.assign(new Error(`eBay update offer failed (HTTP ${r.status}).`), { body: r.text });
 }
 
+/** Stock-only sale propagation must never rewrite photos, descriptions or price. */
+export async function ebayUpdateQuantity(accessToken: string, offerId: string, sku: string, quantity: number, beforeWrite?: () => Promise<void>) {
+  if (!Number.isInteger(quantity) || quantity < 0) throw new Error("Invalid stock quantity.");
+  await beforeWrite?.();
+  const result = await ebayFetch<{responses?: Array<{sku?:string;offerId?:string;statusCode?:number;errors?:unknown[]}>}>(accessToken,"POST","/sell/inventory/v1/bulk_update_price_quantity",{
+    requests:[{sku,shipToLocationAvailability:{quantity},offers:[{offerId,availableQuantity:quantity}]}],
+  });
+  const rows = result.json.responses ?? [];
+  if (!result.ok || !rows.length || rows.some(r=>r.sku!==sku || !r.statusCode || r.statusCode<200 || r.statusCode>=300 || r.errors?.length) || !rows.some(r=>r.offerId===offerId)) throw new Error("eBay stock update was not fully confirmed. Check the listing before retrying.");
+}
+
 export async function ebayWithdraw(accessToken: string, offerId: string, beforeWrite?: () => Promise<void>) {
   const before = await ebayFetch<EbayOffer>(accessToken, "GET", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}`);
   if (!before.ok) throw Object.assign(new Error("Could not verify whether the eBay listing has ended."), { body: before.text });

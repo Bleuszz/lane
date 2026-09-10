@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 23:24 UTC (11 September BST)
+Updated: 2026-09-10 23:37 UTC (11 September BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -17,6 +17,9 @@ IMPLEMENTED
 - Saved drafts can be previewed before connecting an account; actual publish stays gated.
 - Bulk publish reviews every saved item and requires explicit final batch confirmation.
   Changed content/prices/destinations invalidate approval; queue writes are transactional.
+- Queued content actions reference immutable owner-scoped listing snapshots. Retries
+  retain text, photos, fields and price; live stock can only reduce queued quantity.
+- Database-generated partial-sale jobs use quantity-only eBay updates, preserving content.
 - Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
 - Source normalization preserves photos, category identity, UK size ranges, colours,
   brand and unknown condition/material; neutral per-marketplace field overrides.
@@ -39,14 +42,16 @@ VERIFICATION
 - TypeScript and production build: pass again after mobile UI changes.
 - Mobile/billing/batch-change ESLint: zero errors/warnings.
 - Batch tests verify full review coverage, changed data/prices, ownership and rollback.
+- Snapshot tests cover real enqueue/claim/bridge dispatch, immutable retries, current
+  stock caps, owner isolation and sold-item blocking. Mocked stock-only eBay tests pass.
 - Browser: real local prepare-review route preserved photos/pricing, blocked offline
   account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 24 pass in the latest focused run, including actual PGlite persistence,
+- Focused core tests: 27 pass within the latest full run, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 273 tests, 255 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 278 tests, 260 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -77,8 +82,8 @@ NEXT ACTIONS
 - Verify policy/location selectors against the authorized eBay account when available.
 - Verify the complete approved batch path with authorized connected destinations.
   Local offline-account/missing-field review is verified; no batch was published.
-- Add an immutable reviewed payload or equivalent dispatch-time change check so edits
-  made after queueing cannot change the item later sent by a worker.
+- Verify snapshot-backed eBay publishing/retries and sale stock updates in sandbox.
+  Legacy content jobs without snapshots stop for review; do not blindly replay them.
 - Implement destination-accessible cleaned-photo delivery within the existing architecture.
 - Verify typed taxonomy/condition mappings and authenticated Vinted detail preservation.
   Live data is needed for the connector checks.
@@ -88,7 +93,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 31% consumed, 69% remaining at latest check.
+Account-wide weekly usage: 32% consumed, 68% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -99,5 +104,6 @@ PUSHED CHECKPOINTS
 07ac8ab: seller settings, protected worker, account guards and final handoff.
 f280508: signed billing reconciliation and durable replay protection.
 43d6a65: mobile product cards, modal focus/scroll behavior and explicit bulk selection.
+702c4d7: per-item batch review and transactional queue writes.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

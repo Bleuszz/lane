@@ -1,9 +1,10 @@
+import { loadListingSnapshot } from "./listing-snapshots";
 import { claimJob, recoverExpiredJobs } from "./operations";
 import { reserveListingAction, recordActivation } from "./events";
 import { getSql, type Sql } from "@/lib/db";
 import { findCategory } from "@/lib/lane/categories";
 import { makeId } from "@/lib/lane/ids";
-import type { MarketplaceId } from "@/lib/lane/types";
+import type { ItemView, MarketplaceId } from "@/lib/lane/types";
 import { applySale, applyExtensionJobResult, markExtensionHealth, reserveJobHourly } from "./process";
 import { loadItem } from "./map";
 import { saveVintedSession, tokensFromCookieJar } from "./vinted";
@@ -209,7 +210,7 @@ async function applyIdentity(sql: Sql, userId: string, body: Record<string, unkn
   `;
 }
 
-async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
+export async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
   await recoverExpiredJobs(sql, userId);
   const rows = jobId
     ? await sql<Record<string, unknown>>`
@@ -235,7 +236,17 @@ async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
   for (const row of rows) {
     const claim = await claimJob(sql, userId, String(row.id), makeId("lease"), "extension");
     if (!claim) continue;
+    let item: ItemView | null = null;
+    let priceGbp = 0;
     try {
+      item = row.item_id ? await loadItem(sql, userId, String(row.item_id)) : null;
+      priceGbp = item?.basePriceGbp ?? 0;
+      if (["publish", "relist", "update"].includes(claim.type)) {
+        if (!item || item.quantity <= 0 || ["sold", "archived"].includes(item.status)) throw new Error("This item is sold or unavailable. No listing was sent to the browser.");
+        const frozen = await loadListingSnapshot(sql,userId,claim.payload,item);
+        item = frozen.item;
+        priceGbp = frozen.priceGbp;
+      }
       if (claim.type === "publish" || claim.type === "relist") {
         await reserveJobHourly(sql, userId, claim.id, String(row.account_id));
         await reserveListingAction(sql, userId, claim.request_id, claim.type);
@@ -246,7 +257,6 @@ async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
         where id = ${claim.id} and user_id = ${userId} and lease_token = ${claim.lease_token}`;
       continue;
     }
-    const item = row.item_id ? await loadItem(sql, userId, String(row.item_id)) : null;
     const cat = findCategory(item?.categoryCanonical);
     const listing = item?.channels.find((c) => c.id === String(row.channel_listing_id ?? ""));
     out.push({
@@ -274,7 +284,7 @@ async function pendingJobs(sql: Sql, userId: string, jobId?: string) {
             material: item.material,
             gender: item.gender,
             packageSizeId: item.postageProfileId === "vinted_large" ? 3 : item.postageProfileId === "vinted_medium" ? 2 : 1,
-            priceGbp: listing?.channelPriceGbp ?? item.basePriceGbp,
+            priceGbp,
             quantity: 1,
             sku: item.sku,
             photos: item.photos.map((p) => ({ url: p.url })),
