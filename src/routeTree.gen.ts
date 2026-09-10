@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
@@ -20,6 +21,8 @@ import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppNewRouteImport } from './routes/_app.new'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSoldRouteImport } from './routes/_app.sold'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as AppInventoryIndexRouteImport } from './routes/_app.inventory.index'
 import { Route as AppInventoryIdRouteImport } from './routes/_app.inventory.$id'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app.settings.index'
@@ -43,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -89,6 +97,16 @@ const AppSoldRoute = AppSoldRouteImport.update({
   id: '/sold',
   path: '/sold',
   getParentRoute: () => AppRoute,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/legal/terms',
+  path: '/legal/terms',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppInventoryIndexRoute = AppInventoryIndexRouteImport.update({
   id: '/',
@@ -168,6 +186,7 @@ const ApiVintedConnectSplatRoute = ApiVintedConnectSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/download': typeof DownloadRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/activity': typeof AppActivityRoute
@@ -177,6 +196,8 @@ export interface FileRoutesByFullPath {
   '/new': typeof AppNewRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/sold': typeof AppSoldRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/channels': typeof AppSettingsChannelsRoute
@@ -195,6 +216,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/download': typeof DownloadRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/activity': typeof AppActivityRoute
@@ -202,6 +224,8 @@ export interface FileRoutesByTo {
   '/inbox': typeof AppInboxRoute
   '/new': typeof AppNewRoute
   '/sold': typeof AppSoldRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/channels': typeof AppSettingsChannelsRoute
@@ -222,6 +246,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/download': typeof DownloadRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/_app/activity': typeof AppActivityRoute
@@ -231,6 +256,8 @@ export interface FileRoutesById {
   '/_app/new': typeof AppNewRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/sold': typeof AppSoldRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/_app/inventory/$id': typeof AppInventoryIdRoute
   '/_app/settings/billing': typeof AppSettingsBillingRoute
   '/_app/settings/channels': typeof AppSettingsChannelsRoute
@@ -251,6 +278,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/download'
     | '/login'
     | '/onboarding'
     | '/activity'
@@ -260,6 +288,8 @@ export interface FileRouteTypes {
     | '/new'
     | '/settings'
     | '/sold'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/inventory/$id'
     | '/settings/billing'
     | '/settings/channels'
@@ -278,6 +308,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/download'
     | '/login'
     | '/onboarding'
     | '/activity'
@@ -285,6 +316,8 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/new'
     | '/sold'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/inventory/$id'
     | '/settings/billing'
     | '/settings/channels'
@@ -304,6 +337,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/download'
     | '/login'
     | '/onboarding'
     | '/_app/activity'
@@ -313,6 +347,8 @@ export interface FileRouteTypes {
     | '/_app/new'
     | '/_app/settings'
     | '/_app/sold'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/_app/inventory/$id'
     | '/_app/settings/billing'
     | '/_app/settings/channels'
@@ -333,8 +369,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  DownloadRoute: typeof DownloadRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalTermsRoute: typeof LegalTermsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiBridgeSplatRoute: typeof ApiBridgeSplatRoute
   ApiEbayCallbackRoute: typeof ApiEbayCallbackRoute
@@ -358,6 +397,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -422,6 +468,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/sold'
       preLoaderRoute: typeof AppSoldRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/legal/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/inventory/': {
       id: '/_app/inventory/'
@@ -592,8 +652,11 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  DownloadRoute: DownloadRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalTermsRoute: LegalTermsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiBridgeSplatRoute: ApiBridgeSplatRoute,
   ApiEbayCallbackRoute: ApiEbayCallbackRoute,
