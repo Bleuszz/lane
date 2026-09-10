@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 22:53 UTC
+Updated: 2026-09-10 22:57 UTC
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -38,6 +38,7 @@ VERIFICATION
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
 - Scoped ESLint: zero errors, four non-blocking React refresh/dependency warnings.
+- Local worker HTTP smoke check: 503 when unconfigured, as intended.
 - Browser: landing and first-run dashboard inspected; synthetic draft save/reload
   works; Photo studio exported a 1200x1200 JPEG and preserved both images on reload.
 - Two owner-provided Vinted pages inspected (six and seven photos). Synthetic
@@ -64,7 +65,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 26% consumed, 74% remaining at latest check.
+Account-wide weekly usage: 27% consumed, 73% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -72,5 +73,6 @@ pilot fixes. Recheck at meaningful checkpoints; avoid repeated broad research.
 
 PUSHED CHECKPOINTS
 4c293f3: core redesign, source preservation, reliability and AI/trial controls.
-Followup checkpoint includes seller settings, worker, account guards and final handoff.
+07ac8ab: seller settings, protected worker, account guards and final handoff.
+Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.
