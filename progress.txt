@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 23:15 UTC (11 September BST)
+Updated: 2026-09-10 23:24 UTC (11 September BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -15,6 +15,8 @@ IMPLEMENTED
 - Mobile inventory cards, compact header, modal navigation/focus restoration and
   scroll-safe preview. Bulk actions require explicit selection; shortcuts ignore controls.
 - Saved drafts can be previewed before connecting an account; actual publish stays gated.
+- Bulk publish reviews every saved item and requires explicit final batch confirmation.
+  Changed content/prices/destinations invalidate approval; queue writes are transactional.
 - Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
 - Source normalization preserves photos, category identity, UK size ranges, colours,
   brand and unknown condition/material; neutral per-marketplace field overrides.
@@ -35,10 +37,13 @@ IMPLEMENTED
 
 VERIFICATION
 - TypeScript and production build: pass again after mobile UI changes.
-- Mobile-change and billing-file ESLint: zero errors/warnings.
+- Mobile/billing/batch-change ESLint: zero errors/warnings.
+- Batch tests verify full review coverage, changed data/prices, ownership and rollback.
+- Browser: real local prepare-review route preserved photos/pricing, blocked offline
+  account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 22 pass in the latest focused run, including actual PGlite persistence,
+- Focused core tests: 24 pass in the latest focused run, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
 - Full portable suite: 273 tests, 255 pass, 18 fail. The same 18 inherited template
@@ -70,8 +75,11 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
 
 NEXT ACTIONS
 - Verify policy/location selectors against the authorized eBay account when available.
-- Add a per-item destination review to the existing bulk-publish path, which currently
-  only shows selected accounts. Broaden narrow-screen testing to connected destinations.
+- Verify the complete approved batch path with authorized connected destinations.
+  Local offline-account/missing-field review is verified; no batch was published.
+- Add an immutable reviewed payload or equivalent dispatch-time change check so edits
+  made after queueing cannot change the item later sent by a worker.
+- Implement destination-accessible cleaned-photo delivery within the existing architecture.
 - Verify typed taxonomy/condition mappings and authenticated Vinted detail preservation.
   Live data is needed for the connector checks.
 - Configure the worker trigger only after staging approval; verify real sold-event ingestion.
@@ -80,7 +88,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 29% consumed, 71% remaining at latest check.
+Account-wide weekly usage: 31% consumed, 69% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -90,5 +98,6 @@ PUSHED CHECKPOINTS
 4c293f3: core redesign, source preservation, reliability and AI/trial controls.
 07ac8ab: seller settings, protected worker, account guards and final handoff.
 f280508: signed billing reconciliation and durable replay protection.
+43d6a65: mobile product cards, modal focus/scroll behavior and explicit bulk selection.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

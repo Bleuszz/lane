@@ -1,3 +1,4 @@
+import { assertPublishReviews, publishReviewHash, withPublishItems } from "./publish-review";
 import { insertItem } from "./items";
 import { createHash } from "node:crypto";
 import { resolveSourceCategory, sourcePhotos, listingSourceSnapshot } from "../import-source";
@@ -740,67 +741,92 @@ export const deleteItemsFn = createServerFn({ method: "POST" })
     return { deleted };
   });
 
-export const publishItems = createServerFn({ method: "POST" })
+const publishSelectionSchema = z.object({ itemIds: z.array(z.string().min(1).max(200)).min(1).max(200), accountIds: z.array(z.string().min(1).max(200)).min(1).max(20) });
+
+export const preparePublishReview = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { itemIds: string[]; accountIds: string[] }) => d)
+  .validator((d: unknown) => publishSelectionSchema.parse(d))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const accounts = await loadAccounts(sql, context.userId);
-    const picked = accounts.filter((a) => data.accountIds.includes(a.id));
-    if (picked.length === 0) throw new Error("Select at least one connected account.");
+    const accounts = (await loadAccounts(sql,context.userId)).filter(a=>data.accountIds.includes(a.id));
+    if (accounts.length !== new Set(data.accountIds).size) throw new Error("A selected account is unavailable.");
+    const rules = (await sql<Record<string,unknown>>`select * from pricing_rules where user_id=${context.userId}`).map(mapRule);
+    const items = [];
+    for (const id of [...new Set(data.itemIds)]) {
+      const item = await loadItem(sql,context.userId,id);
+      if (!item || ["sold","archived"].includes(item.status)) throw new Error("A selected item is unavailable, sold or archived. Update your selection.");
+      items.push({item,hash:publishReviewHash(item,accounts,rules)});
+    }
+    return {items,accounts,rules};
+  });
+
+export const publishItems = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: unknown) => publishSelectionSchema.extend({ reviewHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)).optional() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
     const settings = await ensureUser(sql, context.userId);
     if (!settings.canPublish) throw new Error("Your publishing allowance is unavailable. Check Billing; your saved inventory remains available.");
-    if (picked.some(a => !["vinted_uk", "ebay_uk"].includes(a.marketplace))) throw new Error("That marketplace is planned, not yet available.");
-    if (picked.some(a => a.status !== "green")) throw new Error("Reconnect the selected account before publishing.");
-    const rules = (await sql<Record<string, unknown>>`select * from pricing_rules where user_id = ${context.userId}`).map(mapRule);
-    let queued = 0;
-    for (const itemId of data.itemIds) {
-      const item = await loadItem(sql, context.userId, itemId);
-      if (!item || item.status === "sold" || item.status === "archived") continue;
-      for (const account of picked) {
-        const existing = item.channels.find(
-          (c) =>
-            c.marketplaceAccountId === account.id,
-        );
-        if (existing && ["live", "queued", "waiting_for_browser"].includes(existing.remoteStatus)) continue;
-        if (existing?.lastError) throw new Error("Resolve or retry the existing job in Activity before publishing this item again.");
-        let listingId = existing?.id;
-        const price = applyPricingRule(
-          item.basePriceGbp,
-          rules.find((r) => r.marketplace === account.marketplace),
-        );
-        const qty = CHANNELS[account.marketplace]?.singleQty ? 1 : Math.max(1, item.quantity);
-        const waiting = CHANNELS[account.marketplace].mode === "extension" ? "waiting_for_browser" : "queued";
-        if (!listingId) {
-          listingId = `chl_${createHash("sha256").update(JSON.stringify([context.userId, item.id, account.id])).digest("hex").slice(0, 24)}`;
-          await sql`
-            insert into channel_listings (
-              id, item_id, user_id, marketplace, marketplace_account_id, channel_price_gbp,
-              remote_status, quantity_on_channel
-            ) values (
-              ${listingId}, ${item.id}, ${context.userId}, ${account.marketplace}, ${account.id},
-              ${price}, ${waiting}, ${qty}
-            ) on conflict (id) do nothing
-          `;
-        } else {
-          await sql`
-            update channel_listings set remote_status = ${waiting},
-              channel_price_gbp = ${price}, last_error = null, updated_at = now()
-            where id = ${listingId} and user_id = ${context.userId}
-          `;
+    const queued = await withPublishItems(sql, context.userId, data.itemIds, loadItem, async (tx, items) => {
+      const sql = tx;
+      await sql`select id from marketplace_accounts where user_id=${context.userId} and id=any(${data.accountIds}::text[]) order by id for share`;
+      await sql`select id from pricing_rules where user_id=${context.userId} order by id for share`;
+      const accounts = await loadAccounts(sql, context.userId);
+      const picked = accounts.filter((a) => data.accountIds.includes(a.id));
+      if (picked.length !== new Set(data.accountIds).size) throw new Error("A selected account is unavailable.");
+      if (picked.some(a => !["vinted_uk", "ebay_uk"].includes(a.marketplace))) throw new Error("That marketplace is planned, not yet available.");
+      if (picked.some(a => a.status !== "green")) throw new Error("Reconnect the selected account before publishing.");
+      const rules = (await sql<Record<string, unknown>>`select * from pricing_rules where user_id = ${context.userId}`).map(mapRule);
+      assertPublishReviews(items,picked,rules,data.reviewHashes);
+      let queued = 0;
+      for (const item of items) {
+        const itemId = item.id;
+        for (const account of picked) {
+          const existing = item.channels.find(
+            (c) =>
+              c.marketplaceAccountId === account.id,
+          );
+          if (existing && ["live", "queued", "waiting_for_browser"].includes(existing.remoteStatus)) continue;
+          if (existing?.lastError) throw new Error("Resolve or retry the existing job in Activity before publishing this item again.");
+          let listingId = existing?.id;
+          const price = applyPricingRule(
+            item.basePriceGbp,
+            rules.find((r) => r.marketplace === account.marketplace),
+          );
+          const qty = CHANNELS[account.marketplace]?.singleQty ? 1 : Math.max(1, item.quantity);
+          const waiting = CHANNELS[account.marketplace].mode === "extension" ? "waiting_for_browser" : "queued";
+          if (!listingId) {
+            listingId = `chl_${createHash("sha256").update(JSON.stringify([context.userId, item.id, account.id])).digest("hex").slice(0, 24)}`;
+            await sql`
+              insert into channel_listings (
+                id, item_id, user_id, marketplace, marketplace_account_id, channel_price_gbp,
+                remote_status, quantity_on_channel
+              ) values (
+                ${listingId}, ${item.id}, ${context.userId}, ${account.marketplace}, ${account.id},
+                ${price}, ${waiting}, ${qty}
+              ) on conflict (id) do nothing
+            `;
+          } else {
+            await sql`
+              update channel_listings set remote_status = ${waiting},
+                channel_price_gbp = ${price}, last_error = null, updated_at = now()
+              where id = ${listingId} and user_id = ${context.userId}
+            `;
+          }
+          await enqueueJob(sql, {
+            userId: context.userId,
+            type: "publish",
+            marketplace: account.marketplace,
+            accountId: account.id,
+            itemId: item.id,
+            channelListingId: listingId,
+          });
+          queued += 1;
         }
-        await enqueueJob(sql, {
-          userId: context.userId,
-          type: "publish",
-          marketplace: account.marketplace,
-          accountId: account.id,
-          itemId: item.id,
-          channelListingId: listingId,
-        });
-        queued += 1;
+        await sql`update items set status = 'queued', updated_at = now() where id = ${itemId} and user_id = ${context.userId} and status in ('draft', 'error')`;
       }
-      await sql`update items set status = 'queued', updated_at = now() where id = ${itemId} and user_id = ${context.userId} and status in ('draft', 'error')`;
-    }
+      return queued;
+    });
     await tickOauthJobs(sql, context.userId);
     if (queued) await recordActivation(sql, context.userId, "publish_requested").catch(() => undefined);
     return { queued };

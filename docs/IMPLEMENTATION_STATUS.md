@@ -24,7 +24,7 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 
 ## Test baseline
 
-The portable full runner exposes 273 tests: 255 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 22 pass in the current run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
+The portable full runner exposes 273 tests: 255 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 24 pass in the current run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
 
 Builds and migrations are separate operations. Node 24.14 was used locally. No remote database was migrated.
 
@@ -49,4 +49,14 @@ Inventory uses product cards below the desktop breakpoint, keeping photos, price
 
 A saved item can be previewed before connecting an account; confirmation is still disabled without a selected connected destination. The preview has a scrollable content area and a visible action footer on small screens. At the tested 362x698 viewport, the inventory and preview had no page-level horizontal overflow. Browser checks verified modal state, focus entering the close button and returning to the opener, retained product selection and blocked no-account publishing. Photo studio loads in its labelled dialog. TypeScript, scoped lint and production build pass after these changes. Existing 22 core tests / full-suite 255 pass and 18 inherited failures were last run at the billing checkpoint; no new automated test was added for these presentation changes.
 
-Remaining UX work: batch publish currently selects accounts without a complete per-item destination preview. Add that review flow before a paid pilot, and test real connected eBay taxonomy/validation states. Mobile layout checks do not certify phone-based marketplace connection support.
+Batch review has since been implemented below. Test real connected eBay taxonomy/validation states before a paid pilot. Mobile layout checks do not certify phone-based marketplace connection support.
+
+## Reviewed batch publishing — 11 September BST
+
+Inventory publishing now selects destinations, loads each saved item, and requires a full preview approval for every item before a separate final batch confirmation. Reviews show all photos, destination prices and validation blockers; an Edit listing link returns to the editor. No approval is a publish action by itself. A server hash covers saved item content and relevant destination/pricing settings; changes require a fresh review. Routine account heartbeats do not invalidate it.
+
+Queue creation now locks all selected item parents in a transaction, checks ownership and availability before writing, verifies the full review set, and commits the batch together. A late database or destination preparation error rolls back prior queue writes. Sold/archived/foreign or missing selections reject the batch. Network marketplace processing starts only after commit. Multi-item calls require review hashes; existing single-item editor calls retain their existing preview flow.
+
+Verification: 24 focused tests pass, including new hash invalidation/coverage and PGlite ownership/rollback checks. TypeScript, changed-file ESLint and production build pass. Browser checks at localhost:8081 used the synthetic draft and a newly created offline Vinted placeholder (no credential/session). The actual preparation endpoint showed both photos and its destination rule price, blocked incomplete fields/offline approval, and kept final batch confirmation disabled. No publish attempt was made. Connected success and full PostgreSQL concurrency remain staging checks. The last full-suite result remains 255 pass / 18 inherited failures; it predates these two new tests.
+
+Remaining dispatch gap: workers currently load item content at execution. The review hash protects confirmation/queueing, but does not yet freeze later edits between queueing and dispatch. Add an immutable job snapshot or dispatch-time content check before claiming that the reviewed version is guaranteed to be the published version. Cleaned-photo delivery also remains a release gate.

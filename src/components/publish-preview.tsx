@@ -12,9 +12,10 @@ import { formatMoney } from "@/lib/lane/format";
 import type { AccountView, ItemDraft, PricingRuleView } from "@/lib/lane/types";
 import { Button } from "./ui";
 
-export function PublishPreview({ draft, accounts, rules, onConfirm, onClose }: {
+export function PublishPreview({ draft, accounts, rules, onConfirm, onClose, confirmLabel = "Confirm and queue publish", notice }: {
   draft: ItemDraft; accounts: AccountView[]; rules: PricingRuleView[];
   onConfirm: () => Promise<unknown>; onClose: () => void;
+  confirmLabel?: string; notice?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +46,6 @@ export function PublishPreview({ draft, accounts, rules, onConfirm, onClose }: {
       {problems.length > 0 && <div role="alert" className="rounded-lg bg-warn-bg p-4 text-sm text-warn"><p className="font-semibold">A few details need attention</p><ul className="mt-2 list-disc space-y-1 pl-5">{problems.map((p,i) => <li key={i}>{p}</li>)}</ul></div>}
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-line p-4 sm:p-6"><p className="max-w-md text-xs text-muted">Queueing authorises Lane to publish to these accounts. Each destination uses one publishing action when processing starts.</p><Button disabled={busy || problems.length > 0 || (ebay && schema.isPending)} onClick={() => void confirm()}>{busy ? "Queueing…" : ebay && schema.isPending ? "Checking eBay…" : "Confirm and queue publish"}</Button></div>
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-line p-4 sm:p-6"><p className="max-w-md text-xs text-muted">{notice ?? "Queueing authorises Lane to publish to these accounts. Each destination uses one publishing action when processing starts."}</p><Button disabled={busy || problems.length > 0 || (ebay && schema.isPending)} onClick={() => void confirm()}>{busy ? "Saving…" : ebay && schema.isPending ? "Checking eBay…" : confirmLabel}</Button></div>
   </Modal>;
 }

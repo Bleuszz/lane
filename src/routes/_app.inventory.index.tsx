@@ -1,7 +1,8 @@
+import { BatchPublishReview } from "@/components/batch-publish-review";
 import { Modal } from "@/components/modal";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { bulkEdit, deleteItemsFn, delistListings, exportCsv, getBootstrap, getInventory, publishItems } from "@/lib/lane/server/fns";
+import { bulkEdit, deleteItemsFn, delistListings, exportCsv, getBootstrap, getInventory } from "@/lib/lane/server/fns";
 import { formatAge, formatMoney } from "@/lib/lane/format";
 import { CHANNELS } from "@/lib/lane/channels";
 import { Button, Input, Panel } from "@/components/ui";
@@ -25,6 +26,8 @@ function InventoryPage() {
   const [page, setPage] = useState(0);
   const [cursor, setCursor] = useState(0);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [batchReview, setBatchReview] = useState(false);
+  const [publishMessage, setPublishMessage] = useState("");
   const [accountIds, setAccountIds] = useState<string[]>([]);
   const [find, setFind] = useState("");
   const [replace, setReplace] = useState("");
@@ -93,13 +96,6 @@ function InventoryPage() {
 
   const ids = [...selected];
 
-  const pub = useMutation({
-    mutationFn: () => publishItems({ data: { itemIds: ids, accountIds } }),
-    onSuccess: () => {
-      setPublishOpen(false);
-      void qc.invalidateQueries();
-    },
-  });
   const del = useMutation({
     mutationFn: () => delistListings({ data: { itemIds: ids } }),
     onSuccess: () => qc.invalidateQueries(),
@@ -297,8 +293,10 @@ function InventoryPage() {
         </div>
       </Panel>
 
-      {publishOpen ? (
-        <Modal label={`Publish ${ids.length} item(s)`} onClose={() => setPublishOpen(false)} canClose={!pub.isPending}>
+      {batchReview && <BatchPublishReview itemIds={ids} accountIds={accountIds} onClose={()=>setBatchReview(false)} onQueued={queued=>{setBatchReview(false);setPublishOpen(false);setSelected(new Set());setPublishMessage(`Queued ${queued} new destination job(s). Follow progress in Activity.`);void qc.invalidateQueries();}}/>}
+      {publishMessage && <p role="status" className="mt-3 text-sm text-ok">{publishMessage}</p>}
+      {publishOpen && !batchReview ? (
+        <Modal label={`Publish ${ids.length} item(s)`} onClose={() => setPublishOpen(false)}>
           <div>
             <h2 className="text-sm font-medium">Publish {ids.length} item(s)</h2>
             <p className="mt-1 text-sm text-muted">Choose where these selected products should be published. Check each saved listing before queueing the batch.</p>
@@ -318,12 +316,11 @@ function InventoryPage() {
               ))}
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" disabled={pub.isPending} onClick={() => setPublishOpen(false)}>Cancel</Button>
-              <Button disabled={pub.isPending || accountIds.length === 0} onClick={() => pub.mutate()}>
-                {pub.isPending ? "Queueing…" : "Queue publish"}
+              <Button variant="secondary" onClick={() => setPublishOpen(false)}>Cancel</Button>
+              <Button disabled={ids.length === 0 || accountIds.length === 0} onClick={() => setBatchReview(true)}>
+                Review selected items
               </Button>
             </div>
-            {pub.error ? <p className="mt-2 text-sm text-danger">{(pub.error as Error).message}</p> : null}
           </div>
         </Modal>
       ) : null}
