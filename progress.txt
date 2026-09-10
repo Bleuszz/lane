@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 22:42 UTC
+Updated: 2026-09-10 22:53 UTC
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -22,19 +22,22 @@ IMPLEMENTED
 - Optional AI extraction with evidence/allowed-value checks, manual override protection,
   credit ledger, usage estimates, refunds and monthly provider-cost guards.
 - First-crosslist checklist and first-occurrence activation events.
+- Per-seller eBay policy/location selection, verified against that account on save.
+- Dedicated-secret worker endpoint, bounded batches; no scheduler activated.
+- Paused/unverified accounts cannot claim jobs.
 - Proposed GBP9/19/29 plans; checkout gated until pricing/billing is verified.
 - Builds no longer automatically migrate a database. Windows scripts are portable.
 
 VERIFICATION
 - TypeScript: pass.
-- Focused core tests: 18 pass in full suite, including actual PGlite persistence,
+- Focused core tests: 20 pass in the latest focused run, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 269 tests, 251 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 271 tests, 253 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
-- Build: passed; final repeat follows remaining UI refinements.
-- Scoped ESLint: zero errors, five warnings before final cleanup.
+- Production build: passed after final implementation changes.
+- Scoped ESLint: zero errors, four non-blocking React refresh/dependency warnings.
 - Browser: landing and first-run dashboard inspected; synthetic draft save/reload
   works; Photo studio exported a 1200x1200 JPEG and preserved both images on reload.
 - Two owner-provided Vinted pages inspected (six and seven photos). Synthetic
@@ -53,13 +56,21 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
 5. AI/billing secrets are optional for later paid-feature verification, not local work.
 
 NEXT ACTIONS
-- Finish seller-policy/location selection and core safety review where possible locally.
-- Complete final typecheck/core tests/build, inspect changed UI, push followup checkpoint.
+- Verify policy/location selectors against the authorized eBay account when available.
+- Finish mobile UI/review-dialog QA, typed taxonomy/condition mappings and authenticated
+  Vinted detail preservation. Live data is needed for the connector checks.
+- Configure the worker trigger only after staging approval; verify real sold-event ingestion.
+- Finish public photo uploads and Stripe webhook replay/isolation checks before paid pilot.
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 25% consumed, 75% remaining at latest check.
+Account-wide weekly usage: 26% consumed, 74% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
 pilot fixes. Recheck at meaningful checkpoints; avoid repeated broad research.
+
+PUSHED CHECKPOINTS
+4c293f3: core redesign, source preservation, reliability and AI/trial controls.
+Followup checkpoint includes seller settings, worker, account guards and final handoff.
+No PR has been merged. No production launch is claimed.

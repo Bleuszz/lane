@@ -14,8 +14,8 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 
 ## Important remaining implementation
 
-- Complete/verify per-seller eBay policy and location selection, current category and condition mappings. The two women's knitwear source leaves are preserved, but their eBay mapping remains unconfirmed pending authenticated taxonomy checks.
-- An unattended authenticated worker trigger and verified sold-event ingestion are needed before promising automatic delisting while the app is closed. Current eBay queue progress is driven by application requests; Vinted needs an available session/bridge.
+- Per-seller eBay policy/location selection is implemented and revalidated on save; live verification remains. Complete current category and condition mappings. The two women's knitwear source leaves are preserved, but their eBay mapping remains unconfirmed pending authenticated taxonomy checks.
+- The dedicated-secret `/api/worker` endpoint is implemented (maximum three eBay jobs per invocation). A configured host scheduler and verified sold-event ingestion are still needed before promising automatic delisting while the app is closed. No scheduler has been activated, so current eBay queue progress is driven by application requests; Vinted needs an available session/bridge.
 - Vinted authenticated list/detail responses may omit fields; verify the full real import and add bounded detail retrieval where the observed response requires it.
 - Public HTTPS hosting/upload of new or cleaned photos remains a release requirement, not an excuse to create paid infrastructure while the owner is absent.
 - Multi-unit sale logic accepts stable order-line IDs internally; the current manual sale button is restricted to quantity one until a proper quantity/reference form is supplied.
@@ -24,6 +24,15 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 
 ## Test baseline
 
-The portable full runner exposes 269 tests: 251 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 18 and auth/app-data 55 pass. Continue tracking that baseline rather than claiming the whole repository is green.
+The portable full runner exposes 271 tests: 253 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 20 and auth/app-data 55 pass. Continue tracking that baseline rather than claiming the whole repository is green.
 
 Builds and migrations are separate operations. Node 24.14 was used locally. No remote database was migrated.
+
+
+## Latest verification and limits
+
+Production build and TypeScript pass. Scoped lint has no errors (four existing-style React refresh/dependency warnings). Local browser QA covered the landing page, activation checklist, accessible draft fields, draft save/reload and Photo studio export. A bundled illustration was used for the photo test; the original and 1200px JPEG copy both survived reload. No horizontal overflow was observed at the tested desktop width. Narrow-screen and connected publish-preview QA remain explicit followups.
+
+The worker requires a separate 32+ character secret, rejects unauthorized calls, preserves job ownership and honors paused accounts. It processes queued eBay jobs and expired-lease recovery; it does not implement an eBay order feed or magically detect sales. Terminal failed jobs still require review/retry rather than unlimited automatic replay.
+
+New source eBay imports now retain offer/SKU receipts for subsequent delisting. Unknown generic used condition remains a review requirement instead of being silently labelled very good. Historical imported rows lacking these receipts need a separate repair/reconciliation pass before being relied on for automatic delisting.

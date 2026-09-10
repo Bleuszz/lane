@@ -96,7 +96,7 @@ async function poll() {
         await chrome.runtime.sendMessage({
           type: "JOB_RESULT",
           jobId: job.id,
-      claimToken: job.claimToken,
+          claimToken: job.claimToken,
           ok: false,
           error: err instanceof Error ? err.message : String(err),
           errorBody: err && typeof err === "object" && "body" in err ? String(err.body) : undefined,

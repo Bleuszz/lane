@@ -1,3 +1,4 @@
+import { recordPublishActivation } from "../src/lib/lane/server/events.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
@@ -31,6 +32,9 @@ test("one durable claim wins racing workers; user and executor boundaries hold",
       values ('j','u','publish','queued','ebay_uk','a','i','c','request');`);
     assert.equal(await claimJob(sql, "someone-else", "j", "evil", "worker"), null);
     assert.equal(await claimJob(sql, "u", "j", "browser", "extension"), null);
+    await db.exec("update marketplace_accounts set status = 'paused' where id = 'a'");
+    assert.equal(await claimJob(sql,"u","j","paused","worker"),null);
+    await db.exec("update marketplace_accounts set status = 'green' where id = 'a'");
     const results = await Promise.all(Array.from({ length: 8 }, (_, i) => claimJob(sql, "u", "j", `lease-${i}`, "worker")));
     assert.equal(results.filter(Boolean).length, 1);
     assert.equal((await sql`select attempt from jobs where id = 'j'`)[0].attempt, 1);
@@ -40,6 +44,13 @@ test("one durable claim wins racing workers; user and executor boundaries hold",
     const recovered = await claimJob(sql, "u", "j", "restarted", "worker");
     assert.equal(recovered.attempt, 2);
     assert.equal(recovered.needs_reconciliation, true);
+    await db.exec("update jobs set status='done' where id='j'; update channel_listings set remote_status='ended' where id='c'");
+    await recordPublishActivation(sql,"u","j");
+    assert.equal((await sql`select count(*)::int as n from activation_events where event_name='first_publish'`)[0].n,0);
+    await db.exec("update channel_listings set remote_status='live' where id='c'");
+    await recordPublishActivation(sql,"u","j");
+    await recordPublishActivation(sql,"u","j");
+    assert.equal((await sql`select count(*)::int as n from activation_events where event_name='first_publish'`)[0].n,1);
   } finally { await db.close(); }
 });
 

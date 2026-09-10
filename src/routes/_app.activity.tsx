@@ -19,7 +19,8 @@ function ActivityPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="text-xl font-medium tracking-[-0.02em]">Activity</h1>
-      <p className="mt-1 text-sm text-muted">Immutable job log. Every publish, update, delist and relist with a request id.</p>
+      <p className="mt-1 text-sm text-muted">Track publishing, updates and delisting. Open a result to see what needs attention.</p>
+      {retry.isError && <p role="alert" className="mt-3 text-sm text-danger">{retry.error.message}</p>}
       <Panel className="mt-4 overflow-hidden">
         <ul>
           {(jobs.data ?? []).length === 0 ? (
@@ -44,8 +45,8 @@ function ActivityPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={j.status} />
-                    {j.status === "error" || j.status === "dead" ? (
-                      <Button size="sm" variant="secondary" onClick={() => retry.mutate(j.id)}>
+                    {j.status === "error" ? (
+                      <Button size="sm" variant="secondary" disabled={retry.isPending} onClick={() => retry.mutate(j.id)}>
                         Retry
                       </Button>
                     ) : null}

@@ -7,6 +7,15 @@ export async function recordActivation(sql: Sql, userId: string, event: Activati
     values(${crypto.randomUUID()},${userId},${event},${marketplace ?? null}) on conflict(user_id,event_name) do nothing`;
 }
 
+export async function recordPublishActivation(sql: Sql, userId: string, jobId: string) {
+  await sql`insert into activation_events(id,user_id,event_name,marketplace)
+    select ${crypto.randomUUID()},j.user_id,'first_publish',j.marketplace from jobs j
+    join channel_listings c on c.id=j.channel_listing_id and c.user_id=j.user_id
+    where j.id=${jobId} and j.user_id=${userId} and j.type='publish' and j.status='done'
+      and c.remote_status='live' and c.remote_id is not null
+    on conflict(user_id,event_name) do nothing`;
+}
+
 /** Call for publish/relist jobs only; use the stable job/request id on every retry. */
 export async function reserveListingAction(sql: Sql, userId: string, requestId: string, type: "publish" | "relist") {
   const rows = await sql<{ allowed: boolean }>`select lane_reserve_listing_action(${userId},${requestId},${type}) as allowed`;

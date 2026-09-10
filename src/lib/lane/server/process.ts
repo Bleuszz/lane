@@ -3,7 +3,7 @@ import { CHANNELS } from "@/lib/lane/channels";
 import { findCategory } from "@/lib/lane/categories";
 import { estimateFees } from "@/lib/lane/fees";
 import { makeId } from "@/lib/lane/ids";
-import { reserveListingAction, recordActivation } from "./events";
+import { reserveListingAction, recordPublishActivation } from "./events";
 import { claimJob, recoverExpiredJobs, renewJobLease, intentKey, saleEventKey, type ClaimedJob } from "./operations";
 import { applyPricingRule } from "@/lib/lane/pricing";
 import type { MarketplaceId } from "@/lib/lane/types";
@@ -104,7 +104,7 @@ export async function liveEbayToken(
   }
   const locationKey = String(row.merchant_location_key ?? "LANE_UK");
   const ensured = requireLocation ? await ensureMerchantLocation(access, locationKey) : locationKey;
-  if (ensured !== row.merchant_location_key) {
+  if (requireLocation && ensured !== row.merchant_location_key) {
     await sql`update marketplace_accounts set merchant_location_key = ${ensured} where id = ${accountId} and user_id = ${userId}`;
   }
   return { access, locationKey: ensured, settings: (row.connector_settings ?? {}) as Record<string, unknown> };
@@ -150,6 +150,7 @@ export async function processJob(
       where id = ${jobId} and user_id = ${userId} and lease_token = ${job.lease_token} returning id
     `;
     if (!completed[0]) return { ok: false, error: "A newer worker owns this job. Marketplace reconciliation is required." };
+    if (job.type === "publish") await recordPublishActivation(sql, userId, jobId).catch(() => undefined);
     await sql`
       update marketplace_accounts set consecutive_errors = 0, last_error = null,
         status = case when status = 'rate_limited' then status else 'green' end,
@@ -425,7 +426,7 @@ export async function applyExtensionJobResult(
       quantity_on_channel = case when completed.type = 'delist' then 0 else quantity_on_channel end,
       last_synced_at = now(), last_error = null, updated_at = now()
     from completed where c.id = completed.channel_listing_id and c.user_id = ${userId}`;
-  if (job.type === "publish") await recordActivation(sql, userId, "first_publish", job.marketplace ?? undefined).catch(() => undefined);
+  if (job.type === "publish") await recordPublishActivation(sql, userId, jobId).catch(() => undefined);
   if (job.item_id) {
     await ensureSoldItemDelisted(sql, userId, job.item_id, job.channel_listing_id);
     await refreshItemStatus(sql, userId, job.item_id);

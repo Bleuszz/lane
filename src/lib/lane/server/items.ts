@@ -39,4 +39,3 @@ export async function insertItem(sql: Sql, userId: string, draft: ItemDraft, sup
   `;
   return id;
 }
-

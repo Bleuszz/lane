@@ -21,7 +21,7 @@ import { ChannelPicker, ItemForm, ListingTargetPicker, draftFromItem } from "@/c
 import type { ListingTarget } from "@/lib/lane/listing-fields";
 import { Button, Panel } from "@/components/ui";
 import { ModeChip, StatusBadge } from "@/components/status";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ItemDraft } from "@/lib/lane/types";
 
 export const Route = createFileRoute("/_app/inventory/$id")({ component: ItemPage });
@@ -39,9 +39,13 @@ function ItemPage() {
   const [accountIds, setAccountIds] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const loadedItemId = useRef<string | null>(null);
   useEffect(() => {
-    if (itemQ.data) setDraft(draftFromItem(itemQ.data));
-  }, [itemQ.data]);
+    if (itemQ.data && loadedItemId.current !== id) {
+      loadedItemId.current = id;
+      setDraft(draftFromItem(itemQ.data));
+    }
+  }, [itemQ.data, id]);
 
   const save = useMutation({
     mutationFn: () => {

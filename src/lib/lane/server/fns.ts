@@ -398,7 +398,7 @@ export const syncRemoteCatalog = createServerFn({ method: "POST" })
           brand = ${row.brand}, size_label = ${row.sizeLabel}, colour = ${row.colour}, material = ${row.material},
           source_category_id = ${row.categoryId}, category_name = ${row.categoryName},
           condition_label = ${row.condition === "NEW" ? "New with tags" : row.condition === "NEW_OTHER" ? "New without tags" : null},
-          source_attributes = ${JSON.stringify({aspects: row.aspects, condition: row.condition, conditionDescription: row.conditionDescription, quantity: row.quantity})}::jsonb
+          source_attributes = ${JSON.stringify({sku: row.sku, offerId: row.offerId, aspects: row.aspects, condition: row.condition, conditionDescription: row.conditionDescription, quantity: row.quantity})}::jsonb
           where user_id = ${context.userId} and account_id = ${account.id} and remote_id = ${remoteId}`;
         upserted += 1;
       }
@@ -595,13 +595,16 @@ export const importRemote = createServerFn({ method: "POST" })
         linked += 1;
       }
       const listingId = `chl_${sourceKey}`;
+      const sourceAttributes = JSON.parse(row.attributesJson) as Record<string, unknown>;
       await sql`
         insert into channel_listings (
           id, item_id, user_id, marketplace, marketplace_account_id, remote_id, url,
-          mapped_category, channel_price_gbp, remote_status, last_synced_at, quantity_on_channel, source_data
+          mapped_category, channel_price_gbp, remote_status, last_synced_at, quantity_on_channel, source_data, ebay_offer_id, ebay_sku
         ) values (
           ${listingId}, ${itemId}, ${context.userId}, ${account.marketplace}, ${account.id},
-          ${row.remoteId}, ${row.url}, ${row.categoryName}, ${row.priceGbp}, ${"live"}, now(), ${row.quantity ?? 1}, ${JSON.stringify(listingSourceSnapshot({ ...row, attributes: JSON.parse(row.attributesJson) as Record<string, unknown> }))}::jsonb
+          ${row.remoteId}, ${row.url}, ${row.categoryName}, ${row.priceGbp}, ${"live"}, now(), ${row.quantity ?? 1}, ${JSON.stringify(listingSourceSnapshot({ ...row, attributes: sourceAttributes }))}::jsonb,
+          ${account.marketplace === "ebay_uk" && typeof sourceAttributes.offerId === "string" ? sourceAttributes.offerId : null},
+          ${account.marketplace === "ebay_uk" && typeof sourceAttributes.sku === "string" ? sourceAttributes.sku : null}
         ) on conflict (id) do nothing
       `;
       await sql`update items set status = 'live', updated_at = now() where id = ${itemId} and user_id = ${context.userId} and status <> 'sold'`;

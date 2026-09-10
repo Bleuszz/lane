@@ -16,7 +16,7 @@ No staging deployment exists. Local work is not blocked by this. No service, sub
 - Sign in/out, account isolation, trial expiry, plan enforcement, and secret handling.
 - Read-only import first: both provided Vinted examples, all 6/7 photos, original descriptions, brand, category, condition, size ranges and colours. Material is unknown unless explicitly supplied. Verify live taxonomy before confirming new category mappings.
 - Review destination fields and prices. Obtain the owner's exact authorization for any real publish/edit/delist test. Confirm IDs/URLs remotely, inject a lost acknowledgement, and verify retries create no duplicate. Never count a queued job as success.
-- Configure and verify unattended queue processing, sold-event ingestion and delist confirmation; test duplicate event delivery and restart recovery.
+- After staging approval, configure the host scheduler to call GET or POST `/api/worker` with `Authorization: Bearer <LANE_WORKER_SECRET>` (a dedicated random secret of at least 32 characters). It handles at most three eBay jobs per request; set a compatible runtime timeout and measure duration before choosing cadence. No schedule is installed by this branch. Verify sold-event ingestion and delist confirmation; test duplicate event delivery and restart recovery.
 - Provide a destination-accessible image upload route before promising cleaned photos can be published to eBay. Verify content type, size, ownership and expiry.
 - Benchmark ten varied owner-approved items (two supplied so far), recording time, missing fields, corrections, photos and final result. This is the gate for comparative marketing claims and paid acquisition.
 

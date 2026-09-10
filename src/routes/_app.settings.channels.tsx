@@ -1,3 +1,4 @@
+import { EbaySellerSettings } from "@/components/ebay-seller-settings";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -177,6 +178,7 @@ function ChannelsPage() {
         ) : null}
       </Panel>
 
+      {accounts.filter(a => a.marketplace === "ebay_uk" && a.oauthConnected).map(a => <EbaySellerSettings key={a.id} accountId={a.id} label={a.label}/>)}
       <div className="space-y-3">
         {accounts.map((a) => (
           <Panel key={a.id} className="p-4">

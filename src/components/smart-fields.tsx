@@ -13,20 +13,21 @@ export function SmartFields({ draft, onChange, aiEnabled }: { draft: ItemDraft; 
   const [busy, setBusy] = useState(false);
   const latest = useRef(draft);
   latest.current = draft;
+  const sourceKey = (d:ItemDraft) => JSON.stringify([d.categoryCanonical,d.title,d.description,d.notes,d.brand,d.sizeUk,d.colour,d.material]);
   const [suggestionCategory, setSuggestionCategory] = useState("");
   const current = sourceAspects(draft);
   const rules = fields.data?.rules ?? [];
   const required = rules.filter((r) => r.required);
   const remaining = required.filter((r) => !current[r.name]?.some((v) => v.trim()));
-  const visibleSuggestions = suggestionCategory === draft.categoryCanonical ? suggestions : [];
+  const visibleSuggestions = suggestionCategory === sourceKey(draft) ? suggestions : [];
   const [showOptional, setShowOptional] = useState(false);
 
   async function fill() {
-    const category = draft.categoryCanonical;
+    const category = sourceKey(draft);
     setBusy(true); setMessage(""); setSuggestions([]);
     try {
       const result = await suggestEbayFields({ data: draft });
-      if (latest.current.categoryCanonical !== category) return;
+      if (sourceKey(latest.current) !== category) { setMessage("Your source details changed. Request fresh suggestions when ready."); return; }
       setSuggestionCategory(category); setSuggestions(result.suggestions); setMessage(result.message);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not load suggestions."); }
     finally { setBusy(false); }

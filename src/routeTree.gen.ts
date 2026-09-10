@@ -22,6 +22,7 @@ import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppNewRouteImport } from './routes/_app.new'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSoldRouteImport } from './routes/_app.sold'
+import { Route as ApiWorkerRouteImport } from './routes/api/worker'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as AppInventoryIndexRouteImport } from './routes/_app.inventory.index'
@@ -103,6 +104,11 @@ const AppSoldRoute = AppSoldRouteImport.update({
   id: '/sold',
   path: '/sold',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiWorkerRoute = ApiWorkerRouteImport.update({
+  id: '/api/worker',
+  path: '/api/worker',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   id: '/legal/privacy',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/new': typeof AppNewRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/sold': typeof AppSoldRoute
+  '/api/worker': typeof ApiWorkerRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AppInboxRoute
   '/new': typeof AppNewRoute
   '/sold': typeof AppSoldRoute
+  '/api/worker': typeof ApiWorkerRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/_app/new': typeof AppNewRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/sold': typeof AppSoldRoute
+  '/api/worker': typeof ApiWorkerRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/_app/inventory/$id': typeof AppInventoryIdRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/settings'
     | '/sold'
+    | '/api/worker'
     | '/legal/privacy'
     | '/legal/terms'
     | '/inventory/$id'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/new'
     | '/sold'
+    | '/api/worker'
     | '/legal/privacy'
     | '/legal/terms'
     | '/inventory/$id'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/_app/new'
     | '/_app/settings'
     | '/_app/sold'
+    | '/api/worker'
     | '/legal/privacy'
     | '/legal/terms'
     | '/_app/inventory/$id'
@@ -385,6 +397,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  ApiWorkerRoute: typeof ApiWorkerRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -488,6 +501,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sold'
       preLoaderRoute: typeof AppSoldRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/worker': {
+      id: '/api/worker'
+      path: '/api/worker'
+      fullPath: '/api/worker'
+      preLoaderRoute: typeof ApiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/legal/privacy': {
       id: '/legal/privacy'
@@ -676,6 +696,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  ApiWorkerRoute: ApiWorkerRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

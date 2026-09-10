@@ -223,6 +223,8 @@ export async function ebayPublish(
   const alreadyLive = liveEbayReceipt(remote);
   if (alreadyLive) return alreadyLive;
   if (remote?.sku) sku = remote.sku;
+  if (!item.title.trim() || item.title.trim().length > 80) throw new Error("Review the eBay title: it must be 1–80 characters. Lane will not shorten it silently.");
+  if (!item.description.trim()) throw new Error("Add a description before publishing to eBay.");
   const cat = findCategory(item.categoryCanonical);
   const categoryId = cat?.ebayUk.id;
   if (!categoryId || !cat?.ebayUk.confirmed) {

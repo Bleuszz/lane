@@ -26,6 +26,7 @@ export async function claimJob(sql: Sql, userId: string, jobId: string, leaseTok
       and j.attempt < j.max_attempts
       and (j.retry_after is null or j.retry_after <= now())
       and exists (select 1 from marketplace_accounts a where a.id = j.account_id and a.user_id = j.user_id
+        and a.status in ('green', 'rate_limited')
         and (${source} = 'worker' and a.mode = 'oauth' or ${source} = 'extension' and a.mode = 'extension'))
       and not exists (select 1 from jobs active where active.user_id = j.user_id
         and active.channel_listing_id = j.channel_listing_id and active.id <> j.id

@@ -38,10 +38,10 @@ export function json(request: Request, body: unknown, status = 200): Response {
 export async function resolvePairing(request: Request): Promise<BridgeUser | null> {
   const header = request.headers.get("Authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!token.startsWith("lnb_")) return null;
+  if (!token.startsWith("lnb_") || token.length > 200) return null;
   const sql = await getSql();
   const rows = await sql<{ user_id: string; extension_pairing_token: string }>`
-    select user_id, extension_pairing_token from user_settings where extension_pairing_token is not null
+    select user_id, extension_pairing_token from user_settings where extension_pairing_token = ${token} limit 1
   `;
   const hit = rows.find((r) => r.extension_pairing_token && tokensEqual(r.extension_pairing_token, token));
   if (!hit) return null;
@@ -182,7 +182,7 @@ async function bridgeHeartbeat(sql: Sql, userId: string, body: Record<string, un
   await sql`
     update marketplace_accounts
     set last_heartbeat_at = now(),
-        status = case when status = 'extension_offline' and remote_user_id is not null then 'green' else status end,
+        status = case when status in ('paused','needs_reauth') then status when ${Boolean(body.userId)} then status else 'extension_offline' end,
         updated_at = now()
     where user_id = ${userId} and mode = 'extension'
   `;
@@ -197,7 +197,7 @@ async function bridgeHeartbeat(sql: Sql, userId: string, body: Record<string, un
 async function applyIdentity(sql: Sql, userId: string, body: Record<string, unknown>) {
   const username = body.username ? String(body.username) : null;
   const remoteUserId = body.userId ? String(body.userId) : null;
-  if (!username && !remoteUserId) return;
+  if (!remoteUserId) return;
   await sql`
     update marketplace_accounts
     set remote_username = coalesce(${username}, remote_username),
