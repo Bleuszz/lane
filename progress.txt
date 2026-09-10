@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 22:57 UTC
+Updated: 2026-09-10 23:06 UTC (11 September BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -26,14 +26,18 @@ IMPLEMENTED
 - Dedicated-secret worker endpoint, bounded batches; no scheduler activated.
 - Paused/unverified accounts cannot claim jobs.
 - Proposed GBP9/19/29 plans; checkout gated until pricing/billing is verified.
+- Signed billing webhooks: durable deduplication, serialized current-subscription reads,
+  paid-invoice access checks, owner binding, retryable rollback and unknown-price denial.
 - Builds no longer automatically migrate a database. Windows scripts are portable.
 
 VERIFICATION
-- TypeScript: pass.
-- Focused core tests: 20 pass in the latest focused run, including actual PGlite persistence,
+- TypeScript: pass. Billing-specific ESLint: zero errors/warnings.
+- Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
+  cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
+- Focused core tests: 22 pass in the latest focused run, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 271 tests, 253 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 273 tests, 255 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -55,17 +59,20 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
 4. Real marketplace actions remain paused until the owner confirms the test item
    and intended action. Eight more diverse owned items are needed for the ten-item benchmark.
 5. AI/billing secrets are optional for later paid-feature verification, not local work.
+   Stripe test-mode event delivery/portal setup and replacement-subscription reconciliation
+   remain release gates. No Stripe network calls or payment actions were made.
 
 NEXT ACTIONS
 - Verify policy/location selectors against the authorized eBay account when available.
 - Finish mobile UI/review-dialog QA, typed taxonomy/condition mappings and authenticated
   Vinted detail preservation. Live data is needed for the connector checks.
 - Configure the worker trigger only after staging approval; verify real sold-event ingestion.
-- Finish public photo uploads and Stripe webhook replay/isolation checks before paid pilot.
+- Finish public photo uploads; verify billing events and portal behavior in Stripe test mode
+  when authorized credentials are available. Local webhook replay/isolation tests now pass.
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 27% consumed, 73% remaining at latest check.
+Account-wide weekly usage: 28% consumed, 72% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and

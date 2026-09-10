@@ -19,12 +19,12 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 - Vinted authenticated list/detail responses may omit fields; verify the full real import and add bounded detail retrieval where the observed response requires it.
 - Public HTTPS hosting/upload of new or cleaned photos remains a release requirement, not an excuse to create paid infrastructure while the owner is absent.
 - Multi-unit sale logic accepts stable order-line IDs internally; the current manual sale button is restricted to quantity one until a proper quantity/reference form is supplied.
-- Source-shaped fixtures and mocked eBay responses do not certify live connector compatibility. Finish the ten-item benchmark, mobile UI QA, auth/billing webhook replay checks and seller isolation review before a pilot.
+- Source-shaped fixtures and mocked eBay responses do not certify live connector compatibility. Finish the ten-item benchmark, mobile UI QA, authenticated Stripe test-mode checks and seller isolation review before a pilot.
 - Existing resale fee estimates are inherited approximations, not reconciled seller profit. The draft form now shows destination prices rather than claiming a universal take-home amount. SaaS contribution assumptions are in ECONOMICS_DEPLOYMENT.md.
 
 ## Test baseline
 
-The portable full runner exposes 271 tests: 253 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 20 and auth/app-data 55 pass. Continue tracking that baseline rather than claiming the whole repository is green.
+The portable full runner exposes 273 tests: 255 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 22 pass in the current run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
 
 Builds and migrations are separate operations. Node 24.14 was used locally. No remote database was migrated.
 
@@ -36,3 +36,9 @@ Production build and TypeScript pass. Scoped lint has no errors (four existing-s
 The worker requires a separate 32+ character secret, rejects unauthorized calls, preserves job ownership and honors paused accounts. It processes queued eBay jobs and expired-lease recovery; it does not implement an eBay order feed or magically detect sales. Terminal failed jobs still require review/retry rather than unlimited automatic replay.
 
 New source eBay imports now retain offer/SKU receipts for subsequent delisting. Unknown generic used condition remains a review requirement instead of being silently labelled very good. Historical imported rows lacking these receipts need a separate repair/reconciliation pass before being relied on for automatic delisting.
+
+## Billing reliability checkpoint — 11 September BST
+
+Signed webhooks use the official SDK with timestamp validation and signing-key rotation support. A transaction stores each event receipt together with its entitlement update. Per-subscription locks serialize provider reads, so delayed payloads are not applied as current state. The current Stripe subscription and expanded invoice determine access; unpaid checkout metadata never grants a plan. Unique customer/subscription bindings prevent cross-user entitlement reuse. Invoice events from an older subscription cannot replace the bound subscription. Failed provider reads or database writes remain retryable without a poisoned receipt.
+
+Two new tests exercise signatures and real PGlite migration/rollback/deduplication/isolation using an injected Stripe reader. These are local simulations, not completed Stripe integration certification. All 22 focused tests, TypeScript, billing-file ESLint and production build pass. See STAGING.md for supported event types, conservative payment gates and remaining operator reconciliation work.

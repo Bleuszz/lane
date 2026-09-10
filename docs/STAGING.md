@@ -23,3 +23,15 @@ No staging deployment exists. Local work is not blocked by this. No service, sub
 ## Local commands
 
 `npm run dev` runs on 127.0.0.1:8080. An explicit `VITE_AUTH_ENABLED=false` override may be used only with no DATABASE_URL for isolated synthetic local testing; do not carry it into staging. In-memory drafts disappear when the process restarts. `npm run test:lane` does not use real credentials or marketplace writes. `npm test` also runs inherited template tests and currently reports their documented failures.
+
+## Billing webhook release gate
+
+The local reconciler now uses Stripe Node 22.6.2 / API 2026-08-26.dahlia to retrieve the current subscription with its latest invoice. No Stripe requests were made in the test run. Checkout/portal creation retains the existing form transport; verify those flows in test mode before enabling billing.
+
+Apply migration 0011 only to the identified staging database. It adds event receipts, per-subscription serialization and unique customer/subscription bindings. Audit pre-existing duplicate bindings first; do not delete customer data to force migration success. A subscription replacement is deliberately held as `binding_conflict` for explicit reconciliation; automatic migration between subscriptions is not implemented.
+
+Configure the signed endpoint for subscription created/updated/deleted/paused/resumed; Checkout completed/async_payment_succeeded/async_payment_failed; invoice paid/payment_failed/payment_action_required/voided/marked_uncollectible. Current invoice `parent.subscription_details.subscription` and legacy `subscription` references are supported. Verify deliveries in Stripe test mode, including delayed payments, duplicate delivery, cancellation, recovery and price changes. Provider/database failures return 503 and roll back the event receipt, allowing retry. Inspect receipt outcomes for `binding_conflict` and `unknown_price`; an alert/dashboard for these is still needed before production.
+
+Only a recognized single plan at quantity one, active subscription, paid latest invoice and no collection pause grants paid access. Provider trials do not reset Lane's no-card trial. Unknown prices and other statuses withhold paid access. This conservative rule can also suspend access on an unpaid immediate-upgrade invoice; test the intended portal proration configuration before launch.
+
+Use separate environment keys in the host secret store, preferably restricted keys with only required Checkout/Portal/subscription read permissions. No secrets belong in source or logs. Tax registration and collection settings must be reviewed before accepting payments; `automatic_tax` has not been enabled. See [Stripe subscription webhooks](https://docs.stripe.com/billing/subscriptions/webhooks), [webhook delivery and signature guidance](https://docs.stripe.com/webhooks), and [recurring-payment tax setup](https://docs.stripe.com/billing/taxes/collect-taxes).
