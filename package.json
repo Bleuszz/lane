@@ -19,7 +19,7 @@
     "test": "node scripts/run-tests.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:lane": "node --test scripts/entitlements.test.mjs scripts/reliable-operations.test.mjs scripts/ebay-retry.test.mjs scripts/source-mapping.test.mjs scripts/item-persistence.test.mjs scripts/worker.test.mjs scripts/billing-webhooks.test.mjs scripts/publish-review.test.mjs scripts/listing-snapshots.test.mjs"
+    "test:lane": "node --test scripts/entitlements.test.mjs scripts/reliable-operations.test.mjs scripts/ebay-retry.test.mjs scripts/source-mapping.test.mjs scripts/item-persistence.test.mjs scripts/worker.test.mjs scripts/billing-webhooks.test.mjs scripts/publish-review.test.mjs scripts/listing-snapshots.test.mjs scripts/ebay-photos.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

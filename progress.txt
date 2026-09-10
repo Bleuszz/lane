@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 23:37 UTC (11 September BST)
+Updated: 2026-09-10 23:52 UTC (11 September BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -20,6 +20,9 @@ IMPLEMENTED
 - Queued content actions reference immutable owner-scoped listing snapshots. Retries
   retain text, photos, fields and price; live stock can only reduce queued quantity.
 - Database-generated partial-sale jobs use quantity-only eBay updates, preserving content.
+- eBay photo delivery uploads local JPEG/PNG copies through its Media API on an
+  authorized job. Cached receipts preserve order, survive partial failures and expire;
+  originals and queued snapshots stay unchanged. No separate storage service added.
 - Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
 - Source normalization preserves photos, category identity, UK size ranges, colours,
   brand and unknown condition/material; neutral per-marketplace field overrides.
@@ -39,7 +42,12 @@ IMPLEMENTED
 - Builds no longer automatically migrate a database. Windows scripts are portable.
 
 VERIFICATION
-- TypeScript and production build: pass again after mobile UI changes.
+- TypeScript and production build: pass again after photo delivery changes.
+- Photo tests verify multipart bytes, whole-selection preflight, receipt reuse/expiry,
+  owner/account/environment isolation, lost leases, incomplete replies and no silent
+  omissions. Mocked listing updates wait for all photos; already-live retries skip uploads.
+- Browser: rejected HTTP photo URLs with clear feedback; originals remained loaded,
+  no page overflow and no-account publish remained disabled. No upload was attempted.
 - Mobile/billing/batch-change ESLint: zero errors/warnings.
 - Batch tests verify full review coverage, changed data/prices, ownership and rollback.
 - Snapshot tests cover real enqueue/claim/bridge dispatch, immutable retries, current
@@ -48,10 +56,10 @@ VERIFICATION
   account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 27 pass within the latest full run, including actual PGlite persistence,
+- Focused core tests: 30 pass, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 278 tests, 260 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 281 tests, 263 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -84,16 +92,17 @@ NEXT ACTIONS
   Local offline-account/missing-field review is verified; no batch was published.
 - Verify snapshot-backed eBay publishing/retries and sale stock updates in sandbox.
   Legacy content jobs without snapshots stop for review; do not blindly replay them.
-- Implement destination-accessible cleaned-photo delivery within the existing architecture.
+- Verify Media API multipart uploads and expiry with authorized sandbox credentials.
+  Local/mocked photo delivery is implemented; real image acceptance is not verified.
 - Verify typed taxonomy/condition mappings and authenticated Vinted detail preservation.
   Live data is needed for the connector checks.
 - Configure the worker trigger only after staging approval; verify real sold-event ingestion.
-- Finish public photo uploads; verify billing events and portal behavior in Stripe test mode
+- Verify billing events and portal behavior in Stripe test mode
   when authorized credentials are available. Local webhook replay/isolation tests now pass.
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 32% consumed, 68% remaining at latest check.
+Account-wide weekly usage: 34% consumed, 66% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -105,5 +114,7 @@ PUSHED CHECKPOINTS
 f280508: signed billing reconciliation and durable replay protection.
 43d6a65: mobile product cards, modal focus/scroll behavior and explicit bulk selection.
 702c4d7: per-item batch review and transactional queue writes.
+054afef: immutable queued listing snapshots and quantity-only partial-sale updates.
+Current checkpoint: eBay photo delivery, retry cache, file validation and regression tests.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

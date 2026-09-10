@@ -1,3 +1,4 @@
+import { isHttpsPhoto, localPhoto, MAX_LOCAL_PHOTO_BYTES } from "@/lib/lane/photos";
 import { SmartFields } from "./smart-fields";
 import { PhotoStudio } from "./photo-studio";
 import { CATEGORIES } from "@/lib/lane/categories";
@@ -105,7 +106,7 @@ export function ItemForm({
   const kind = sizeKindForCategory(draft.categoryCanonical);
   const sizeTable = kind === "footwear" ? FOOTWEAR_SIZES : CLOTHING_SIZES;
   const cats = CATEGORIES.filter((c) => (dept === "all" ? true : departmentOf(c.id) === dept));
-  const httpsCount = draft.photos.filter((p) => /^https:\/\//i.test(p.url)).length;
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   function onUkSize(value: string) {
     const row = convertSize(value, "uk", kind);
@@ -119,10 +120,12 @@ export function ItemForm({
   async function onFiles(files: FileList | null) {
     if (!files) return;
     const next = [...draft.photos];
+    setPhotoError(null);
     for (const file of Array.from(files)) {
       if (next.length >= 12) break;
-      if (file.size > 2_000_000) continue;
+      if (file.size > MAX_LOCAL_PHOTO_BYTES) { setPhotoError("Choose JPEG or PNG files up to 2 MB each."); continue; }
       const url = await readFile(file);
+      if (!localPhoto(url)) { setPhotoError("Choose JPEG or PNG files up to 2 MB each."); continue; }
       next.push({ url });
     }
     set({ photos: next });
@@ -164,7 +167,7 @@ export function ItemForm({
       {editPhoto && <PhotoStudio source={editPhoto} onClose={() => setEditPhoto(null)} onSave={(url) => { set({ photos: [{ url }, ...draft.photos].slice(0, 12) }); setEditPhoto(null); }} />}
       <div className="space-y-5">
         <section className="space-y-3">
-          <h2 className="text-sm font-medium">Photos {f.vinted && !f.ebay ? "(1–12)" : f.ebay ? "(https required for eBay)" : ""}</h2>
+          <h2 className="text-sm font-medium">Photos (1–12)</h2>
           <div className="flex flex-wrap gap-2">
             {draft.photos.map((p, i) => (
               <div key={`${p.url}-${i}`} className="relative h-36 w-28 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-raised">
@@ -195,14 +198,14 @@ export function ItemForm({
             ))}
             <label className="grid h-24 w-20 cursor-pointer place-items-center rounded-[var(--radius-sm)] border border-dashed border-line-strong text-xs text-muted">
               Add
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => void onFiles(e.target.files)} />
+              <input type="file" accept="image/jpeg,image/png" multiple className="hidden" onChange={(e) => void onFiles(e.target.files)} />
             </label>
           </div>
+          {photoError && <p role="alert" className="text-xs text-danger">{photoError}</p>}
           {f.httpsPhotos ? (
             <>
               <p className="text-[11px] text-subtle">
-                For eBay, every selected photo needs a public HTTPS URL. {httpsCount} hosted photo
-                {httpsCount === 1 ? "" : "s"} ready.
+                JPEG/PNG files up to 2 MB and Photo studio copies upload to eBay when you publish. Public HTTPS photos work too. Originals stay in Lane.
               </p>
               <form
                 className="flex gap-2"
@@ -210,7 +213,8 @@ export function ItemForm({
                   e.preventDefault();
                   const input = e.currentTarget.elements.namedItem("photoUrl") as HTMLInputElement | null;
                   const value = input?.value.trim() ?? "";
-                  if (!/^https?:\/\//i.test(value)) return;
+                  if (!isHttpsPhoto(value)) { setPhotoError("Use a public HTTPS photo URL."); return; }
+                  setPhotoError(null);
                   if (draft.photos.length >= 12) return;
                   set({ photos: [...draft.photos, { url: value }] });
                   if (input) input.value = "";

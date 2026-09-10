@@ -1,3 +1,4 @@
+import { isHttpsPhoto } from "../photos";
 import { selectEbayOffer, liveEbayReceipt, selectSellerPolicy, type EbayOffer } from "./ebay-operations";
 import { sourceAspects, validateAspects } from "../aspects";
 import { ebayAspectRules } from "./taxonomy";
@@ -195,15 +196,16 @@ export async function ebayReconcileListing(accessToken: string, item: ItemView, 
 }
 
 function selectedPhotoUrls(item: ItemView): string[] {
-  if (!item.photos.length) throw new Error("eBay requires at least one publicly reachable HTTPS photo.");
+  if (!item.photos.length || item.photos.length > 12) throw new Error("eBay requires 1-12 publicly reachable HTTPS photos.");
   return item.photos.map((photo, index) => {
-    let url: URL;
-    try { url = new URL(photo.url); } catch { throw new Error(`Photo ${index + 1} needs a public HTTPS URL before publishing to eBay.`); }
-    if (url.protocol !== "https:" || !url.hostname) {
-      throw new Error(`Photo ${index + 1} needs a public HTTPS URL. Host the edited image or remove it from this listing first.`);
-    }
+    if (!isHttpsPhoto(photo.url)) throw new Error(`Photo ${index + 1} needs a public HTTPS URL before publishing to eBay.`);
     return photo.url;
   });
+}
+
+function checkedResolvedPhotos(item: ItemView, urls: string[]): string[] {
+  if (urls.length !== item.photos.length) throw new Error("Photo delivery did not preserve every selected photo. Publishing stopped.");
+  return selectedPhotoUrls({ ...item, photos: urls.map((url, index) => ({ ...item.photos[index], url })) });
 }
 
 export async function ebayPublish(
@@ -216,8 +218,9 @@ export async function ebayPublish(
   settings: Record<string, unknown> = {},
   saveReceipt?: (receipt: { offerId: string; sku: string }) => Promise<void>,
   beforeWrite?: () => Promise<void>,
+  resolvePhotos?: () => Promise<string[]>,
 ): Promise<{ listingId: string; offerId: string; sku: string; url: string }> {
-  const photos = selectedPhotoUrls(item);
+  let photos = resolvePhotos ? undefined : selectedPhotoUrls(item);
   let sku = skuFor(item);
   const remote = await reconcileOffer(accessToken, sku, existingOfferId);
   const alreadyLive = liveEbayReceipt(remote);
@@ -234,6 +237,7 @@ export async function ebayPublish(
   const fieldErrors = validateAspects(await ebayAspectRules(categoryId), aspects);
   if (fieldErrors.length) throw new Error(fieldErrors.join(" "));
 
+  photos ??= checkedResolvedPhotos(item, await resolvePhotos!());
   await beforeWrite?.();
   const inv = await ebayFetch(accessToken, "PUT", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`, {
     availability: { shipToLocationAvailability: { quantity } },
@@ -325,13 +329,15 @@ export async function ebayUpdateOffer(
   priceGbp: number,
   quantity: number,
   beforeWrite?: () => Promise<void>,
+  resolvePhotos?: () => Promise<string[]>,
 ) {
-  const photos = selectedPhotoUrls(item);
+  let photos = resolvePhotos ? undefined : selectedPhotoUrls(item);
   const currentItem = await ebayFetch<Record<string, unknown>>(accessToken, "GET", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`);
   const currentOffer = await ebayFetch<Record<string, unknown>>(accessToken, "GET", `/sell/inventory/v1/offer/${encodeURIComponent(offerId)}`);
   if (!currentItem.ok || !currentOffer.ok) throw new Error("Could not read the current eBay listing. No update was sent.");
   const { sku: _sku, locale: _locale, ...inventoryBody } = currentItem.json;
   const product = (inventoryBody.product ?? {}) as Record<string, unknown>;
+  photos ??= checkedResolvedPhotos(item, await resolvePhotos!());
   await beforeWrite?.();
   const updated = await ebayFetch(accessToken, "PUT", `/sell/inventory/v1/inventory_item/${encodeURIComponent(sku)}`, {
     ...inventoryBody,

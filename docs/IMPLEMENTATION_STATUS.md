@@ -6,7 +6,7 @@ The branch is a tested local beta foundation, not a finished or deployed service
 
 Source data is kept separately from destination fields. Imports use stable source identities and database transactions; retries cannot overwrite an edited item or leave a half-written photo collection. Missing condition/category/material remain unresolved. Destination specifics are checked against eBay taxonomy when credentials are available. AI is optional, text-backed, bounded and reviewed; it fills blanks rather than replacing manual specifics. Negated evidence is rejected conservatively.
 
-Photo studio preserves the original and adds a 1200px JPEG copy. It adjusts framing, rotation and lighting; background removal is not implemented. New/edited images still need a public HTTPS hosting route for eBay. Every selected eBay photo is checked so unhosted copies cannot disappear silently.
+Photo studio preserves the original and adds a 1200px JPEG copy. It adjusts framing, rotation and lighting; background removal is not implemented. Local JPEG/PNG files up to 2 MB now resolve to eBay-hosted URLs through the Media API when an authorized publish/update job runs. All selected photos are validated before upload, successful receipts are cached per owner/account/environment/content hash, and originals remain unchanged. Real provider upload acceptance is still unverified.
 
 Jobs have durable intent keys, atomic claims, leases, guarded retries and remote-offer reconciliation. Sale events and inventory changes commit with their delist outbox. Browser jobs require a matching claim token and interrupted creates are parked for reconciliation instead of blindly repeated. Vinted bridge and server routes still require real account verification.
 
@@ -17,14 +17,14 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 - Per-seller eBay policy/location selection is implemented and revalidated on save; live verification remains. Complete current category and condition mappings. The two women's knitwear source leaves are preserved, but their eBay mapping remains unconfirmed pending authenticated taxonomy checks.
 - The dedicated-secret `/api/worker` endpoint is implemented (maximum three eBay jobs per invocation). A configured host scheduler and verified sold-event ingestion are still needed before promising automatic delisting while the app is closed. No scheduler has been activated, so current eBay queue progress is driven by application requests; Vinted needs an available session/bridge.
 - Vinted authenticated list/detail responses may omit fields; verify the full real import and add bounded detail retrieval where the observed response requires it.
-- Public HTTPS hosting/upload of new or cleaned photos remains a release requirement, not an excuse to create paid infrastructure while the owner is absent.
+- Verify the implemented eBay Media API upload route in the authorized sandbox, including response expiry, formats, image quality and runtime. No extra hosting service was created.
 - Multi-unit sale logic accepts stable order-line IDs internally; the current manual sale button is restricted to quantity one until a proper quantity/reference form is supplied.
 - Source-shaped fixtures and mocked eBay responses do not certify live connector compatibility. Finish the ten-item benchmark, mobile UI QA, authenticated Stripe test-mode checks and seller isolation review before a pilot.
 - Existing resale fee estimates are inherited approximations, not reconciled seller profit. The draft form now shows destination prices rather than claiming a universal take-home amount. SaaS contribution assumptions are in ECONOMICS_DEPLOYMENT.md.
 
 ## Test baseline
 
-The portable full runner exposes 278 tests: 260 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 27 pass in the current full run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
+The portable full runner exposes 281 tests: 263 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 30 pass in the current full run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
 
 Builds and migrations are separate operations. Node 24.14 was used locally. No remote database was migrated.
 
@@ -70,3 +70,11 @@ Partial sales produced by `lane_record_sale` retain their stock-update path. The
 Verification: the full portable suite now reports 278 tests, 260 pass and the same 18 inherited template failures. All 27 focused core checks pass within that suite. Real PGlite tests cover actual enqueue/claim and bridge dispatch after subsequent edits, duplicate enqueue retaining its first snapshot, stock reduction/increase caps, owner/item isolation, missing snapshots and no bridge dispatch/credit consumption after sale. The sale-outbox identity and quantity-only request are tested; eBay network results remain mocked. TypeScript, changed-file lint and production build pass.
 
 Limits: snapshot references preserve the selected photo URLs, not the remote bytes if a source URL later changes/expires. Current category mapping code and seller policy configuration are still checked at execution. Cross-marketplace sale races and live receipts require the existing reconciliation/staging tests. Pre-snapshot content jobs require operator review, not automatic conversion to today's data. This branch has no deployed users or known live jobs needing migration.
+
+## Photo delivery checkpoint
+
+The worker supplies a lazy photo resolver to eBay publishing/updating. Already-live offer reconciliation returns before any upload. Otherwise, listing writes wait for the entire photo set. New JPEG/PNG files are uploaded as multipart `image` files; existing HTTPS URLs pass through without server-side fetching. Lane checks MIME/signature, a 2 MB local file bound, a maximum of twelve photos, and the provider's HTTPS URL/expiry receipt. Fetch rejects redirects and has a 30-second timeout per upload; the job lease is renewed before each write.
+
+Migration 0013 stores only content hashes and upload receipts in the existing database. Receipts are cached separately for each owner, account and environment, expire with a five-minute safety margin, and survive later-photo failures. Canonical image data and immutable queued snapshots are not replaced. A missing/lost response before persistence may still leave an unused provider image, and concurrent jobs may upload the same image; exactly-once media creation is not claimed. Listing reconciliation remains independent.
+
+Thirty focused core tests pass, including three new photo tests covering database-backed cache behavior and mocked multipart/listing requests. Full suite: 281 total, 263 pass, the same 18 inherited failures. TypeScript/build pass; current photo-change lint has zero errors and two existing React refresh warnings. Local browser checks confirmed invalid URL feedback, loaded originals and the unconnected publish gate. No real upload or marketplace mutation was performed.

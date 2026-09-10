@@ -1,3 +1,4 @@
+import { ebayPhotoError } from "./photos.ts";
 import type { ItemDraft } from "@/lib/lane/types";
 
 export type ListingTarget = "vinted" | "ebay" | "both";
@@ -126,8 +127,8 @@ export function validateListing(draft: ItemDraft, target: ListingTarget): string
   if (f.vinted && !draft.colour.trim()) errors.push("Vinted needs a colour.");
   if (f.vinted && !draft.postageProfileId) errors.push("Pick a Vinted parcel size.");
   if (f.ebay) {
-    const https = draft.photos.every((p) => /^https:\/\//i.test(p.url));
-    if (!https) errors.push("Every selected eBay photo needs a public HTTPS URL. Remove local copies from this listing until photo hosting is available; Lane will not silently omit them.");
+    const photoError = ebayPhotoError(draft.photos.map(p => p.url));
+    if (photoError) errors.push(photoError);
     const qty = Number(draft.quantity);
     if (!Number.isFinite(qty) || qty < 1) errors.push("eBay needs quantity of at least 1.");
   }

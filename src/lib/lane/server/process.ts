@@ -1,3 +1,4 @@
+import { prepareEbayPhotos } from "./ebay-photos";
 import { loadListingSnapshot, storeListingSnapshot } from "./listing-snapshots";
 import type { Sql } from "@/lib/db";
 import { CHANNELS } from "@/lib/lane/channels";
@@ -265,6 +266,8 @@ async function runEbayJob(sql: Sql, userId: string, job: JobRow) {
     return;
   }
   if (item.condition === "unknown") throw new Error("Confirm the item condition before publishing.");
+  const resolvePhotos = () => prepareEbayPhotos(sql, userId, job.account_id!, access, item.photos.map(p => p.url),
+    () => renewJobLease(sql, userId, job.id, job.lease_token));
   const qty = item.quantity;
   const cat = findCategory(item.categoryCanonical);
 
@@ -273,7 +276,7 @@ async function runEbayJob(sql: Sql, userId: string, job: JobRow) {
       select ebay_offer_id, ebay_sku from channel_listings where id = ${listing.id} and user_id = ${userId}
     `;
     if (!rows[0]?.ebay_offer_id || !rows[0]?.ebay_sku) throw new Error("Nothing live to update on eBay.");
-    await ebayUpdateOffer(access, rows[0].ebay_offer_id, rows[0].ebay_sku, item, price, qty, () => renewJobLease(sql, userId, job.id, job.lease_token));
+    await ebayUpdateOffer(access, rows[0].ebay_offer_id, rows[0].ebay_sku, item, price, qty, () => renewJobLease(sql, userId, job.id, job.lease_token), resolvePhotos);
     await sql`
       update channel_listings set remote_status = 'live', last_synced_at = now(), last_error = null, channel_price_gbp = ${price}, updated_at = now()
       where id = ${listing.id} and user_id = ${userId}
@@ -298,6 +301,7 @@ async function runEbayJob(sql: Sql, userId: string, job: JobRow) {
         where id = ${listing.id} and user_id = ${userId}`;
     },
     () => renewJobLease(sql, userId, job.id, job.lease_token),
+    resolvePhotos,
   );
   await sql`
     update channel_listings set
