@@ -55,3 +55,7 @@ Tests use real isolated PGlite with mocked providers. They cover persistence/rol
 - Verify provider rate-limit scope and account/application cooldown behavior before volume tests; the current job policy alone does not coordinate a shared provider quota.
 - Verify the linked manual-sale form with an authorized staging item. Audit legacy parent references and choose an unused-snapshot retention policy without erasing reconciliation evidence.
 - Reconcile fees before presenting seller profit. SaaS unit economics remain assumptions in `ECONOMICS_DEPLOYMENT.md`; no paid pilot, revenue or competitive performance claim is established by these tests.
+
+## Release dependency audit — 11 September 2026, 00:42 UTC
+
+GitHub draft PR #5 matched pushed implementation `2aded34`; GitHub returned no status checks. The test counts above are local evidence. This checkout has only `.env.example`, and the current process does not configure eBay application credentials/RuName, a database URL, worker/auth secrets or Stripe/xAI keys. No assertion is made about credentials elsewhere. The unconfigured local worker returned HTTP 503 before processing. No deployment or provider action was attempted. Use the ordered access and smoke-test steps in `STAGING.md`; real connector behavior remains unverified.

@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-11 00:33 UTC (01:33 BST)
+Updated: 2026-09-11 00:42 UTC (01:42 BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -149,11 +149,11 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 40% consumed, 60% remaining at latest check.
+Account-wide weekly usage: 41% consumed, 59% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
-Preserve at least 60 percentage points for staging, real connector diagnosis and
-pilot fixes. Recheck at meaningful checkpoints; avoid repeated broad research.
+Reserve the remaining allowance for real connector diagnosis, staging and pilot
+fixes; the earlier 60-point preference is a planning target, not a hard stop. Recheck at meaningful checkpoints; avoid repeated broad research.
 
 PUSHED CHECKPOINTS
 4c293f3: core redesign, source preservation, reliability and AI/trial controls.
@@ -166,6 +166,17 @@ f280508: signed billing reconciliation and durable replay protection.
 9f53b92: stock rechecks, preserved account pauses and event-scoped sale outbox.
 ccbc35d: bounded automatic eBay retry, cooldown visibility and full-process tests.
 d1a7d9c: manual sale entry, immutable cost metadata and honest unknown totals.
-Current checkpoint: transactional draft deletion, history-safe archive/restore and parent guards.
+2aded34: transactional draft deletion, history-safe archive/restore and parent guards.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.
+
+RELEASE DEPENDENCY AUDIT — 11 SEPTEMBER 00:42 UTC
+GitHub draft PR head matched pushed implementation 2aded34; no CI checks were
+reported by GitHub. Local test results above remain the evidence, not hosted CI.
+Only .env.example exists in this checkout. Current process environment has no
+eBay app credentials/RuName, DATABASE_URL, worker secret, auth secret, Stripe key
+or xAI key. This describes this local configuration, not other accounts or hosts.
+Unconfigured local worker returns HTTP 503 before claiming work. No scheduler
+was activated. No unchanged test suite was rerun for this documentation audit.
+Next session starts with owner access and the read-only import, then authorized
+sandbox verification. Staging remains a separate explicitly approved action.
