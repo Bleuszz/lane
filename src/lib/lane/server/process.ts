@@ -1,4 +1,5 @@
 import { prepareEbayPhotos } from "./ebay-photos";
+import { ebayRetryAt } from "./ebay-transport";
 import { loadListingSnapshot, storeListingSnapshot } from "./listing-snapshots";
 import type { Sql } from "@/lib/db";
 import { CHANNELS } from "@/lib/lane/channels";
@@ -179,14 +180,16 @@ export async function processJob(
     const body = err && typeof err === "object" && "body" in err ? String((err as { body?: string }).body ?? "") : message;
     const attempt = job.attempt;
     const dead = attempt >= (job.max_attempts || 5);
+    const retryAfter = source === "worker" && marketplace === "ebay_uk" ? ebayRetryAt(err, attempt, job.max_attempts || 5) : null;
     const failed = await sql`
       update jobs set
-        status = ${dead ? "dead" : "error"},
+        status = ${dead ? "dead" : retryAfter ? "queued" : "error"},
         lease_token = null, lease_expires_at = null,
+        retry_after = ${retryAfter},
         needs_reconciliation = ${job.type === "publish" || job.type === "relist"},
         error_message = ${message},
         error_body = ${body},
-        finished_at = now(),
+        finished_at = case when ${retryAfter}::timestamptz is null then now() else null end,
         updated_at = now()
       where id = ${jobId} and user_id = ${userId} and lease_token = ${job.lease_token} returning id
     `;
@@ -200,7 +203,7 @@ export async function processJob(
     }
     if (job.channel_listing_id) {
       await sql`
-        update channel_listings set last_error = ${message}, remote_status = 'error', updated_at = now()
+        update channel_listings set last_error = ${message}, remote_status = ${retryAfter ? "queued" : "error"}, updated_at = now()
         where id = ${job.channel_listing_id} and user_id = ${userId}
       `;
     }
@@ -396,10 +399,12 @@ export async function tickOauthJobs(sql: Sql, userId: string) {
   await recoverExpiredJobs(sql, userId);
   const queued = await sql<{ id: string }>`
     select j.id from jobs j
-    join marketplace_accounts a on a.id = j.account_id
+    join marketplace_accounts a on a.id = j.account_id and a.user_id = j.user_id
     where j.user_id = ${userId}
       and j.status = 'queued'
       and a.mode = 'oauth'
+      and a.status in ('green','rate_limited')
+      and (j.retry_after is null or j.retry_after <= now())
     order by j.created_at asc
     limit 3
   `;

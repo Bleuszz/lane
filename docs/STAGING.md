@@ -57,3 +57,12 @@ Lane deliberately accepts only JPEG/PNG uploads up to 2 MB each, even though eBa
 Apply 0014 before the updated worker is used for the pilot. It replaces the sale transaction function so each new sale retains its own destination follow-up. It does not rewrite existing jobs, reconstruct past suppressed events or contact marketplaces. Reconcile existing channel quantities and pending/error jobs before replay; no automatic legacy replay is authorized.
 
 In the authorized sandbox, record a sale while an image upload or listing update is in flight, then verify that stale writes stop or the separately retained sale job corrects the destination. Repeat with two distinct partial sales, duplicate event delivery, final depletion and an account pause during execution. Verify the eventual remote quantity and ended state, not merely the queued/done labels. Lane's database check and eBay's write are not atomic; reliable ingestion plus retained follow-ups are still required. Stock-change errors currently stop for guarded retry rather than being blindly replayed.
+
+
+## Automatic retry policy
+
+The existing `jobs.retry_after` column now holds a durable cooldown for temporary eBay transport errors. No additional migration or scheduler is required by this code change. Configure the approved queue trigger separately; neither cooldown expiry nor an open Activity page alone proves the worker ran. Activity displays the earliest retry time, not a promised completion time.
+
+Eligible failures: interrupted connection/response and HTTP 408, 429, 500, 502, 503, 504. Delay is 30/60/120/240 seconds for attempts 1-4 plus up to five seconds of jitter, or a longer provider Retry-After. A lower job limit is honoured; automatic retry never extends past five total attempts. A Retry-After longer than 24 hours leaves the job for review. Permanent responses, invalid listings, ambiguous success receipts, stock changes and unknown exceptions remain stopped. Browser creates retain their reconciliation gate.
+
+Verify a lost create/publish acknowledgement, cooldown, paused account, server restart and attempt exhaustion with authorized sandbox responses. The local full-process test proves no early HTTP call, duplicate remote listing or extra action/hourly reservation after a lost publish response. Current cooldown is per job; add/verify account or application-wide coordination if provider quota behavior requires it before volume testing. No real failure injection or marketplace mutation has occurred.

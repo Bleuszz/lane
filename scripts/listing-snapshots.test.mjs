@@ -13,7 +13,7 @@ const hooks = registerHooks({resolve(specifier,context,next){
   if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier) && context.parentURL?.includes("/src/")) return next(`${specifier}.ts`,context);
   return next(specifier,context);
 }});
-const {enqueueJob,isSaleStockJob,processJob} = await import("../src/lib/lane/server/process.ts");
+const {enqueueJob,isSaleStockJob,processJob,tickOauthJobs} = await import("../src/lib/lane/server/process.ts");
 const {loadItem} = await import("../src/lib/lane/server/map.ts");
 const {claimJob,guardEbayStockWrite,queueJobRetry} = await import("../src/lib/lane/server/operations.ts");
 const {pendingJobs} = await import("../src/lib/lane/server/bridge.ts");
@@ -190,4 +190,86 @@ test("outward stock guards reject sold, archived, paused, foreign and expired wo
     await sql`update jobs set lease_expires_at=now()-interval '1 second' where id=${id}`;
     await assert.rejects(guard(0,true),/lease expired/);
   } finally {await db.close();}
+});
+
+
+test("automatic retry reconciles a lost publish receipt after cooldown without duplicate listings or action charges",async()=>{
+  const db=new PGlite();
+  const sql=async(strings,...values)=>(await db.query(strings.reduce((q,p,i)=>q+(i?`$${i}`:"")+p,""),values)).rows;
+  const originalFetch=globalThis.fetch;
+  const oldId=process.env.EBAY_CLIENT_ID,oldSecret=process.env.EBAY_CLIENT_SECRET;
+  process.env.EBAY_CLIENT_ID="fixture-id";process.env.EBAY_CLIENT_SECRET="fixture-secret";
+  let offer=null,creates=0,publishes=0,requests=0,forceStatus=null;
+  globalThis.fetch=async(url,options)=>{
+    requests++;
+    const path=new URL(url).pathname;
+    if(forceStatus) return Response.json({errors:[{message:"fixture failure"}]},{status:forceStatus,headers:{"Retry-After":"60"}});
+    if(path.endsWith("oauth2/token")) return Response.json({access_token:"fixture-token"});
+    if(path.endsWith("get_default_category_tree_id")) return Response.json({categoryTreeId:"3"});
+    if(path.endsWith("get_item_aspects_for_category")) return Response.json({aspects:[]});
+    if(path.includes("/location/")) return Response.json({});
+    if(path.endsWith("/offer/offer") && options.method==="GET") return Response.json(offer);
+    if(path.endsWith("/offer") && options.method==="GET") return Response.json({offers:offer?[offer]:[]});
+    if(path.includes("/inventory_item/")) return new Response(null,{status:204});
+    for(const kind of ["fulfillment","payment","return"]) if(path.endsWith(`/${kind}_policy`)) return Response.json({[`${kind}Policies`]:[{marketplaceId:"EBAY_GB",[`${kind}PolicyId`]:`fixture-${kind}`,categoryTypes:[{name:"ALL_EXCLUDING_MOTORS_VEHICLES"}]}]});
+    if(path.endsWith("/offer") && options.method==="POST") {
+      creates++;offer={...JSON.parse(options.body),offerId:"offer",status:"UNPUBLISHED"};
+      return Response.json({offerId:"offer"},{status:201});
+    }
+    if(path.endsWith("/publish")) {
+      publishes++;offer={...offer,status:"PUBLISHED",listing:{listingId:"listing"}};
+      throw new Error("mock connection lost after remote success");
+    }
+    throw new Error(`Unexpected fixture request ${options.method} ${path}`);
+  };
+  try {
+    for(const name of (await readdir(new URL("../migrations/",import.meta.url))).filter(n=>n.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(`../migrations/${name}`,import.meta.url),"utf8"));
+    await sql`insert into user_settings(user_id) values ('owner')`;
+    await sql`insert into marketplace_accounts(id,user_id,marketplace,mode,label,status,oauth_access_token,oauth_refresh_token,oauth_expires_at) values ('shop','owner','ebay_uk','oauth','Test','green',${seal("fixture-access")},${seal("fixture-refresh")},'2100-01-01')`;
+    await sql`insert into items(id,user_id,title,description,condition,category_canonical,base_price_gbp,quantity) values ('item','owner','Approved title','Flaw retained','good','menswear.tops.tshirts',20,1)`;
+    await sql`insert into item_photos(id,item_id,user_id,url) values ('photo','item','owner','https://example.test/source.jpg')`;
+    await sql`insert into channel_listings(id,item_id,user_id,marketplace,marketplace_account_id,channel_price_gbp,remote_status) values ('channel','item','owner','ebay_uk','shop',22,'queued')`;
+    const opts={userId:"owner",type:"publish",marketplace:"ebay_uk",accountId:"shop",itemId:"item",channelListingId:"channel"};
+    const id=await enqueueJob(sql,opts);
+    assert.equal((await processJob(sql,"owner",id,"worker")).ok,false);
+    let saved=(await sql`select * from jobs where id=${id}`)[0];
+    assert.equal(saved.status,"queued");assert.equal(saved.attempt,1);
+    assert.ok(new Date(saved.retry_after).getTime()>Date.now());
+    assert.equal(saved.needs_reconciliation,true);
+    assert.equal(saved.finished_at,null);
+    assert.equal(saved.lease_token,null);
+    assert.equal((await sql`select count(*)::int as n from listing_action_usage`)[0].n,1);
+    const count=requests;
+    assert.equal((await processJob(sql,"owner",id,"worker")).ok,false);
+    assert.deepEqual(await tickOauthJobs(sql,"owner"),[],"cooling jobs must not occupy the ready batch");
+    assert.equal(requests,count,"no early external call");
+    await sql`update jobs set retry_after=now()-interval '1 second' where id=${id}`;
+    assert.deepEqual(await processJob(sql,"owner",id,"worker"),{ok:true});
+    saved=(await sql`select * from jobs where id=${id}`)[0];
+    assert.equal(saved.status,"done");assert.equal(saved.attempt,2);assert.equal(saved.retry_after,null);
+    assert.equal(creates,1);assert.equal(publishes,1);
+    assert.equal((await sql`select count(*)::int as n from listing_action_usage`)[0].n,1);
+    assert.equal((await sql`select publishes_this_hour from marketplace_accounts where id='shop'`)[0].publishes_this_hour,1);
+    // A permanent provider response requires review; a later temporary error is bounded.
+    const update=await enqueueJob(sql,{...opts,type:"update"});
+    forceStatus=400;
+    await processJob(sql,"owner",update,"worker");
+    assert.equal((await sql`select status from jobs where id=${update}`)[0].status,"error");
+    await sql`update jobs set max_attempts=3 where id=${update}`;
+    await queueJobRetry(sql,"owner",update);
+    forceStatus=503;
+    await processJob(sql,"owner",update,"worker");
+    saved=(await sql`select * from jobs where id=${update}`)[0];
+    assert.equal(saved.status,"queued");assert.equal(saved.attempt,2);
+    assert.ok(new Date(saved.retry_after).getTime()>=Date.now()+59_000);
+    await sql`update jobs set retry_after=now()-interval '1 second' where id=${update}`;
+    await processJob(sql,"owner",update,"worker");
+    saved=(await sql`select * from jobs where id=${update}`)[0];
+    assert.equal(saved.status,"dead");assert.equal(saved.attempt,3);assert.equal(saved.retry_after,null);
+  } finally {
+    globalThis.fetch=originalFetch;
+    if(oldId===undefined) delete process.env.EBAY_CLIENT_ID; else process.env.EBAY_CLIENT_ID=oldId;
+    if(oldSecret===undefined) delete process.env.EBAY_CLIENT_SECRET; else process.env.EBAY_CLIENT_SECRET=oldSecret;
+    await db.close();
+  }
 });

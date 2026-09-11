@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Sql } from "../../db";
 import { ebayPhotoError, isHttpsPhoto, localPhoto } from "../photos";
 import { ebayEnv } from "./secret";
+import { ebayRequest, ebayResponseText } from "./ebay-transport";
 
 const EXPIRY_MARGIN_MS = 5 * 60_000;
 
@@ -33,7 +34,7 @@ export async function prepareEbayPhotos(
     await beforeWrite(); // Renew the job lease before each outward write.
     const body = new FormData();
     body.append("image", new Blob([bytes], { type: source.mime }), `${hash}.${source.mime === "image/png" ? "png" : "jpg"}`);
-    const response = await fetch(`${host}/commerce/media/v1_beta/image/create_image_from_file`, {
+    const response = await ebayRequest(`${host}/commerce/media/v1_beta/image/create_image_from_file`, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
       body, // Fetch supplies the multipart boundary; do not set Content-Type.
@@ -41,7 +42,7 @@ export async function prepareEbayPhotos(
       signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) throw new Error(`eBay photo upload failed (HTTP ${response.status}). Successful photos are saved for retry.`);
-    const receipt = await response.json() as {imageUrl?:unknown;expirationDate?:unknown};
+    const receipt = JSON.parse(await ebayResponseText(response)) as {imageUrl?:unknown;expirationDate?:unknown};
     const expiry = typeof receipt.expirationDate === "string" ? Date.parse(receipt.expirationDate) : NaN;
     if (typeof receipt.imageUrl !== "string" || !isHttpsPhoto(receipt.imageUrl) || !Number.isFinite(expiry) || expiry <= Date.now() + EXPIRY_MARGIN_MS) {
       throw new Error("eBay returned an incomplete or expired photo receipt. No listing was sent with this photo.");

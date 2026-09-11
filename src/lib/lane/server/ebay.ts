@@ -1,4 +1,5 @@
 import { isHttpsPhoto } from "../photos";
+import { ebayRequest, ebayResponseText } from "./ebay-transport";
 import { selectEbayOffer, liveEbayReceipt, selectSellerPolicy, type EbayOffer } from "./ebay-operations";
 import { sourceAspects, validateAspects } from "../aspects";
 import { ebayAspectRules } from "./taxonomy";
@@ -47,7 +48,7 @@ async function tokenRequest(body: URLSearchParams): Promise<{
   const id = env("EBAY_CLIENT_ID");
   const secret = env("EBAY_CLIENT_SECRET");
   if (!id || !secret) throw new Error("eBay keys are not configured.");
-  const res = await fetch(`${hosts().api}/identity/v1/oauth2/token`, {
+  const res = await ebayRequest(`${hosts().api}/identity/v1/oauth2/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -56,7 +57,7 @@ async function tokenRequest(body: URLSearchParams): Promise<{
     body,
     signal: AbortSignal.timeout(30_000),
   });
-  const json = (await res.json()) as Record<string, unknown>;
+  const json = JSON.parse(await ebayResponseText(res)) as Record<string, unknown>;
   if (!res.ok) {
     throw Object.assign(new Error(String(json.error_description ?? json.error ?? `eBay token HTTP ${res.status}`)), {
       body: JSON.stringify(json),
@@ -97,7 +98,7 @@ export async function ebayFetch<T = Record<string, unknown>>(
   body?: unknown,
   extraHeaders?: Record<string, string>,
 ): Promise<{ ok: boolean; status: number; json: T; text: string }> {
-  const res = await fetch(`${hosts().api}${path}`, {
+  const res = await ebayRequest(`${hosts().api}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -108,7 +109,7 @@ export async function ebayFetch<T = Record<string, unknown>>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(30_000),
   });
-  const text = await res.text();
+  const text = await ebayResponseText(res);
   let json = {} as T;
   try {
     json = text ? (JSON.parse(text) as T) : ({} as T);

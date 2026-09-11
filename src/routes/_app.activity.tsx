@@ -41,6 +41,7 @@ function ActivityPage() {
                       {j.finishedAt ? ` → ${formatDateTime(j.finishedAt)}` : ""} · attempt {j.attempt}/{j.maxAttempts}
                     </p>
                     {j.errorMessage ? <p className="mt-1 text-sm text-danger">{j.errorMessage}</p> : null}
+                    {j.status === "queued" && j.retryAfter ? <p className="mt-1 text-sm text-muted">Automatic retry no earlier than {formatDateTime(j.retryAfter)}. Lane must be running and the account connected.</p> : null}
                     {j.errorBody ? <pre className="mt-1 max-h-24 overflow-auto font-mono text-[11px] text-subtle">{j.errorBody}</pre> : null}
                   </div>
                   <div className="flex items-center gap-2">

@@ -222,6 +222,7 @@ export type JobView = {
   requestId: string;
   attempt: number;
   maxAttempts: number;
+  retryAfter: string | null;
   errorMessage: string | null;
   errorBody: string | null;
   createdAt: string;

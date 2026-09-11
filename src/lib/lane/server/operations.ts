@@ -21,6 +21,7 @@ export async function claimJob(sql: Sql, userId: string, jobId: string, leaseTok
   try { rows = await sql<ClaimedJob>`
     update jobs j set status = case when type in ('publish', 'relist') then 'creating' else 'running' end,
       lease_token = ${leaseToken}, lease_expires_at = now() + interval '300 seconds',
+      retry_after = null,
       started_at = coalesce(started_at, now()), attempt = attempt + 1, updated_at = now()
     where j.id = ${jobId} and j.user_id = ${userId}
       and j.status = ${source === "extension" ? "waiting_for_browser" : "queued"}

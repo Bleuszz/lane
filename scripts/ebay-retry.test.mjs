@@ -57,7 +57,7 @@ test("eBay publisher reconciles lost create/publish acknowledgements without dup
     await assert.rejects(ebayPublish("access", "shop-location", item, 20, 1, null, {}, async () => {
       throw new Error("simulated database write failure after remote create");
     }), /database write failure/);
-    await assert.rejects(ebayPublish("access", "shop-location", item, 20, 1), /acknowledgement lost/);
+    await assert.rejects(ebayPublish("access", "shop-location", item, 20, 1), /connection interrupted/);
     const result = await ebayPublish("access", "shop-location", { ...item, sku: "user edited SKU meanwhile" }, 20, 1);
     assert.equal(result.listingId, "remote-live-listing");
     assert.equal(creates, 1);

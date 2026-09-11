@@ -168,6 +168,7 @@ export function mapJob(row: Record<string, unknown>): JobView {
     requestId: String(row.request_id),
     attempt: num0(row.attempt),
     maxAttempts: num0(row.max_attempts) || 5,
+    retryAfter: iso(row.retry_after),
     errorMessage: row.error_message ? String(row.error_message) : null,
     errorBody: row.error_body ? String(row.error_body) : null,
     createdAt: iso(row.created_at) ?? new Date().toISOString(),
