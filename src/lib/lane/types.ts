@@ -243,7 +243,7 @@ export type SaleView = {
   createdAt: string;
   costPriceGbp: number | null;
   costTotalGbp: number | null;
-  amountsBasis: "entered" | "estimated";
+  amountsBasis: "entered" | "estimated" | "provider";
   reference: string | null;
 };
 

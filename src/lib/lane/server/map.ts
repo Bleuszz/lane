@@ -191,7 +191,7 @@ export function mapSale(row: Record<string, unknown>): SaleView {
     createdAt: iso(row.created_at) ?? new Date().toISOString(),
     costPriceGbp: num(row.cost_price_gbp),
     costTotalGbp: num(row.cost_total_gbp),
-    amountsBasis: row.amounts_basis === "entered" ? "entered" : "estimated",
+    amountsBasis: row.amounts_basis === "entered" ? "entered" : row.amounts_basis === "provider" ? "provider" : "estimated",
     reference: row.reference ? String(row.reference) : null,
   };
 }

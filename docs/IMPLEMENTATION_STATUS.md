@@ -44,14 +44,14 @@ Signed Stripe events reconcile current paid subscription state with durable dedu
 
 ## Current evidence
 
-TypeScript, production build and current changed-file ESLint pass. The full portable suite reports **293 tests: 275 pass, 18 inherited failures**. All **42 core tests** pass within that run. The inherited failures concern missing template/skill/auth fixtures, Grok metadata assumptions and Windows symlink permissions; they are not disabled.
+TypeScript, production build and current changed-file ESLint pass. The full portable suite reports **297 tests: 279 pass, 18 inherited failures**. All **46 core tests** pass within that run. The inherited failures concern missing template/skill/auth fixtures, Grok metadata assumptions and Windows symlink permissions; they are not disabled.
 
 Tests use real isolated PGlite with mocked providers. They cover persistence/rollback, ownership, concurrency, quotas, source details, snapshot-backed bridge dispatch, lost eBay acknowledgements, stock changes during uploads, retained sale follow-ups, photo receipt expiry, billing replay, automatic retry cooldown/exhaustion and manual-sale replay/rollback/cost snapshots and deletion/archive/parent constraints. The retry integration proves one remote listing and one action/hourly reservation after a lost publish response. Browser QA covered draft/photo save and reload, 362x698 cards/dialogs/focus, no horizontal overflow, batch blockers, invalid URL feedback, unlinked manual-sale gating, unknown sales-summary values and archive/filter/restore with photos retained. No connected end-to-end publication has been verified.
 
 ## Remaining gates and productive local work
 
 - Authorized eBay keys/RuName/seller session and Vinted bridge login are needed for real import, current taxonomy/conditions, seller policies, photo acceptance and controlled marketplace tests. Eight more varied owned items are needed for the ten-item benchmark.
-- Staging needs an explicitly chosen host/database, secure auth/token configuration, migration approval, measured storage/runtime, a worker trigger and verified sold-event ingestion. No infrastructure was created. Follow `STAGING.md`, including migrations through 0016 and legacy-job review.
+- Staging needs an explicitly chosen host/database, secure auth/token configuration, migration approval, measured storage/runtime, a worker trigger and verified sold-event ingestion. No infrastructure was created. Follow `STAGING.md`, including migrations through 0017 and legacy-job review.
 - Verify provider rate-limit scope and account/application cooldown behavior before volume tests; the current job policy alone does not coordinate a shared provider quota.
 - Verify the linked manual-sale form with an authorized staging item. Audit legacy parent references and choose an unused-snapshot retention policy without erasing reconciliation evidence.
 - Reconcile fees before presenting seller profit. SaaS unit economics remain assumptions in `ECONOMICS_DEPLOYMENT.md`; no paid pilot, revenue or competitive performance claim is established by these tests.
@@ -59,3 +59,15 @@ Tests use real isolated PGlite with mocked providers. They cover persistence/rol
 ## Release dependency audit — 11 September 2026, 00:42 UTC
 
 GitHub draft PR #5 matched pushed implementation `2aded34`; GitHub returned no status checks. The test counts above are local evidence. This checkout has only `.env.example`, and the current process does not configure eBay application credentials/RuName, a database URL, worker/auth secrets or Stripe/xAI keys. No assertion is made about credentials elsewhere. The unconfigured local worker returned HTTP 503 before processing. No deployment or provider action was attempted. Use the ordered access and smoke-test steps in `STAGING.md`; real connector behavior remains unverified.
+
+## eBay order detection — disabled until verified
+
+The earlier worker processed listing jobs but did not fetch eBay sales. It now has an optional Fulfillment order poll before job selection, enabled only by `LANE_EBAY_ORDER_POLLING=true`. Default remains false. Migration 0017 stores owner/account/environment-scoped progress and minimal order-line observations; no buyer names, addresses, payment details or raw order bodies are persisted.
+
+Each worker request claims one account for up to two minutes and reads at most 100 orders. A fixed date window and page offset survive between calls; completed windows advance with a five-minute overlap. Successful pages commit sale records, stock, follow-up jobs and cursor together. Failed/malformed pages keep the cursor; temporary errors honour a longer Retry-After, with a minimum five-minute cooldown. No provider-supplied next-page URL is followed. This is bounded polling, not realtime delivery or a shared API quota controller.
+
+Only PAID orders without cancellation requests, with a unique exact linked listing, supported quantity and GBP item amount can apply automatically. Discounted line-item amounts take precedence; order totals, postage and guessed fees are not substituted. Fees/net stay unknown. Exact line IDs share deduplication with manual entry. Unknown matches, variations, payment/cancellation changes and stock conflicts remain visible in Activity without another stock change. Refunds/cancellations never automatically restore stock. Tracking starts when the account's polling state is first initialized; orders predating that or the listing link require manual reconciliation, preventing historical imports from reducing current stock twice. This intentionally does not backfill historical sales.
+
+Tests cover durable pagination, overlapping claims, repeated lines, manual-before/after-poll delivery, transaction rollback, cancellation after sale, lease loss, account pause/environment isolation and excluded buyer data. Activity's disabled state and updated Help headings were checked at 362px without horizontal overflow. Live API response compatibility, scheduling latency, long-running catch-up and mutation during pagination still require sandbox tests. An 89-day recovery guard stops old cursors for review. There is no guarantee that a changing remote result set or delayed event is fully captured by the overlap.
+
+Implementation reference: [eBay Fulfillment OpenAPI schema](https://developer.ebay.com/api-docs/master/sell/fulfillment/openapi/3/sell_fulfillment_v1_oas3.json). Runtime reads use the existing authorized eBay transport; no real order API request occurred during this work.

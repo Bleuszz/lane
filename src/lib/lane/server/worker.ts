@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { Sql } from "../../db";
 
 type WorkerDependencies = {
+  pollOrders?: (sql:Sql)=>Promise<unknown>;
   recover: (sql:Sql,userId:string)=>Promise<unknown>;
   process: (sql:Sql,userId:string,jobId:string,source:"worker")=>Promise<{ok:boolean}>;
 };
@@ -12,6 +13,7 @@ export async function runWorker(request:Request,sql:Sql,secret:string|undefined,
   const header = request.headers.get("authorization") ?? "";
   const supplied = Buffer.from(header), expected = Buffer.from(`Bearer ${secret}`);
   if (supplied.length !== expected.length || !timingSafeEqual(supplied,expected)) return Response.json({error:"Unauthorized"},{status:401});
+  if (deps.pollOrders) await deps.pollOrders(sql);
   // Bounded work only. Atomic job claims handle overlapping scheduler requests.
   const users = await sql<{user_id:string}>`
     select j.user_id from jobs j join marketplace_accounts a on a.id=j.account_id and a.user_id=j.user_id

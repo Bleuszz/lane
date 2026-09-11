@@ -250,6 +250,23 @@ export const getItemFn = createServerFn({ method: "POST" })
     return item;
   });
 
+export const getOrderSyncStatus = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const accounts = await sql<{label:string;environment:string;last_success_at:Date|string|null;last_error:string|null;page_offset:number;cursor_at:Date|string}>`
+      select a.label,s.environment,s.last_success_at,s.last_error,s.page_offset,s.cursor_at from ebay_order_sync s
+      join marketplace_accounts a on a.id=s.account_id and a.user_id=s.user_id
+      where s.user_id=${context.userId} order by a.label limit 20`;
+    const reviews = await sql<{line_id:string;order_id:string;listing_id:string;reason:string|null;label:string}>`
+      select e.line_id,e.order_id,e.listing_id,e.reason,a.label from ebay_order_events e
+      join marketplace_accounts a on a.id=e.account_id and a.user_id=e.user_id
+      where e.user_id=${context.userId} and e.outcome in ('needs_review','before_tracking')
+      order by e.observed_at desc limit 20`;
+    return {enabled:process.env.LANE_EBAY_ORDER_POLLING === "true",accounts:accounts.map(a=>({...a,
+      last_success_at:a.last_success_at ? new Date(a.last_success_at).toISOString() : null,cursor_at:new Date(a.cursor_at).toISOString()})),reviews};
+  });
+
 export const getJobs = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {

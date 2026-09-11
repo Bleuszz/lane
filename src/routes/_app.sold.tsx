@@ -93,7 +93,7 @@ function SoldPage() {
                     <p className="text-xs text-muted">Qty {s.quantity}{s.reference ? ` · ${s.reference}` : ""}</p>
                   </td>
                   <td className="px-2 py-2">{CHANNELS[s.marketplace]?.short}</td>
-                  <td className="px-2 py-2 tabular">{formatMoney(s.soldPriceGbp)}</td>
+                  <td className="px-2 py-2 tabular">{formatMoney(s.soldPriceGbp)}{s.amountsBasis === "provider" && <span className="block text-xs text-muted">eBay item amount</span>}</td>
                   <td className="px-2 py-2 tabular">{s.netGbp === null ? "Unknown" : formatMoney(s.netGbp)}{s.amountsBasis === "estimated" ? <span className="block text-xs text-muted">Estimate</span> : null}</td>
                   <td className="px-2 py-2 text-xs text-muted">{s.detectedVia.replaceAll("_", " ")}</td>
                   <td className="px-2 py-2 text-muted">{formatDate(s.createdAt)}</td>

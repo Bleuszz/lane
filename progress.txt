@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-11 00:42 UTC (01:42 BST)
+Updated: 2026-09-11 00:55 UTC (01:55 BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -92,10 +92,10 @@ VERIFICATION
   account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 42 pass within the full suite, including actual PGlite persistence,
+- Focused core tests: 46 pass within the full suite, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 293 tests, 275 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 297 tests, 279 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -149,7 +149,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 41% consumed, 59% remaining at latest check.
+Account-wide weekly usage: 43% consumed, 57% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Reserve the remaining allowance for real connector diagnosis, staging and pilot
@@ -180,3 +180,20 @@ Unconfigured local worker returns HTTP 503 before claiming work. No scheduler
 was activated. No unchanged test suite was rerun for this documentation audit.
 Next session starts with owner access and the read-only import, then authorized
 sandbox verification. Staging remains a separate explicitly approved action.
+
+LATEST IMPLEMENTATION — EBAY ORDER DETECTION
+The prior worker did not retrieve eBay orders. Optional polling is now implemented
+behind LANE_EBAY_ORDER_POLLING=false, with migration 0017, account leases, durable
+pagination/cursor, transactional sale/stock/outbox writes and stable line references.
+Historical/pre-link orders, uncertain matches/payment/cancellation, unsupported
+variations/currency and stock conflicts require review; no automatic stock restore.
+Activity exposes configuration, last page, errors and review observations. Fees/net
+remain unknown. Help now correctly describes device-photo publishing.
+Four new order tests pass; all 46 core tests pass in the full 297-test run (279 pass,
+18 inherited failures). Additional overlap/cancellation assertions and worker-auth
+checks pass. Browser: disabled Activity state and Help verified at 362px, no overflow.
+TypeScript, scoped lint and production build pass. No live order read or marketplace
+write, paid inference, deployment, scheduler activation or spending occurred.
+Next: authorized sandbox polling and baseline-stock reconciliation, including actual
+response shapes and remote follow-ups, before enabling this flag. See STAGING.md.
+Usage latest: 43% weekly used / 57% remaining; no reset used.
