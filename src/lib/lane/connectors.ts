@@ -1,5 +1,17 @@
 import type { ItemView, MarketplaceId } from "./types";
 
+export type ConnectorTransport = "official_api" | "desktop_session" | "browser_extension" | "assisted_manual" | "unsupported";
+export type CapabilityEvidence = "PROVEN" | "PARTIAL" | "UNSTABLE" | "UNSUPPORTED" | "UNKNOWN";
+export type SessionCapability = "import_listings" | "read_listing" | "create_listing" | "edit_listing" | "end_listing" | "relist" | "upload_images" | "read_quantity" | "read_sold_state" | "read_orders";
+/** Evidence is separate from implementation: mocks never promote a transport to PROVEN. */
+export type ConnectorEvidence = {
+  marketplace: MarketplaceId;
+  transport: ConnectorTransport;
+  deviceId?: string;
+  accountId?: string;
+  capabilities: Record<SessionCapability, {status:CapabilityEvidence;verifiedAt?:string;note:string}>;
+};
+
 /** Capability declarations are promises a connector implements, not marketing availability. */
 export type ConnectorCapabilities = {
   import: boolean;

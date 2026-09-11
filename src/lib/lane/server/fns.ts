@@ -1046,6 +1046,7 @@ function requestOrigin(): string {
 export const startVintedConnect = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
+    if (process.env.LANE_LEGACY_CLOUD_SESSIONS !== "true") throw new Error("Use Lane Desktop 0.3 or later. Legacy cloud session capture is disabled.");
     const sql = await getSql();
     await ensureUser(sql, context.userId);
     const id = makeId("vtc");

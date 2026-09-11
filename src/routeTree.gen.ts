@@ -16,6 +16,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
+import { Route as AppDevicesRouteImport } from './routes/_app.devices'
 import { Route as AppImportRouteImport } from './routes/_app.import'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
@@ -35,6 +36,7 @@ import { Route as AppSettingsShippingRouteImport } from './routes/_app.settings.
 import { Route as AppSettingsTemplatesRouteImport } from './routes/_app.settings.templates'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiBridgeSplatRouteImport } from './routes/api/bridge/$'
+import { Route as ApiDesktopSplatRouteImport } from './routes/api.desktop.$'
 import { Route as ApiEbayCallbackRouteImport } from './routes/api/ebay/callback'
 import { Route as ApiEbayStartRouteImport } from './routes/api/ebay/start'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
@@ -73,6 +75,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const AppActivityRoute = AppActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDevicesRoute = AppDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
   getParentRoute: () => AppRoute,
 } as any)
 const AppImportRoute = AppImportRouteImport.update({
@@ -170,6 +177,11 @@ const ApiBridgeSplatRoute = ApiBridgeSplatRouteImport.update({
   path: '/api/bridge/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDesktopSplatRoute = ApiDesktopSplatRouteImport.update({
+  id: '/api/desktop/$',
+  path: '/api/desktop/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiEbayCallbackRoute = ApiEbayCallbackRouteImport.update({
   id: '/api/ebay/callback',
   path: '/api/ebay/callback',
@@ -203,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/activity': typeof AppActivityRoute
+  '/devices': typeof AppDevicesRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
   '/inventory': typeof AppInventoryRouteWithChildren
@@ -220,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/settings/templates': typeof AppSettingsTemplatesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bridge/$': typeof ApiBridgeSplatRoute
+  '/api/desktop/$': typeof ApiDesktopSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -235,6 +249,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/activity': typeof AppActivityRoute
+  '/devices': typeof AppDevicesRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
   '/new': typeof AppNewRoute
@@ -250,6 +265,7 @@ export interface FileRoutesByTo {
   '/settings/templates': typeof AppSettingsTemplatesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bridge/$': typeof ApiBridgeSplatRoute
+  '/api/desktop/$': typeof ApiDesktopSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -267,6 +283,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/_app/activity': typeof AppActivityRoute
+  '/_app/devices': typeof AppDevicesRoute
   '/_app/import': typeof AppImportRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/inventory': typeof AppInventoryRouteWithChildren
@@ -284,6 +301,7 @@ export interface FileRoutesById {
   '/_app/settings/templates': typeof AppSettingsTemplatesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bridge/$': typeof ApiBridgeSplatRoute
+  '/api/desktop/$': typeof ApiDesktopSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -301,6 +319,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/activity'
+    | '/devices'
     | '/import'
     | '/inbox'
     | '/inventory'
@@ -318,6 +337,7 @@ export interface FileRouteTypes {
     | '/settings/templates'
     | '/api/auth/$'
     | '/api/bridge/$'
+    | '/api/desktop/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
     | '/api/stripe/webhook'
@@ -333,6 +353,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/activity'
+    | '/devices'
     | '/import'
     | '/inbox'
     | '/new'
@@ -348,6 +369,7 @@ export interface FileRouteTypes {
     | '/settings/templates'
     | '/api/auth/$'
     | '/api/bridge/$'
+    | '/api/desktop/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
     | '/api/stripe/webhook'
@@ -364,6 +386,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/_app/activity'
+    | '/_app/devices'
     | '/_app/import'
     | '/_app/inbox'
     | '/_app/inventory'
@@ -381,6 +404,7 @@ export interface FileRouteTypes {
     | '/_app/settings/templates'
     | '/api/auth/$'
     | '/api/bridge/$'
+    | '/api/desktop/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
     | '/api/stripe/webhook'
@@ -402,6 +426,7 @@ export interface RootRouteChildren {
   LegalTermsRoute: typeof LegalTermsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiBridgeSplatRoute: typeof ApiBridgeSplatRoute
+  ApiDesktopSplatRoute: typeof ApiDesktopSplatRoute
   ApiEbayCallbackRoute: typeof ApiEbayCallbackRoute
   ApiEbayStartRoute: typeof ApiEbayStartRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
@@ -458,6 +483,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof AppActivityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/devices': {
+      id: '/_app/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AppDevicesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/import': {
@@ -593,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBridgeSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/desktop/$': {
+      id: '/api/desktop/$'
+      path: '/api/desktop/$'
+      fullPath: '/api/desktop/$'
+      preLoaderRoute: typeof ApiDesktopSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ebay/callback': {
       id: '/api/ebay/callback'
       path: '/api/ebay/callback'
@@ -669,6 +708,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppActivityRoute: typeof AppActivityRoute
+  AppDevicesRoute: typeof AppDevicesRoute
   AppImportRoute: typeof AppImportRoute
   AppInboxRoute: typeof AppInboxRoute
   AppInventoryRoute: typeof AppInventoryRouteWithChildren
@@ -679,6 +719,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppActivityRoute: AppActivityRoute,
+  AppDevicesRoute: AppDevicesRoute,
   AppImportRoute: AppImportRoute,
   AppInboxRoute: AppInboxRoute,
   AppInventoryRoute: AppInventoryRouteWithChildren,
@@ -701,6 +742,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalTermsRoute: LegalTermsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiBridgeSplatRoute: ApiBridgeSplatRoute,
+  ApiDesktopSplatRoute: ApiDesktopSplatRoute,
   ApiEbayCallbackRoute: ApiEbayCallbackRoute,
   ApiEbayStartRoute: ApiEbayStartRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,

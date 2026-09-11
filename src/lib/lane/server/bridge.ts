@@ -56,6 +56,9 @@ export async function handleBridge(request: Request): Promise<Response> {
 
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/api\/bridge\/?/, "").replace(/\/$/, "");
+  if (path === "session" && process.env.LANE_LEGACY_CLOUD_SESSIONS !== "true") {
+    return json(request, { error: "Cloud session capture is disabled. Use Lane Desktop 0.3 or later." }, 410);
+  }
 
   const user = await resolvePairing(request);
   if (!user) return json(request, { error: "Invalid pairing token. Copy it from Lane → Settings → Channels." }, 401);

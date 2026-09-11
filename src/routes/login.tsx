@@ -5,10 +5,15 @@ import { LEGAL_FOOTER } from "@/lib/lane/copy";
 import { LaneWordmark } from "@/components/logo";
 import { Button, Field, Input } from "@/components/ui";
 import { useState, type FormEvent } from "react";
+import { safeReturnPath } from "@/lib/auth/return-path";
 
-export const Route = createFileRoute("/login")({ component: Login });
+export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): { returnTo?: string } => ({ returnTo: safeReturnPath(search.returnTo) }),
+  component: Login,
+});
 
 function Login() {
+  const { returnTo = "/onboarding" } = Route.useSearch();
   const { sessionUser } = useRouteContext({ from: "__root__" });
   const { user } = useCurrentUserState();
   const [mode, setMode] = useState<"in" | "up">("in");
@@ -18,7 +23,7 @@ function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (user || sessionUser) return <Navigate to="/inbox" />;
+  if (user || sessionUser) return <Navigate to={returnTo} />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -30,14 +35,14 @@ function Login() {
           email,
           password,
           name: name || email.split("@")[0] || "Seller",
-          callbackURL: "/onboarding",
+          callbackURL: returnTo,
         });
         if (res.error) throw new Error(res.error.message);
       } else {
-        const res = await authClient.signIn.email({ email, password, callbackURL: "/onboarding" });
+        const res = await authClient.signIn.email({ email, password, callbackURL: returnTo });
         if (res.error) throw new Error(res.error.message);
       }
-      window.location.href = "/onboarding";
+      window.location.href = returnTo;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed");
     } finally {
@@ -105,7 +110,7 @@ function Login() {
                       key={p.providerId}
                       variant="secondary"
                       className="w-full"
-                      onClick={() => void signIn(p.providerId, { callbackURL: "/onboarding" })}
+                      onClick={() => void signIn(p.providerId, { callbackURL: returnTo })}
                     >
                       Continue with {p.label}
                     </Button>

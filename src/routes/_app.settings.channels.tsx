@@ -44,7 +44,7 @@ function ChannelsPage() {
         return res;
       }
       if (marketplace === "vinted_uk") {
-        toast("Download the Windows app to capture the session, or pair Lane Bridge below.");
+        toast("Open Lane Desktop to connect Vinted. Your marketplace session stays on your computer.");
       }
       return res;
     },
@@ -96,7 +96,7 @@ function ChannelsPage() {
         <p className="mt-1 text-sm text-muted">
           {inDesktop
             ? "Connect opens the real site. When you are signed in, Lane takes the session and closes the window."
-            : "One-click connect lives in the Windows app — it is the same Lane account you are signed into now."}
+            : "Connect Vinted and eBay from Lane Desktop. Manage paired computers in Your devices."}
         </p>
       </div>
       {connect.error ? <p className="text-sm text-danger">{(connect.error as Error).message}</p> : null}
@@ -108,24 +108,27 @@ function ChannelsPage() {
 
       {!inDesktop ? (
         <Panel className="p-4">
-          <h2 className="text-sm font-medium">Windows app</h2>
+          <h2 className="text-sm font-medium">Lane Desktop</h2>
           <p className="mt-1 text-sm text-muted">
-            Sign in here (or in the app) with the same email. The app loads this website, then Connect captures Vinted
-            and closes the tab. Plan, inventory, and shops stay in sync.
+            Install Lane Desktop, sign in to Lane and approve the matching device code. Then connect each marketplace
+            in its own login window. The current beta reads listing pages locally; desktop inventory import is still being verified.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <a href={WINDOWS_DOWNLOAD_URL} className="inline-flex">
               <Button size="sm">Download for Windows</Button>
             </a>
-            <a href={laneProtocol} className="inline-flex">
+            <a href="/devices" className="inline-flex">
               <Button size="sm" variant="secondary">
-                Open in Lane
+                Your devices
               </Button>
             </a>
           </div>
         </Panel>
       ) : null}
 
+      <details className="space-y-3">
+      <summary className="cursor-pointer text-sm text-muted">Existing Lane Bridge setup (advanced)</summary>
+      <p className="text-sm text-muted">Optional legacy extension setup. Lane Desktop does not need this token. Cloud session capture is disabled for the new beta.</p>
       <Panel className="p-4">
         <h2 className="text-sm font-medium">Lane Bridge pairing token</h2>
         <p className="mt-1 text-sm text-muted">{VINTED_CONNECT_COPY}</p>
@@ -145,8 +148,8 @@ function ChannelsPage() {
       <Panel className="p-4">
         <h2 className="text-sm font-medium">Connect Vinted from another device</h2>
         <p className="mt-1 text-sm text-muted">{PHONE_CONNECT_COPY}</p>
-        <Button className="mt-3" disabled={phoneMut.isPending} onClick={() => phoneMut.mutate()}>
-          {phoneMut.isPending ? "Creating link…" : "Create connect link"}
+        <Button className="mt-3" disabled>
+          Legacy capture unavailable
         </Button>
         {phoneMut.error ? <p className="mt-2 text-sm text-danger">{(phoneMut.error as Error).message}</p> : null}
         {phone ? (
@@ -178,6 +181,7 @@ function ChannelsPage() {
         ) : null}
       </Panel>
 
+      </details>
       {accounts.filter(a => a.marketplace === "ebay_uk" && a.oauthConnected).map(a => <EbaySellerSettings key={a.id} accountId={a.id} label={a.label}/>)}
       <div className="space-y-3">
         {accounts.map((a) => (

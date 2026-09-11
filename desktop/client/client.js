@@ -1,0 +1,190 @@
+const api = window.laneClient;
+const $ = (id) => document.getElementById(id);
+let busy = false;
+const labels = {
+  unknown: "Not checked",
+  authenticated: "Signed-in page detected",
+  needs_reauth: "Sign in or open your own listings",
+  needs_attention: "Verification needs your attention",
+};
+function button(text, run, secondary = false) {
+  const el = document.createElement("button");
+  el.textContent = text;
+  if (secondary) el.className = "secondary";
+  el.onclick = () => act(run);
+  return el;
+}
+async function act(run) {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  try {
+    const result = await run();
+    $("notice").textContent = result.error || result.message || "";
+    await refresh();
+  } catch {
+    $("notice").textContent = "Could not finish this step. Reopen Lane and try again.";
+  } finally {
+    busy = false;
+    document.querySelectorAll("button").forEach((b) => (b.disabled = false));
+  }
+}
+async function refresh() {
+  const state = await api.status();
+  $("unpair").hidden = !state.paired;
+  $("sign-in").hidden = state.paired;
+  $("version").textContent = "VERSION " + state.version;
+  $("startup").checked = state.startup;
+  $("pause").checked = state.paused;
+  if (document.activeElement !== $("origin")) $("origin").value = state.origin;
+  $("pair-status").textContent = state.paired
+    ? "Paired · " + state.bridgeHealth
+    : state.pairingCode
+      ? "Check this code in your browser: " + state.pairingCode
+      : state.origin
+        ? "Website configured. Sign in to pair this device."
+        : "A staging address is needed before account pairing.";
+  $("profiles").replaceChildren();
+  for (const [marketplace, name] of [
+    ["vinted_uk", "Vinted"],
+    ["ebay_uk", "eBay"],
+  ]) {
+    const p = state.profiles.find((p) => p.marketplace === marketplace);
+    const card = document.createElement("article");
+    card.className = "shop";
+    const h = document.createElement("h3");
+    h.textContent = name;
+    const status = document.createElement("p");
+    status.className = "status";
+    status.textContent = p ? labels[p.status] || "Unknown" : "Not connected";
+    const detail = document.createElement("p");
+    detail.textContent = p
+      ? `${p.found} listing links found · ${p.read} pages read locally`
+      : "Open a secure window and sign in directly. No marketplace password is sent to Lane.";
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    actions.append(
+      button(p ? "Open marketplace" : "Connect " + name, () => api.connect(marketplace)),
+    );
+    if (p) {
+      actions.append(
+        button("Check listings page", () => api.inspect(p.id), true),
+        button("Read first 2 items", () => api.read(p.id), true),
+        button("Review read items", () => reviewItems(p.id), true),
+        button("Disconnect", () => api.disconnect(p.id), true),
+      );
+    }
+    card.append(h, status, detail, actions);
+    $("profiles").append(card);
+  }
+}
+$("configure").onsubmit = (e) => {
+  e.preventDefault();
+  act(() => api.configure($("origin").value));
+};
+$("sign-in").onclick = () => act(() => api.signIn());
+$("web").onclick = () => act(() => api.openWeb());
+$("diagnostics").onclick = () => act(() => api.diagnostics());
+$("pause").onchange = () => act(() => api.pause($("pause").checked));
+$("startup").onchange = () => act(() => api.startup($("startup").checked));
+refresh();
+
+setInterval(() => {
+  if (!busy) refresh().catch(() => undefined);
+}, 3000);
+$("unpair").onclick = () => act(() => api.unpair());
+
+function textElement(tag, text, className) {
+  const el = document.createElement(tag);
+  el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+async function reviewItems(id) {
+  const result = await api.observations(id);
+  if (!result.ok) return result;
+  const dialog = document.createElement("dialog");
+  dialog.className = "observations";
+  dialog.setAttribute("aria-label", "Local listing observations");
+  const close = textElement("button", "Close review", "secondary");
+  close.onclick = () => dialog.close();
+  dialog.append(
+    close,
+    textElement("h2", "What Lane read"),
+    textElement(
+      "p",
+      "Partial page observations saved on this computer. Compare every field and photo with your original listing. These items are not yet imported into cloud inventory.",
+    ),
+  );
+  if (!result.items.length)
+    dialog.append(
+      textElement(
+        "p",
+        "No items read yet. Check your own listings page, then choose Read first 2 items.",
+      ),
+    );
+  for (const item of result.items) {
+    const article = document.createElement("article");
+    article.append(textElement("h3", item.title || "Unknown title"));
+    const fields = document.createElement("dl");
+    for (const [label, value] of [
+      ["Source ID", item.remoteId],
+      ["Source URL", item.url],
+      ["Price (GBP)", item.priceGbp],
+      ["Brand", item.brand],
+      ["Category", item.categoryName],
+      ["Size", item.sizeLabel],
+      ["Condition", item.conditionLabel],
+      ["Colours", item.colour],
+      ["Material", item.material],
+      ["Status", item.status],
+      ["Quantity", item.quantity],
+      ["Description", item.description],
+      ...Object.entries(item.attributes),
+    ])
+      fields.append(
+        textElement("dt", label),
+        textElement(
+          "dd",
+          value === null || value === undefined || value === "" ? "Unknown" : String(value),
+        ),
+      );
+    article.append(fields, textElement("h4", `${item.photoUrls.length} photos in observed order`));
+    const photos = document.createElement("ol");
+    photos.className = "observed-photos";
+    for (const [index, source] of item.photoUrls.entries()) {
+      const li = document.createElement("li");
+      li.append(textElement("span", `Photo ${index + 1}`));
+      // Display only supported marketplace image hosts; never attach session headers.
+      try {
+        const url = new URL(source);
+        if (
+          url.protocol === "https:" &&
+          !url.username &&
+          !url.password &&
+          ["vinted.net", "ebayimg.com"].some(
+            (host) => url.hostname === host || url.hostname.endsWith("." + host),
+          )
+        ) {
+          const img = document.createElement("img");
+          img.src = url.href;
+          img.alt = `Observed product photo ${index + 1}`;
+          img.referrerPolicy = "no-referrer";
+          img.loading = "lazy";
+          li.append(img);
+        }
+      } catch {
+        /* Keep the observed URL visible for review without fetching it. */
+      }
+      li.append(textElement("small", source));
+      photos.append(li);
+    }
+    article.append(photos);
+    dialog.append(article);
+  }
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  close.focus();
+  return { ok: true };
+}

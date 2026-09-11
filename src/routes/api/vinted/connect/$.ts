@@ -14,6 +14,7 @@ export const Route = createFileRoute("/api/vinted/connect/$")({
 });
 
 async function handle(request: Request): Promise<Response> {
+  if (process.env.LANE_LEGACY_CLOUD_SESSIONS !== "true") return json({ error: "This legacy capture flow is disabled. Use Lane Desktop 0.3 or later." }, 410);
   const url = new URL(request.url);
   const rest = url.pathname.replace(/^\/api\/vinted\/connect\/?/, "");
   const [id] = rest.split("/").filter(Boolean);

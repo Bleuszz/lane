@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lane Bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Runs Vinted UK import, publish and autodelist for Lane using your signed-in browser session. Lane never sees your Vinted password.",
   "icons": {
     "16": "icons/icon16.png",
@@ -22,11 +22,14 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "scripting", "alarms", "cookies"],
+  "permissions": [
+    "storage",
+    "scripting",
+    "alarms"
+  ],
   "host_permissions": [
     "https://www.vinted.co.uk/*",
-    "https://vinted.co.uk/*",
-    "*://*.vinted.co.uk/*"
+    "https://vinted.co.uk/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
@@ -35,15 +38,25 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.vinted.co.uk/*", "https://vinted.co.uk/*"],
-      "js": ["content-vinted.js"],
+      "matches": [
+        "https://www.vinted.co.uk/*",
+        "https://vinted.co.uk/*"
+      ],
+      "js": [
+        "content-vinted.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["injected.js"],
-      "matches": ["https://www.vinted.co.uk/*", "https://vinted.co.uk/*"]
+      "resources": [
+        "injected.js"
+      ],
+      "matches": [
+        "https://www.vinted.co.uk/*",
+        "https://vinted.co.uk/*"
+      ]
     }
   ],
   "browser_specific_settings": {

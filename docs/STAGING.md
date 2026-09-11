@@ -2,6 +2,8 @@
 
 No staging deployment exists. Local work is not blocked by this. No service, subscription, domain or paid API was purchased.
 
+Current session-first phase supersedes the older extension-first sequence below. Read [DESKTOP_SESSION_PHASE.md](DESKTOP_SESSION_PHASE.md) first. Local Vinted/eBay owner sign-in and read proof must precede staging. Prepared target is Render free Node hosting plus Neon free PostgreSQL; neither has been provisioned. `npm run build:node` builds the Node target; `npm run build` retains the Vercel target. Apply migrations through 0018 only against the explicitly selected staging database. Keep `LANE_LEGACY_CLOUD_SESSIONS=false` and use Desktop pairing at `/devices`; the extension is optional.
+
 ## Required before deployment
 
 1. Choose an existing suitable host and durable PostgreSQL database, with access granted through the normal provider tooling. The current Nitro output targets Vercel. Cloudflare remains an option but its adapter/database compatibility is not verified; `wrangler.toml` alone is not deployable proof. Cost/eligibility assumptions are in ECONOMICS_DEPLOYMENT.md. Do not purchase a plan automatically.

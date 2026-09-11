@@ -1,32 +1,49 @@
 {
   "name": "lane-desktop",
   "productName": "Lane",
-  "version": "0.2.0",
-  "description": "Lane for Windows. Same website, in-app marketplace connect.",
+  "version": "0.3.0",
+  "description": "Lane Desktop: local marketplace sessions and browser-assisted inventory.",
   "author": "Lane (UK)",
   "private": true,
-  "main": "main.cjs",
+  "main": "secure-main.cjs",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win nsis",
-    "dist:dir": "electron-builder --win dir"
+    "dist:dir": "electron-builder --win dir",
+    "verify:runtime": "electron verify-runtime.cjs"
   },
   "devDependencies": {
-    "electron": "^37.2.0",
-    "electron-builder": "^26.0.12"
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3"
   },
   "build": {
     "appId": "uk.lane.desktop",
     "productName": "Lane",
     "copyright": "Lane (UK)",
-    "directories": { "output": "dist" },
-    "files": ["main.cjs", "preload.cjs", "channels.cjs", "first-run.html", "package.json"],
-    "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "artifactName": "Lane Setup.${ext}",
-      "publisherName": "Lane (UK)"
+    "directories": {
+      "output": "dist/installer"
     },
-    "protocols": [{ "name": "Lane", "schemes": ["lane"] }],
+    "files": [
+      "secure-main.cjs",
+      "secure-preload.cjs",
+      "security.cjs",
+      "session-reader.cjs",
+      "client/**",
+      "assets/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Lane-Setup-${version}.${ext}",
+      "icon": "assets/lane.ico"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
@@ -34,7 +51,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Lane",
-      "uninstallDisplayName": "Lane"
-    }
+      "uninstallDisplayName": "Lane",
+      "deleteAppDataOnUninstall": true,
+      "runAfterFinish": false
+    },
+    "electronDist": "node_modules/electron/dist"
   }
 }

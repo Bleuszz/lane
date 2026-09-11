@@ -40,24 +40,9 @@ async function laneFetch(path, { method = "GET", body } = {}) {
 }
 
 async function uploadVintedCookies() {
-  if (!chrome.cookies?.getAll) return;
-  try {
-    const cookies = await chrome.cookies.getAll({ domain: "vinted.co.uk" });
-    const access = cookies.find((c) => c.name === "access_token_web")?.value;
-    const refresh = cookies.find((c) => c.name === "refresh_token_web")?.value;
-    if (!refresh) return;
-    const saved = await laneFetch("session", {
-      method: "POST",
-      body: { accessToken: access ?? null, refreshToken: refresh },
-    });
-    await chrome.storage.local.set({
-      sessionCaptured: true,
-      sessionAt: Date.now(),
-      sessionUsername: saved?.username ?? null,
-    });
-  } catch {
-    /* pairing not ready or cookies permission missing */
-  }
+  // Session-first transport: marketplace credentials must remain in the browser.
+  // Retain the call boundary for older popup flows, but never upload cookie jars.
+  return;
 }
 
 const lastCatalogAt = { t: 0 };
