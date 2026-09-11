@@ -5,19 +5,26 @@ const MARKETPLACES = {
   vinted_uk: {
     label: "Vinted",
     home: "https://www.vinted.co.uk",
-    listings: "https://www.vinted.co.uk/member/items",
+    login: "https://www.vinted.co.uk/inbox",
+    validate: "https://www.vinted.co.uk/inbox",
     hosts: ["vinted.co.uk", "www.vinted.co.uk"],
   },
   ebay_uk: {
     label: "eBay",
     home: "https://www.ebay.co.uk",
-    listings: "https://www.ebay.co.uk/sh/lst/active",
+    login: "https://www.ebay.co.uk/sh/lst/active",
+    validate: "https://www.ebay.co.uk/sh/lst/active",
     hosts: [
       "ebay.co.uk",
       "www.ebay.co.uk",
       "signin.ebay.co.uk",
       "accounts.ebay.co.uk",
       "auth.ebay.co.uk",
+      "ebay.com",
+      "www.ebay.com",
+      "signin.ebay.com",
+      "accounts.ebay.com",
+      "auth.ebay.com",
     ],
   },
 };
@@ -104,6 +111,8 @@ function diagnostics(state, version) {
       marketplace: p.marketplace,
       status: p.status,
       lastSeen: p.lastSeen || null,
+      lastSyncAt: p.lastSyncAt || null,
+      validatedAt: p.validatedAt || null,
     })),
     error: state.errorCode || null,
   };

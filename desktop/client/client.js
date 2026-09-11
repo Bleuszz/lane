@@ -2,10 +2,15 @@ const api = window.laneClient;
 const $ = (id) => document.getElementById(id);
 let busy = false;
 const labels = {
-  unknown: "Not checked",
-  authenticated: "Signed-in page detected",
-  needs_reauth: "Sign in or open your own listings",
-  needs_attention: "Verification needs your attention",
+  DISCONNECTED: "Not connected",
+  OPENING_LOGIN: "Opening sign-in…",
+  WAITING_FOR_USER_LOGIN: "Finish sign-in in the marketplace window",
+  AUTHENTICATED_SESSION_CAPTURED: "Securing your session…",
+  VALIDATING_SESSION: "Checking your account…",
+  CONNECTED: "Connected",
+  SESSION_EXPIRED: "Session expired — reconnect",
+  RECONNECT_REQUIRED: "Reconnect required",
+  ERROR: "Connection could not be completed",
 };
 function button(text, run, secondary = false) {
   const el = document.createElement("button");
@@ -59,22 +64,24 @@ async function refresh() {
     status.textContent = p ? labels[p.status] || "Unknown" : "Not connected";
     const detail = document.createElement("p");
     detail.textContent = p
-      ? `${p.found} listing links found · ${p.read} pages read locally`
+      ? `${p.identity ? p.identity.replace(/^(vinted|ebay):/, "") + " · " : ""}${p.listingCount === null ? "Listing count unknown" : p.listingCount + " listings on current page"} · ${p.read} items read locally${p.lastSyncAt ? " · Last sync " + new Date(p.lastSyncAt).toLocaleTimeString() : ""}`
       : "Open a secure window and sign in directly. No marketplace password is sent to Lane.";
     const actions = document.createElement("div");
     actions.className = "actions";
-    actions.append(
-      button(p ? "Open marketplace" : "Connect " + name, () => api.connect(marketplace)),
-    );
+    actions.append(button(p ? "Reconnect" : "Connect " + name, () => api.connect(marketplace)));
     if (p) {
       actions.append(
-        button("Check listings page", () => api.inspect(p.id), true),
-        button("Read first 2 items", () => api.read(p.id), true),
+        button("Refresh listings", () => api.inspect(p.id), true),
+        button("Read item details", () => api.read(p.id), true),
         button("Review read items", () => reviewItems(p.id), true),
         button("Disconnect", () => api.disconnect(p.id), true),
       );
     }
-    card.append(h, status, detail, actions);
+    const feedback = document.createElement("p");
+    feedback.className = "connection-feedback";
+    feedback.setAttribute("role", "status");
+    feedback.textContent = p?.connectionError || p?.syncMessage || "";
+    card.append(h, status, detail, feedback, actions);
     $("profiles").append(card);
   }
 }
@@ -120,7 +127,7 @@ async function reviewItems(id) {
     dialog.append(
       textElement(
         "p",
-        "No items read yet. Check your own listings page, then choose Read first 2 items.",
+        "No items read yet. Choose Refresh listings, then Read item details. No marketplace window is needed unless you must reconnect.",
       ),
     );
   for (const item of result.items) {

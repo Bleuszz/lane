@@ -2,9 +2,11 @@
 
 Scope: Vinted UK + eBay UK only. Official eBay API code remains available. Connector evidence distinguishes official API, desktop session, extension, assisted manual and unsupported transports; evidence belongs to an account/device, not a global marketing claim.
 
+Current auth rebuild details and owner steps: [AUTH_SESSION_REBUILD.md](AUTH_SESSION_REBUILD.md). Desktop version 0.3.1. The 3 PM reminder was deleted; do not recreate it.
+
 ## Current boundary
 
-Desktop runs a trusted local interface and untrusted, isolated marketplace windows. It reads rendered DOM/JSON-LD through an explicit user action. It does not intercept passwords, export sessions to cloud workers, use hidden private APIs as its transport, bypass challenges or execute marketplace writes. Existing extension is optional; cookie permission and its cloud-cookie upload were removed. Its legacy marketplace implementation has not become a verified replacement for Desktop.
+Desktop runs a trusted local interface and untrusted, isolated marketplace windows. It uses a visible window for authentication and invisible isolated windows for rendered DOM/JSON-LD validation and reads. Refresh is explicit and also runs every five minutes while open and unpaused. It does not intercept passwords, export sessions to cloud workers, use hidden private APIs as its transport, bypass challenges or execute marketplace writes. Existing extension is optional; cookie permission and its cloud-cookie upload were removed. Its legacy marketplace implementation has not become a verified replacement for Desktop.
 
 Pairing migration `0018_desktop_devices.sql` adds account-owned revocable devices and expiring single-use pairing challenges. The browser approval needs the matching displayed code; token exchange also needs the verifier kept by the initiating Desktop. Refresh credentials last 30 days, access credentials 15 minutes; only hashes are stored server-side. Heartbeats contain version, pause and a fixed set of marketplace statuses. Local pairing works against the isolated development user; real account auth and staging remain separate checks.
 
@@ -18,17 +20,9 @@ For **eBay desktop session transport**, create listing, edit listing, end listin
 
 After read proof, implement an owner-scoped read-only desktop task protocol with bounded leases, claim tokens, expiry, idempotent canonical results and revoked-device rejection. Keep credentials local. Only then consider explicitly reviewed browser-assisted writes; do not reuse generic retries for ambiguous publish results.
 
-## Owner test (reminder scheduled for 15:00 BST, 11 September)
+## Owner test
 
-ACTION: Install/open the 0.3.0 local installer and test the two marketplace login windows.
-SERVICE: Lane Desktop, Vinted UK, eBay UK.
-WHY: Only the owner can complete real sign-in, MFA or marketplace verification.
-EXACT STEPS: Connect Vinted, sign in directly, open your own wardrobe, choose Check listings page and Read first 2 items. Repeat on eBay Active listings. Restart Lane and repeat the page check. Report displayed status/counts and missing fields; do not send credentials.
-COST: GBP0.
-KYC/ID: No new ID process intended; stop if requested.
-EXPECTED RESULT: Real owned listing links and detail observations, or a concrete visible failure to diagnose.
-BLOCKED WITHOUT THIS: Authenticated wardrobe/own-listings proof and staging gate.
-CAN YOU CONTINUE OTHER WORK: YES.
+Install 0.3.1 and follow the exact test in [AUTH_SESSION_REBUILD.md](AUTH_SESSION_REBUILD.md#owner-test). The old manual Check listings page flow has been removed. No reminder is scheduled.
 
 Known Vinted owner items:
 - https://www.vinted.co.uk/items/9912534056-ralph-lauren-sport-cable-knit-v-neck-sweater-pink-l

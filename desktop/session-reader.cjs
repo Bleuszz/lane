@@ -1,46 +1,107 @@
 // Reads rendered pages only. No private API calls, token interception or hidden endpoint discovery.
-function readPage(marketplace) {
-  const text = (document.body?.innerText || "").slice(0, 60000);
-  if (
-    /verify (you are|you're) human|captcha|security challenge|enter.*verification code/i.test(
-      text.slice(0, 8000),
-    )
-  )
-    return { state: "challenge", items: [], links: [] };
-  const links = [...document.querySelectorAll("a[href]")].map((a) => ({
+function readPage(marketplace, expectedIdentity = null, supportMode = false) {
+  const heading = [
+    document.title,
+    ...[...document.querySelectorAll('h1,[role="alert"]')].map((el) => el.textContent),
+  ].join(" ");
+  const challenge =
+    /verify (you are|you.re) human|security challenge|enter.*verification code|pardon our interruption/i.test(
+      heading,
+    ) ||
+    Boolean(document.querySelector('iframe[src*="captcha"],input[autocomplete="one-time-code"]'));
+  const pageError = /page not found|page doesn.t exist|we couldn.t find|404 not found/i.test(
+    heading,
+  );
+  const loginRequired =
+    /\/member\/(?:general\/login|register|signup)|\/signin|\/SignIn/i.test(location.pathname) ||
+    /signin\./i.test(location.hostname) ||
+    Boolean(document.querySelector('input[type="password"]'));
+  const header =
+    document.querySelector("#gh") ||
+    document.querySelector("header") ||
+    document.querySelector('[data-testid="header"]');
+  const headerLinks = [...(header?.querySelectorAll("a[href]") || [])].map((a) => ({
     url: a.href,
     text: (a.textContent || "").trim(),
   }));
-  const logout = links.some(
+  const logout = headerLinks.some(
     (a) => /sign out|log out/i.test(a.text) || /logout|signout/i.test(a.url),
   );
-  const profile = links.find(
-    (a) => /\/member\/\d+/.test(a.url) && /profile|wardrobe/i.test(a.text),
+  const profile = headerLinks.find((a) => /\/member\/\d+/.test(a.url));
+  const ebayProfile = headerLinks.find((a) => /\/usr\/[^/?#]+/.test(a.url));
+  const ebayUser =
+    (document.querySelector("#gh_user") || document.querySelector("#gh-ug"))?.textContent?.trim() ||
+    "";
+  const vintedId = profile?.url.match(/\/member\/(\d+)/)?.[1];
+  const ebayId = ebayProfile?.url.match(/\/usr\/([^/?#]+)/)?.[1];
+  const loggedInNavigation = headerLinks.some((a) =>
+    /\/(inbox|settings|notifications)(\/|\?|$)/.test(a.url),
   );
-  const ebayUser = document.querySelector("#gh-ug")?.textContent?.trim() || "";
-  const ownPage =
+  const guest = headerLinks.some((a) =>
+    /^(sign in|log in|sign up|sign up \| log in)$/i.test(a.text),
+  );
+  const sellerHub =
+    location.pathname.startsWith("/sh/lst/active") &&
+    /manage active listings/i.test(document.title) &&
+    Boolean(document.querySelector("#shlistings-cntr,#listings-content-target"));
+  const identity =
     marketplace === "vinted_uk"
-      ? location.pathname === "/member/items"
-      : /^\/sh\/lst\/active/.test(location.pathname);
-  const signedIn =
-    logout ||
+      ? vintedId
+        ? "vinted:" + vintedId
+        : null
+      : ebayId
+        ? "ebay:" + ebayId
+        : (logout || sellerHub) && /hi[\s,!]/i.test(ebayUser) && !/sign in|register/i.test(ebayUser)
+          ? "ebay:" + ebayUser.replace(/\s+/g, " ").slice(0, 150)
+          : null;
+  const authenticated =
+    !challenge &&
+    !pageError &&
+    !loginRequired &&
+    !guest &&
+    Boolean(identity) &&
+    (marketplace === "vinted_uk" ? loggedInNavigation || logout : logout || sellerHub);
+  const protectedPage =
+    authenticated &&
     (marketplace === "vinted_uk"
-      ? Boolean(profile)
-      : Boolean(ebayUser && !/sign in|register/i.test(ebayUser)));
+      ? /^\/inbox(?:\/|$)/.test(location.pathname)
+      : /^\/sh\/lst\/active(?:\/|$)/.test(location.pathname));
+  const ownPage =
+    authenticated &&
+    (marketplace === "vinted_uk"
+      ? Boolean(
+          expectedIdentity &&
+          identity === expectedIdentity &&
+          location.pathname.match(/^\/member\/(\d+)/)?.[1] === vintedId,
+        )
+      : protectedPage);
   const pattern = marketplace === "vinted_uk" ? /\/items\/(\d+)/ : /\/itm\/(?:[^/]+\/)?(\d+)/;
-  const owned =
-    ownPage && signedIn
-      ? [
-          ...new Map(
-            links
-              .filter((a) => pattern.test(a.url))
-              .map((a) => [
-                a.url.match(pattern)[1],
-                { remoteId: a.url.match(pattern)[1], url: a.url, title: a.text || null },
-              ]),
-          ).values(),
-        ].slice(0, 200)
-      : [];
+  const main =
+    (marketplace === "ebay_uk"
+      ? document.querySelector("#shlistings-cntr,#listings-content-target")
+      : null) ||
+    document.querySelector("main") ||
+    document.querySelector("#mainContent");
+  const links = [...(main?.querySelectorAll("a[href]") || [])].map((a) => ({
+    url: a.href,
+    text: (a.textContent || "").trim(),
+  }));
+  const owned = ownPage
+    ? [
+        ...new Map(
+          links
+            .filter((a) => pattern.test(a.url))
+            .map((a) => [
+              a.url.match(pattern)[1],
+              { remoteId: a.url.match(pattern)[1], url: a.url, title: a.text || null },
+            ]),
+        ).values(),
+      ].slice(0, 200)
+    : [];
+  const listingStateKnown =
+    ownPage &&
+    (owned.length > 0 ||
+      /no active listings|no items|wardrobe is empty/i.test(main?.innerText || ""));
   const candidates = [];
   for (const el of document.querySelectorAll('script[type="application/ld+json"]')) {
     try {
@@ -105,13 +166,37 @@ function readPage(marketplace) {
     };
   }
   return {
-    state: signedIn ? "authenticated" : "unknown",
-    identity: marketplace === "vinted_uk" ? profile?.url || null : ebayUser || null,
+    support: {
+      headerText: supportMode ? header?.innerText?.slice(0, 1800) : undefined,
+      nodes: supportMode
+        ? [...document.querySelectorAll("[id]")]
+            .map((n) => n.id)
+            .filter((id) => /user|account|greet|header|main|list/i.test(id))
+            .slice(0, 50)
+        : undefined,
+      title: document.title.slice(0, 120),
+      path: location.pathname,
+      header: Boolean(header),
+      logout,
+      profileLink: Boolean(profile || ebayProfile),
+      greeting: Boolean(ebayUser),
+      main: Boolean(main),
+    },
+    state: authenticated ? "authenticated" : "unknown",
+    authenticated,
+    protectedPage,
+    challenge,
+    pageError,
+    loginRequired,
+    listingStateKnown,
+    identity,
+    wardrobeUrl: profile?.url || null,
     ownPage,
     links: owned,
     item,
   };
 }
 module.exports = {
-  readScript: (marketplace) => `(${readPage.toString()})(${JSON.stringify(marketplace)})`,
+  readScript: (marketplace, identity = null, supportMode = false) =>
+    `(${readPage.toString()})(${JSON.stringify(marketplace)},${JSON.stringify(identity)},${JSON.stringify(supportMode)})`,
 };

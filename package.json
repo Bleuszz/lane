@@ -21,7 +21,7 @@
     "format": "prettier --write .",
     "test:lane": "node --test scripts/entitlements.test.mjs scripts/reliable-operations.test.mjs scripts/ebay-retry.test.mjs scripts/source-mapping.test.mjs scripts/item-persistence.test.mjs scripts/worker.test.mjs scripts/billing-webhooks.test.mjs scripts/publish-review.test.mjs scripts/listing-snapshots.test.mjs scripts/ebay-photos.test.mjs scripts/ebay-transport.test.mjs scripts/ebay-orders.test.mjs scripts/manual-sales.test.mjs scripts/inventory-lifecycle.test.mjs",
     "build:node": "node scripts/build-node.mjs",
-    "test:desktop": "node --test scripts/desktop-security.test.mjs scripts/desktop-pairing.test.mjs scripts/desktop-return-path.test.mjs scripts/download-url.test.mjs"
+    "test:desktop": "node --test scripts/desktop-security.test.mjs scripts/desktop-pairing.test.mjs scripts/desktop-return-path.test.mjs scripts/download-url.test.mjs scripts/connection-state.test.mjs scripts/auth-configuration.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

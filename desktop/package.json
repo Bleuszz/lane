@@ -1,7 +1,7 @@
 {
   "name": "lane-desktop",
   "productName": "Lane",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Lane Desktop: local marketplace sessions and browser-assisted inventory.",
   "author": "Lane (UK)",
   "private": true,
@@ -30,7 +30,9 @@
       "session-reader.cjs",
       "client/**",
       "assets/**",
-      "package.json"
+      "package.json",
+      "connection-manager.cjs",
+      "session-transport.cjs"
     ],
     "win": {
       "target": [

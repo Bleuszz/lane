@@ -1,5 +1,7 @@
-import { createFileRoute, Link, Navigate, useRouteContext } from "@tanstack/react-router";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { useQuery } from "@tanstack/react-query";
+import type { authConfiguration } from "@/lib/auth/configuration";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { LEGAL_FOOTER } from "@/lib/lane/copy";
 import { LaneWordmark } from "@/components/logo";
@@ -8,22 +10,57 @@ import { useState, type FormEvent } from "react";
 import { safeReturnPath } from "@/lib/auth/return-path";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): { returnTo?: string } => ({ returnTo: safeReturnPath(search.returnTo) }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { returnTo?: string; authError?: boolean } => ({
+    returnTo: safeReturnPath(search.returnTo),
+    authError: Boolean(search.authError || search.error),
+  }),
   component: Login,
 });
 
 function Login() {
-  const { returnTo = "/onboarding" } = Route.useSearch();
-  const { sessionUser } = useRouteContext({ from: "__root__" });
-  const { user } = useCurrentUserState();
+  const { returnTo = "/onboarding", authError } = Route.useSearch();
+  const config = useQuery({
+    queryKey: ["auth-configuration"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/configuration", {
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error("Sign-in options could not be loaded. Retry.");
+      return response.json() as Promise<ReturnType<typeof authConfiguration>>;
+    },
+    retry: false,
+  });
+  const { user, isPending } = useCurrentUserState();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    authError ? "The provider did not complete sign-in. Retry or use email sign-in." : null,
+  );
   const [busy, setBusy] = useState(false);
 
-  if (user || sessionUser) return <Navigate to={returnTo} />;
+  if (isPending)
+    return <main className="min-h-screen bg-paper p-8 text-ink">Checking your Lane session…</main>;
+  if (user) return <Navigate to={returnTo} />;
+
+  async function social(providerId: string) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await signIn(providerId, {
+        callbackURL: returnTo,
+        errorCallbackURL: "/login?authError=1&returnTo=" + encodeURIComponent(returnTo),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed. Retry or use email.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -60,7 +97,8 @@ function Login() {
               One inventory record. Every channel listing hangs off it.
             </h1>
             <p className="mt-4 max-w-sm text-sm text-muted leading-relaxed">
-              When it sells, the others come down. Vinted through your browser. eBay through official OAuth. Passwords never leave the marketplace.
+              When it sells, the others come down. Vinted through your browser. eBay through
+              official OAuth. Passwords never leave the marketplace.
             </p>
           </div>
           <p className="max-w-sm text-[11px] leading-relaxed text-subtle">{LEGAL_FOOTER}</p>
@@ -70,7 +108,9 @@ function Login() {
             <div className="mb-8 md:hidden">
               <LaneWordmark />
             </div>
-            <h2 className="text-xl font-medium tracking-[-0.02em]">{mode === "in" ? "Sign in" : "Create account"}</h2>
+            <h2 className="text-xl font-medium tracking-[-0.02em]">
+              {mode === "in" ? "Sign in" : "Create account"}
+            </h2>
             <p className="mt-1 text-sm text-muted">UK resellers. GBP. No marketplace passwords.</p>
 
             {authEnabled ? (
@@ -78,16 +118,37 @@ function Login() {
                 <form className="mt-6 space-y-3" onSubmit={(e) => void submit(e)}>
                   {mode === "up" ? (
                     <Field label="Name">
-                      <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        autoComplete="name"
+                      />
                     </Field>
                   ) : null}
                   <Field label="Email">
-                    <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+                    <Input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
                   </Field>
                   <Field label="Password">
-                    <Input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "up" ? "new-password" : "current-password"} />
+                    <Input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={mode === "up" ? "new-password" : "current-password"}
+                    />
                   </Field>
-                  {error ? <p className="text-sm text-danger">{error}</p> : null}
+                  {error ? (
+                    <p role="alert" className="text-sm text-danger">
+                      {error}
+                    </p>
+                  ) : null}
                   <Button type="submit" className="w-full" disabled={busy}>
                     {busy ? "Working…" : mode === "in" ? "Sign in" : "Create account"}
                   </Button>
@@ -97,7 +158,9 @@ function Login() {
                   className="mt-3 text-sm text-muted hover:text-ink"
                   onClick={() => setMode(mode === "in" ? "up" : "in")}
                 >
-                  {mode === "in" ? "Need an account? Create one" : "Already have an account? Sign in"}
+                  {mode === "in"
+                    ? "Need an account? Create one"
+                    : "Already have an account? Sign in"}
                 </button>
                 <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-subtle">
                   <span className="h-px flex-1 bg-line" />
@@ -105,15 +168,30 @@ function Login() {
                   <span className="h-px flex-1 bg-line" />
                 </div>
                 <div className="space-y-2">
-                  {GROK_PROVIDERS.map((p) => (
-                    <Button
-                      key={p.providerId}
-                      variant="secondary"
-                      className="w-full"
-                      onClick={() => void signIn(p.providerId, { callbackURL: returnTo })}
-                    >
-                      Continue with {p.label}
-                    </Button>
+                  {config.isPending && (
+                    <p className="text-sm text-muted">Loading sign-in options…</p>
+                  )}
+                  {config.isError && (
+                    <p role="alert" className="text-sm text-danger">
+                      Sign-in options could not be loaded.{" "}
+                      <button onClick={() => void config.refetch()} className="underline">
+                        Retry
+                      </button>
+                    </p>
+                  )}
+                  {config.data?.providers.map((p) => (
+                    <div key={p.providerId}>
+                      <Button
+                        key={p.providerId}
+                        variant="secondary"
+                        className="w-full"
+                        disabled={busy || !p.available}
+                        onClick={() => void social(p.providerId)}
+                      >
+                        Continue with {p.label}
+                      </Button>
+                      {!p.available && <p className="mt-1 text-xs text-muted">{p.reason}</p>}
+                    </div>
                   ))}
                 </div>
               </>

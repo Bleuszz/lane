@@ -2,191 +2,86 @@ import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { completeOnboarding, connectAccount, getBootstrap, importRemote, previewRemote } from "@/lib/lane/server/fns";
-import { EBAY_CONNECT_COPY, EXTENSION_HONESTY, LEGAL_FOOTER, VINTED_CONNECT_COPY } from "@/lib/lane/copy";
-import { desktopApi } from "@/lib/lane/desktop";
+import { completeOnboarding, getBootstrap } from "@/lib/lane/server/fns";
 import { LaneWordmark } from "@/components/logo";
-import { Button } from "@/components/ui";
-import { ModeChip } from "@/components/status";
-import { toast } from "sonner";
-import { useState } from "react";
-
+import { Button, Panel } from "@/components/ui";
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
-
 function Onboarding() {
-  const { user, isPending } = useCurrentUserState();
-  const qc = useQueryClient();
-  const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
-  const [err, setErr] = useState<string | null>(null);
-
-  const vinted = boot.data?.accounts.find((a) => a.marketplace === "vinted_uk");
-  const ebay = boot.data?.accounts.find((a) => a.marketplace === "ebay_uk");
-  const token = boot.data?.settings.pairingToken ?? "";
-
-  const preview = useQuery({
-    queryKey: ["preview", vinted?.id],
-    queryFn: () => previewRemote({ data: { accountId: vinted!.id } }),
-    enabled: Boolean(vinted),
+  const { user, isPending } = useCurrentUserState(),
+    qc = useQueryClient();
+  const boot = useQuery({
+    queryKey: ["bootstrap"],
+    queryFn: () => getBootstrap(),
+    enabled: Boolean(user),
+    retry: false,
   });
-
-  const connect = useMutation({
-    mutationFn: async (marketplace: "vinted_uk" | "ebay_uk") => {
-      const res = await connectAccount({ data: { marketplace } });
-      if (res.oauthUrl) {
-        window.location.assign(res.oauthUrl);
-        return res;
-      }
-      const desk = desktopApi();
-      if (desk && marketplace === "vinted_uk") {
-        toast("Sign in on Vinted. The window closes when Lane has the session.");
-        if (desk.setPairing) await desk.setPairing(token, window.location.origin);
-        const r = await desk.connect(marketplace, { pairingToken: token, origin: window.location.origin });
-        if (!r.ok) throw new Error(r.error ?? "Connect window closed before a session was captured.");
-        toast.success(r.username ? `Connected as ${r.username}` : "Connected");
-      }
-      return res;
-    },
-    onSuccess: () => qc.invalidateQueries(),
-    onError: (e: Error) => setErr(e.message),
+  const finish = useMutation({
+    mutationFn: () => completeOnboarding(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bootstrap"] }),
   });
-  const doImport = useMutation({
-    mutationFn: async () => {
-      if (!vinted) throw new Error("Connect Vinted first");
-      const ids = (preview.data ?? []).filter((r) => !r.alreadyImported).map((r) => r.remoteId);
-      if (ids.length === 0) throw new Error("No wardrobe items yet. Pair Lane Bridge and leave vinted.co.uk open.");
-      return importRemote({ data: { accountId: vinted.id, remoteIds: ids } });
-    },
-    onSuccess: () => qc.invalidateQueries(),
-    onError: (e: Error) => setErr(e.message),
-  });
-
-  if (isPending || boot.isPending) {
-    return <div className="min-h-screen bg-paper" />;
-  }
+  if (isPending) return <main className="p-8">Checking your Lane account…</main>;
   if (!user) return <RedirectToSignIn />;
   if (boot.data?.settings.onboardingComplete) return <Navigate to="/inbox" />;
-
   return (
-    <main className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex h-14 max-w-xl items-center justify-between px-5">
+    <main className="min-h-screen bg-paper px-6 py-8 text-ink">
+      <div className="mx-auto max-w-xl space-y-6">
         <LaneWordmark />
-        <button
-          type="button"
-          className="text-sm text-muted"
-          onClick={() => completeOnboarding().then(() => qc.invalidateQueries())}
-        >
-          Skip
-        </button>
-      </header>
-      <div className="mx-auto max-w-xl px-5 py-8">
-        <p className="font-mono text-[11px] text-muted">Setup</p>
-        <h1 className="mt-2 text-2xl font-medium tracking-[-0.02em]">Connect real shops</h1>
-        <p className="mt-2 text-sm text-muted">{EXTENSION_HONESTY}</p>
-        {err ? <p className="mt-3 text-sm text-danger">{err}</p> : null}
-
-        <ol className="mt-8 space-y-4">
-          <li className="rounded-[var(--radius-md)] border border-line bg-surface p-4">
-            <h2 className="text-sm font-medium">1. Lane Bridge (optional fallback)</h2>
-            <p className="mt-1 text-sm text-muted">
-              The Windows app is the main connect path. Lane Bridge is the fallback if you work in Chrome or Firefox.
-              Load the unpacked extension from the <span className="font-mono">extension/</span> folder.
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <code className="block flex-1 truncate rounded-[var(--radius-sm)] bg-raised px-2 py-2 font-mono text-[11px]">
-                {token || "Sign in to mint a token"}
-              </code>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!token}
-                onClick={() => token && navigator.clipboard.writeText(token)}
-              >
-                Copy
-              </Button>
-            </div>
-            <p className="mt-2 text-[11px] text-subtle">
-              Lane origin for the popup is this site's URL. Full install steps: instructions.txt.
-            </p>
-          </li>
-          <li className="rounded-[var(--radius-md)] border border-line bg-surface p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">2. Connect Vinted UK</h2>
-              <ModeChip mode="extension" />
-            </div>
-            <p className="mt-1 text-sm text-muted">{VINTED_CONNECT_COPY}</p>
-            {vinted ? (
-              <p className="mt-3 text-sm">
-                Account created. Status: {vinted.status}
-                {vinted.remoteUsername ? ` · ${vinted.remoteUsername}` : " · waiting for the extension to identify you"}
-              </p>
-            ) : (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button disabled={connect.isPending} onClick={() => connect.mutate("vinted_uk")}>
-                  Connect Vinted
-                </Button>
-                <Link to="/settings/channels">
-                  <Button variant="secondary">Connect from phone</Button>
-                </Link>
-              </div>
-            )}
-          </li>
-          <li className="rounded-[var(--radius-md)] border border-line bg-surface p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">3. Connect eBay UK</h2>
-              <ModeChip mode="oauth" />
-            </div>
-            <p className="mt-1 text-sm text-muted">{EBAY_CONNECT_COPY}</p>
-            {!boot.data?.ebayConfigured ? (
-              <p className="mt-3 text-sm text-danger">
-                Server is missing eBay keys. The developer must set them (instructions.txt). Connect will not fake a shop.
-              </p>
-            ) : null}
-            {ebay ? (
-              <p className="mt-3 text-sm">Connected as {ebay.remoteUsername ?? ebay.label}</p>
-            ) : (
-              <Button className="mt-3" disabled={connect.isPending} onClick={() => connect.mutate("ebay_uk")}>
-                Connect eBay UK
-              </Button>
-            )}
-          </li>
-          <li className="rounded-[var(--radius-md)] border border-line bg-surface p-4">
-            <h2 className="text-sm font-medium">4. Import Vinted wardrobe</h2>
-            <p className="mt-1 text-sm text-muted">
-              Up to 200 live items the extension has pushed. Title + price or photo hash links instead of duplicating.
-            </p>
-            {preview.data ? (
-              <p className="mt-2 text-sm tabular">{preview.data.length} live on Vinted (synced)</p>
-            ) : (
-              <p className="mt-2 text-sm text-muted">No wardrobe yet — the extension must heartbeat first.</p>
-            )}
-            <Button className="mt-3" disabled={!vinted || doImport.isPending} onClick={() => doImport.mutate()}>
-              {doImport.isPending ? "Importing…" : "Import synced items"}
-            </Button>
-            {doImport.data ? (
-              <p className="mt-2 text-sm text-muted">
-                Created {doImport.data.created}, linked {doImport.data.linked}
-              </p>
-            ) : null}
-          </li>
-        </ol>
-
-        <Button
-          className="mt-8 w-full"
-          onClick={() =>
-            completeOnboarding().then(() => {
-              void qc.invalidateQueries();
-              window.location.href = "/inbox";
-            })
-          }
-        >
-          Open inbox
-        </Button>
-        <p className="mt-3 text-center text-sm">
-          <Link to="/settings/channels" className="text-mark">
-            Channel settings
-          </Link>
+        <h1 className="font-serif text-3xl">Your shops, connected to Lane.</h1>
+        <p className="text-sm text-muted">
+          Your Lane account is ready. Use Lane Desktop to sign in to your marketplaces and keep
+          their sessions on your computer.
         </p>
-        <p className="mt-6 text-[11px] leading-relaxed text-subtle">{LEGAL_FOOTER}</p>
+        <Panel className="space-y-3 p-5">
+          <h2 className="font-medium">1. Install Lane Desktop</h2>
+          <p className="text-sm text-muted">
+            Download the Windows installer, open Lane and sign in to this Lane account. Check the
+            matching code before approving your computer.
+          </p>
+          <Link to="/download" className="inline-block text-sm underline">
+            Download and installation guide
+          </Link>
+        </Panel>
+        <Panel className="space-y-3 p-5">
+          <h2 className="font-medium">2. Connect your marketplaces</h2>
+          <p className="text-sm text-muted">
+            Choose Connect Vinted or Connect eBay in Desktop. Sign in normally. Lane checks your
+            account before it shows Connected and closes the login window. Verification steps always
+            remain under your control.
+          </p>
+          <Link to="/devices" className="inline-block text-sm underline">
+            Your devices and connection health
+          </Link>
+        </Panel>
+        <Panel className="space-y-3 p-5">
+          <h2 className="font-medium">3. Refresh and review in Lane</h2>
+          <p className="text-sm text-muted">
+            Refresh listings from Desktop and review the fields and photos it reads. If your session
+            expires, Lane asks you to reconnect. Desktop-to-cloud inventory import is still being
+            completed.
+          </p>
+          <Link to="/settings/channels" className="inline-block text-sm underline">
+            Account settings and official eBay connection
+          </Link>
+        </Panel>
+        {boot.isError && (
+          <p role="alert">
+            Your account setup could not be loaded.{" "}
+            <button className="underline" onClick={() => void boot.refetch()}>
+              Retry
+            </button>
+          </p>
+        )}
+        {finish.isError && <p role="alert">Setup could not be saved. Try again.</p>}
+        <Button
+          disabled={finish.isPending || boot.isPending || boot.isError}
+          onClick={() => finish.mutate()}
+        >
+          {finish.isPending ? "Saving…" : "Open Lane workspace"}
+        </Button>
+        <p className="text-xs text-muted">
+          You can connect your shops later. Creating a Lane account does not mark a marketplace as
+          connected.
+        </p>
       </div>
     </main>
   );

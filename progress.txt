@@ -1,88 +1,80 @@
-LANE SESSION-FIRST PHASE — CHECKPOINT 11 SEPTEMBER 2026
+LANE AUTH/SESSION REBUILD — CHECKPOINT 11 SEPTEMBER 2026
 Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
-Existing branch retained. Vinted UK and eBay UK only; no marketplace writes or purchases.
+Draft PR: https://github.com/Bleuszz/lane/pull/5
+Existing branch retained. Vinted UK/eBay UK only. No purchases or marketplace writes.
+The 3 PM reminder was DELETED at Nate's request. Do not recreate it.
 
-DESKTOP APP: IN PROGRESS
-- Version 0.3.0 standalone local UI, two isolated marketplace windows, reconnect,
-  user-controlled startup/pause, version, diagnostics and local listing review.
-- Windows safeStorage encryption and separate-process fixture recovery LOCALLY PROVEN.
-- Per-profile in-memory browser partitions; only encrypted cookies persist. No passwords.
-- Disconnect clears local session and observations; startup requires a fresh status check.
-- NSIS Windows x64 installer built, unsigned. Normal install/uninstall still needs owner QA.
-- Packaged archive has 12 entries and excludes legacy entrypoints, vaults and env files.
-- Local review shows fields, unknown values and ordered photo references. No cloud import yet.
+DESKTOP APP: IN PROGRESS — version 0.3.1 built; real owner acceptance pending.
+- Explicit authentication/session state machine; Connected requires session material,
+  account identity, separate protected-page validation and encrypted persistence.
+- Login is interactive; validation/refresh/read use invisible isolated browser windows.
+- Auth window/child popups close after validation. Duplicate attempts are serialized.
+- Timeout/cancel, expiry/reconnect, account mismatch and disconnect race handling.
+- Windows DPAPI encryption stays local, per-profile partitions; startup revalidates.
+- UI displays identity, last sync, current-page listing count or unknown, actionable errors.
+- NSIS Windows x64 installer: desktop/dist/installer/Lane-Setup-0.3.1.exe
+  111381504 bytes; unsigned. Adjacent SHA256 file generated. Archive allowlist checked.
+  Interactive upgrade/install/uninstall still needs owner QA; no installed app replaced.
 
-DOWNLOAD PAGE: IN PROGRESS
-- Professional /download with version, requirements, installation/privacy FAQs and release notes.
-- Public installer URL remains gated until a verified release artifact is hosted.
-- Local installer: desktop/dist/installer/Lane-Setup-0.3.0.exe (about 106 MiB).
-- Adjacent SHA256 file identifies the latest local build; no code-signing claim.
+LANE ACCOUNT AUTH: IN PROGRESS
+- Provider/origin configuration preflight, native Google option, bounded popup/client
+  requests, cancellation and clear error/retry. Unconfigured providers are disabled.
+- Fixed stale login redirect after sign-out and replaced legacy onboarding instructions.
+- LOCALLY PROVEN: synthetic email signup/login, invalid-password error, session query,
+  sign-out, unavailable-provider rejection. No live Google OAuth credentials configured.
+- Browser-to-device pairing remains separate from web cookies; prior local protocol proof.
 
-BROWSER EXTENSION: IN PROGRESS
-- Existing optional extension retained. Cookie permission/cloud-cookie upload removed.
-- Legacy cloud capture endpoints return HTTP 410 by default; prior source code retained.
-- Extension is not required for Desktop; store distribution and real behavior not proven.
+DOWNLOAD PAGE: IN PROGRESS — 0.3.1 metadata/release notes; public installer URL gated.
+BROWSER EXTENSION: IN PROGRESS — existing optional source retained; not required here.
+VINTED SESSION: BLOCKED on owner sign-in/validation; valid anonymous login entry proven.
+VINTED WARDROBE IMPORT: BLOCKED on owner evidence; dynamic header wardrobe discovery built.
+EBAY SESSION: IN PROGRESS — current Seller Hub selectors observed with existing session;
+  later read required sign-in. No reliable real connection/restart claim.
+EBAY READ CAPABILITY: IN PROGRESS; real import/read UNKNOWN. Greeting identity fallback
+  is not a proven stable seller ID. First rendered page only, max 200 links/two details.
+EBAY WRITE CAPABILITY: UNSUPPORTED in session transport; official connector preserved.
+- Read observations remain partial/local; cloud canonical import not yet connected.
+- Stale links are cleared when current listing state is unknown. Missing fields stay null.
+- Quantity/sold state/orders and full supplied-item/photo preservation remain unproven.
+DEPLOYMENT: BLOCKED on real local session/read gate then provider access/configuration.
+- Prepared Render free Node + Neon free Postgres; render.yaml not applied. No new services.
+DATABASE: IN PROGRESS — device pairing migration 0018 and owner-scoped revocation exist.
+- Local isolated PGlite tests pass; durable staging auth/inventory remains unproven.
+- Leased task claim/result and idempotent canonical ingestion are next after real read proof.
 
-VINTED SESSION: BLOCKED — owner sign-in and actual session/restart proof pending.
-VINTED WARDROBE IMPORT: BLOCKED — real wardrobe selectors and supplied owner items unverified.
-- Visible DOM/JSON-LD reader implemented; bounded to 200 rendered owned links and two detail pages.
-- Read observations remain local and partial; canonical inventory import is not wired yet.
+TESTS / CHECKS
+- npm run test:desktop: 23/23 PASS, including 18 new auth/session regression checks.
+- npm test: 319 total, 301 PASS, 18 inherited template failures (same baseline categories:
+  absent ignored .grok skills/env assets, template auth defaults and share-card assertions).
+- Typecheck, auth invariant, changed web-file ESLint and Node production build: PASS.
+- Actual Electron transport with synthetic pages/cookies: validation before Connected,
+  automatic close, invisible refresh, expiry and disconnect: PASS (not marketplace proof).
+- Separate-process Windows encrypted fixture recovery: PASS.
+- Real anonymous Vinted entry redirects to login, no false authenticated state: PASS.
+- Desktop startup, escaped local review, unknown/secret-field handling, no overflow: PASS.
+- NSIS build, archive allowlist, SHA256 and unsigned signature inspection: PASS.
+- Live Google, owner Vinted/eBay full flow, real cookie restart, staging: NOT PROVEN.
 
-EBAY SESSION: BLOCKED — owner sign-in and real persistence/reconnect proof pending.
-EBAY READ CAPABILITY: IN PROGRESS — rendered own-listing reader implemented; real support UNKNOWN.
-EBAY WRITE CAPABILITY: UNSUPPORTED in the new session transport. No real writes attempted.
-- Official API connector remains intact. Session capability evidence is separate.
-
-DEPLOYMENT: BLOCKED on local real-session/read gate, then provider access.
-- Render free Node + Neon free Postgres selected for staging preparation, subject to eligibility.
-- Node build passes; render.yaml prepared, not applied. No infrastructure exists from this work.
-- Billing, paid AI, order polling, schedules and legacy cloud sessions stay disabled for staging.
-
-DATABASE: IN PROGRESS
-- Migration 0018 adds owner-scoped devices and expiring, verifier-protected single-use pairing.
-- Token hashes only in cloud; 15-minute access/30-day refresh; heartbeat and revocation.
-- Local browser approval -> token exchange -> Online/version -> revoke -> rejected heartbeat proven
-  against an isolated synthetic dev user. This is not real account-auth or durable staging proof.
-- Login return path now preserves pairing details and rejects external redirects.
-- General desktop task claim/result protocol and canonical result ingestion remain next work.
-
-CHECKS
-- npm run test:desktop: 5/5 pass (security, real PGlite pairing/revocation, return path, download gate).
-- npm test: 301 tests, 283 pass, 18 inherited template failures (same baseline failure count).
-  Existing failures concern missing ignored template skill/env assets and template assertions.
-- npm run typecheck, check:auth, changed web-file ESLint: PASS.
-- npm run build:node: PASS. npm run dist --prefix desktop -- --publish never: PASS.
-- Electron runtime/DPAPI, cross-process encrypted fixture, desktop startup and review UI: PASS.
-- Review QA checks escaped markup, unknown fields, credential-field exclusion and no overflow.
-- Local HTTP pairing/exchange/heartbeat/replay/revoke plus disabled legacy capture: PASS.
-- No authenticated marketplace session, staging DB, real import or installer click-through proven.
-
-BUDGET: GBP0 spent. GBP30 advertising reserve untouched. Verified cash receipts remain GBP0.
-COMPUTE: shared weekly meter 47% used / 53% remaining (phase began 44% used).
-No reset credits used. Prioritize real integration diagnosis over broad speculative work.
+BUDGET: GBP0 spent. GBP30 advertising reserve untouched. No reset credits used.
+COMPUTE: shared weekly meter 53% used / 47% remaining; rebuild began at 47% used.
 
 BLOCKERS / OWNER ACTION
-ACTION: Test Lane Desktop 0.3.0 login windows and local listing review.
-SERVICE: Lane Desktop, Vinted UK and eBay UK.
-WHY: Only Nate can complete direct marketplace sign-in/verification and prove owned listings.
-EXACT STEPS: Run the local installer above; leave staging address blank. Connect marketplace,
-  sign in directly, open own wardrobe/eBay Active listings, Check listings page, Read first 2 items,
-  Review read items. Restart Lane and check again. Report statuses/counts/missing data, no secrets.
-COST: GBP0.
-KYC/ID: No new ID process intended; stop if requested.
-EXPECTED RESULT: Real sessions/listing observations or a concrete visible failure to diagnose.
-BLOCKED WITHOUT THIS: Session/wardrobe/own-listing and subsequent staging proof.
-CAN YOU CONTINUE OTHER WORK: YES.
-User deferred this test; one reminder is scheduled for 15:00 BST today (11 September).
+Exact ACTION/SERVICE/WHY/STEPS/COST/KYC/RESULT fields are in docs/AUTH_SESSION_REBUILD.md.
+1. Install 0.3.1, complete marketplace sign-in personally, report precise Lane status/errors.
+   Leave website address blank. No cookies/passwords/tokens needed in reports.
+2. Google OAuth account/configuration and exact host origin needed for real social success.
+   Credentials go only in host secret settings, not chat. Email auth is locally tested.
+3. After local read proof, provider access and durable staging database/auth configuration.
+These block only their dependent real proofs; no reminder will be recreated.
 
 EXACT NEXT ACTIONS
-1. Diagnose owner login/selector results; target both supplied Vinted IDs and verify every field/photo.
-2. Connect verified local observations to owner-scoped, leased read tasks and idempotent canonical imports.
-3. Repeat restart, expiry/reconnect, device revocation and photo/data persistence checks.
-4. After real read proof, obtain chosen free provider access and configure auth/database secrets privately.
-5. Apply migrations through 0018 to identified staging DB; deploy and repeat the full proof checklist.
-6. Only after read/staging success, seek exact owner-approved eBay write test and assisted-publish review.
-Details: desktop/RELEASE.md, docs/DESKTOP_SESSION_PHASE.md, docs/STAGING.md.
+1. Diagnose real owner 0.3.1 connection results; verify stable identity/wardrobe selectors.
+2. Verify both supplied Vinted IDs, full fields/photos/order and eBay owned listing reads.
+3. Wire proven observations into owner-scoped leased tasks/idempotent canonical inventory.
+4. Repeat real restart/expiry/reconnect/revocation; then deploy prepared free staging.
+5. Configure Google, repeat auth/pairing/import/persistence checks against staging.
+6. Only after read/staging success obtain a precise owner-approved eBay write test.
+Details: docs/AUTH_SESSION_REBUILD.md, desktop/RELEASE.md, docs/DESKTOP_SESSION_PHASE.md.
 
 Prior implementation/evidence (retained; not proof of the new session-first phase):
 
