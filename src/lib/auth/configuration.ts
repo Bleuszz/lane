@@ -15,6 +15,7 @@ export function authConfiguration(env: Record<string, string | undefined>, origi
       : "This provider is not configured. Use email sign-in or ask the Lane administrator to enable it.";
   return {
     enabled,
+    passwordResetAvailable: enabled && present("RESEND_API_KEY") && present("LANE_EMAIL_FROM"),
     providers: [
       {
         providerId: direct ? "google" : "grok-google",

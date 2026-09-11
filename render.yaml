@@ -1,4 +1,4 @@
-# Prepared only. No service has been created; deploy after real session/read proof.
+# Free staging only. Durable external PostgreSQL is required; no Render trial database.
 services:
   - type: web
     name: lane-staging
@@ -8,8 +8,10 @@ services:
     branch: codex/lane-smart-crosslisting
     autoDeploy: false
     buildCommand: npm ci && npm run build:node
-    startCommand: node .output/server/index.mjs
+    startCommand: node scripts/start-server.mjs
     envVars:
+      - key: LANE_ENV
+        value: staging
       - key: NODE_VERSION
         value: 24.14.0
       - key: VITE_AUTH_ENABLED

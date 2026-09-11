@@ -1,14 +1,14 @@
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import { deploymentPolicy } from "./auth/deployment";
+deploymentPolicy(process.env);
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+const rawDatabaseUrl = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+const databaseUrl = rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -28,14 +28,8 @@ export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
  */
 export interface Sql {
   transaction<T>(run: (sql: Sql) => Promise<T>): Promise<T>;
-  <T = Record<string, unknown>>(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ): Promise<T[]>;
-  query<T = Record<string, unknown>>(
-    text: string,
-    params?: unknown[],
-  ): Promise<T[]>;
+  <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]>;
+  query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]>;
 }
 
 /**
@@ -83,7 +77,11 @@ function toSql(run: Run, transaction?: Sql["transaction"]): Sql {
   }) as unknown as Sql;
   sql.query = <T = Record<string, unknown>>(text: string, params: unknown[] = []) =>
     run<T>(text, params);
-  sql.transaction = transaction ?? (async () => { throw new Error("Nested transactions are not supported."); });
+  sql.transaction =
+    transaction ??
+    (async () => {
+      throw new Error("Nested transactions are not supported.");
+    });
   return sql;
 }
 
@@ -96,21 +94,31 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
-    return toSql(async <T>(text: string, params: unknown[]) => {
-      const res = await pool.query(text, params);
-      return res.rows as T[];
-    }, async (run) => {
-      const client = await pool.connect();
-      try {
-        await client.query("begin");
-        const result = await run(toSql(async <T>(text: string, params: unknown[]) => (await client.query(text, params)).rows as T[]));
-        await client.query("commit");
-        return result;
-      } catch (error) {
-        await client.query("rollback");
-        throw error;
-      } finally { client.release(); }
-    });
+    return toSql(
+      async <T>(text: string, params: unknown[]) => {
+        const res = await pool.query(text, params);
+        return res.rows as T[];
+      },
+      async (run) => {
+        const client = await pool.connect();
+        try {
+          await client.query("begin");
+          const result = await run(
+            toSql(
+              async <T>(text: string, params: unknown[]) =>
+                (await client.query(text, params)).rows as T[],
+            ),
+          );
+          await client.query("commit");
+          return result;
+        } catch (error) {
+          await client.query("rollback");
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+    );
   })().catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
     throw err;
@@ -155,9 +163,7 @@ async function createPgliteSql(): Promise<Sql> {
       import: "default",
       eager: true,
     }) as Record<string, string>;
-    const doneRows = await pg.query<{ name: string }>(
-      "select name from _migrations",
-    );
+    const doneRows = await pg.query<{ name: string }>("select name from _migrations");
     const done = doneRows.rows.map((r) => r.name);
     for (const { name, path } of pendingMigrations(Object.keys(migrations), done)) {
       // Apply + record atomically (parity with scripts/migrate.mjs) so a failed
@@ -174,10 +180,20 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
 
-  return toSql(async <T>(text: string, params: unknown[]) => {
-    const result = await pg.query<T>(text, params);
-    return result.rows;
-  }, (run) => pg.transaction(tx => run(toSql(async <T>(text: string, params: unknown[]) => (await tx.query<T>(text, params)).rows))));
+  return toSql(
+    async <T>(text: string, params: unknown[]) => {
+      const result = await pg.query<T>(text, params);
+      return result.rows;
+    },
+    (run) =>
+      pg.transaction((tx) =>
+        run(
+          toSql(
+            async <T>(text: string, params: unknown[]) => (await tx.query<T>(text, params)).rows,
+          ),
+        ),
+      ),
+  );
 }
 
 let sqlPromise: Promise<Sql> | null = null;

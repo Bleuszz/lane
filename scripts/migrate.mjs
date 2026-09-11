@@ -2,7 +2,7 @@
 /**
  * Deploy-time database migrator (node-postgres, `pg`).
  *
- * Runs during `npm run build` — on every Vercel deploy — applying pending files
+ * Invoked by scripts/start-server.mjs before the Node server starts, applying pending files
  * in ../migrations to DATABASE_URL. Each file is applied in one transaction and
  * recorded in a `_migrations` table, so it runs once and is safe to re-run.
  *
@@ -81,10 +81,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("[migrate] failed:", err?.message || err);
-  // pg errors carry the context needed to debug a bad SQL file.
-  for (const key of ["code", "detail", "hint", "position", "where"]) {
-    if (err?.[key] != null) console.error(`[migrate]   ${key}: ${err[key]}`);
-  }
+  console.error("[migrate] failed; database error code:", /^[A-Z0-9_]+$/.test(err?.code || '') ? err.code : 'UNAVAILABLE');
   process.exit(1);
 });

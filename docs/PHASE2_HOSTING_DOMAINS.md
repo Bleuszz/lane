@@ -1,0 +1,90 @@
+# Phase 2 — hosting, one Lane identity, and domains
+
+Research checked 11 September 2026. Owner chose **free staging URL first; domain purchase later**. No service or domain has been purchased. Provider account access remains pending.
+
+## Decision
+
+Use the existing TanStack Start/React/Vite/Nitro Node-server build on **Render Free, Frankfurt**, with **Neon Free Postgres in Frankfurt**. Use a generated `onrender.com` hostname first. Keep Better Auth in Lane; do not add Neon Auth or a second identity provider database. Later use Cloudflare DNS with the purchased domain; initially DNS-only while validating TLS/auth callbacks, then proxy only if useful. Never cache authenticated HTML, auth endpoints, device endpoints or server-function responses.
+
+Current staging cost: **£0/month**, subject to free-tier limits. Render's free web service is explicitly for testing and has a roughly one-minute cold start after 15 minutes idle. This is a staging decision, not a promise of production reliability. For early customers, budget Render's $7/month always-on instance (~£5.18 before tax at today's conversion), plus database usage if Neon's free allowances cease to suffice. Neon's quoted typical Launch example is $15/month, not a flat fee. $7 + that illustrative $15 is ~£16.29/month before tax, NOT a guaranteed bill. No upgrade is authorised. Sources: [Render Free](https://render.com/docs/free), [Render pricing](https://render.com/pricing), [Neon pricing](https://neon.com/pricing).
+
+## Existing stack and compatibility
+
+- React 19, TanStack Start, Vite 8, Nitro 3 beta. `vite.config.ts` already selects `node-server` for `LANE_DEPLOY_TARGET=node`; `scripts/build-node.mjs` produces `.output/server/index.mjs`. Existing Vercel output remains available.
+- Better Auth 1.6, email/password enabled, optional direct Google credentials, same-origin `/api/auth/*`. SQL users/sessions/accounts are in the same PostgreSQL database used by Lane.
+- `src/lib/db.ts` has node-postgres and a local PGlite fallback. Eighteen ordered SQL migrations create auth, user settings/trial, inventory, jobs, sales skeleton and device tables. Hosted startup now refuses missing database/auth configuration, migrates, then launches Node. PGlite is not a hosted database.
+- `desktop-devices.ts` already has verifier-bound one-use approval, hashed tokens, 15-minute access, 30-day refresh authorisation, owner scoping and revocation. Desktop uses browser approval against the same Lane user ID. No desktop password store is introduced.
+- Trial starts when account onboarding first creates `user_settings`; ON CONFLICT preserves dates. Existing entitlement logic gives zero trial AI credits. Reinstalling or signing in again cannot reset this account's dates.
+- Billing already has a release flag. Keep `LANE_BILLING_V2_READY=false`; no live Stripe credentials or price IDs required. Marketplace API credentials are not required for this phase.
+- Desktop marketplace cookies remain local and Windows-protected. Cloud receives canonical data only where sync exists and strict device-health metadata; no cookie upload for jobs.
+- Existing queued worker endpoint is optional; no paid worker/cron is provisioned for website launch. Do not run hidden jobs to prevent free-tier sleep.
+- Download page exists, but public installer URL is intentionally unset until a current, verified release is published.
+
+Cloudflare does support [TanStack Start](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/). It is not rejected as incompatible. This particular repository uses a Node/Nitro target, node-postgres pools, filesystem migration tooling, Node crypto and optional PGlite/WASM bundles. A Workers deployment needs adapter/bundle/network/crypto validation; Better Auth password hashing plus SSR must be benchmarked against the free CPU budget. Keep DNS there if preferred without forcing an immediate runtime change.
+
+## Hosting comparison
+
+| Option | Current entry cost / limits | Lane fit, jobs and growth |
+|---|---|---|
+| Cloudflare Workers/Pages | Workers Free: 100,000 requests/day, 10ms CPU/request; paid starts $5/month. Static assets have different limits. | Global edge, custom domains/TLS, secrets, callbacks, cron supported. Pages static hosting alone cannot serve Lane auth/API. TanStack integration exists; Node compatibility and pg/crypto still need proof here. Cloudflare-specific bindings add migration work. |
+| Render | Free: 512MB, 750 instance-hours/workspace/month; idle sleep after 15min; ephemeral local files. Current Hobby pricing shows 5GB bandwidth/month. Build-minute allowance must be checked in the actual workspace. | Existing Node build fits; Frankfurt app + DB minimises cross-region traffic. Env secrets/callbacks/custom domains/TLS supported. Paid workers/cron separate. Free bandwidth/build exhaustion can suspend services when no payment method is present; never enable overages. Upgrade compute from $7/month with approval. |
+| Vercel | Hobby $0 is **personal/non-commercial**. Pro starts $20/month plus usage. | Existing Nitro Vercel target fits Node/serverless auth and pg with pooling. Custom domains/TLS, secrets, callbacks, regional functions, cron. Function/background limits require job design. Lane's commercial purpose makes Hobby the wrong launch plan. |
+| Netlify | Free: 300 monthly credits shared across deploys, requests, bandwidth and compute. Personal $9/month; Pro $20/month. Current docs say published production deploys cost 15 credits. | Node functions, TLS/domains/secrets/OAuth possible; switch/test Nitro adapter. CDN static delivery avoids Render's whole-app sleep, but function cold starts and tight shared credit budget remain. Background/scheduled functions have bounded lifetimes; not a persistent worker. Viable alternative if Render cold starts block pilot usability. |
+| Railway | Trial has one-off $5 credits; subsequent Free allowance $1/month. Hobby minimum $5/month includes usage, excess billed separately. | Node containers and persistent workers/volumes; easy pg but always-on app + DB can exceed credit. EU region subject to project selection. Custom domains/TLS/secrets/callbacks supported. Trial credits do not constitute permanently free infrastructure. |
+
+Primary limits/pricing: [Cloudflare pricing](https://developers.cloudflare.com/workers/platform/pricing/), [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [Render Free](https://render.com/docs/free), [Vercel](https://vercel.com/pricing), [Netlify](https://www.netlify.com/pricing/), [Netlify credit rules](https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/credit-based-pricing-plans/), [Railway](https://docs.railway.com/pricing/plans). Exact deployment-specific function duration, build and regional quotas still require dashboard verification; do not substitute remembered limits. These are conventional deployable Node/SQL components: app/database can be moved independently with migrations and a PostgreSQL export.
+
+## Database comparison
+
+| Provider | Verified free limits | Decision |
+|---|---|---|
+| Neon | 100 CU-hours/project/month, 0.5GB/project, 5GB public network transfer/project, scale-to-zero; 6-hour history up to 1GB of changes. Paid Launch compute $0.106/CU-hour plus storage $0.35/GB-month and other usage. | Chosen for staging. Use Frankfurt, TLS connection string, pooled application endpoint and a direct migration connection if provider recommends it. App auth pool max 3; remaining app pool must fit provider connection allowance. Short history is not a backup strategy: export before destructive migrations; define production retention before launch. |
+| Supabase | 500MB database/project; free projects may pause after seven days low activity; Pro from $25/month. | Compatible PostgreSQL, but no need to replace Better Auth with Supabase Auth. Pause/recovery and bundled services make Neon simpler here. Check pooling/TLS modes and region in account. |
+| Render Postgres | Free 1GB, expires after 30 days, no free backups; deletion follows grace period if not upgraded. | Reject as durable free staging storage. Paid instance is an alternative, not a currently authorised purchase. |
+
+Sources: [Neon plans](https://neon.com/docs/introduction/plans), [Supabase pricing](https://supabase.com/pricing), [Supabase pausing](https://supabase.com/docs/guides/platform/free-project-pausing), [Render database limits](https://render.com/docs/free). Store images in a release/object store rather than consuming SQL capacity with image binaries. No new image store is needed for account setup.
+
+## Domain shortlist — provisional availability, not a purchase
+
+Nominet RDAP queries at **16:14 UTC, 11 September 2026** returned HTTP 404 for the eight options below. This means no registered domain record was found; a registrar checkout must still confirm registrability and live availability. `lanehq.co.uk` and `joinlane.co.uk` returned registered records and were excluded. `lane.app`, `lane.tools`, `lane.so` could not be verified through the queried RDAP route (403); they are not claimed available.
+
+For every shortlisted `.co.uk`/`.uk`: Porkbun's public pricing API currently returns **US$4.32 registration, US$5.66 renewal, $0 transfer**. No renewal year is implied by a free UK transfer. At USD→GBP 0.7403 on 11 September: **~£3.20 first year, ~£4.19 typical year two before any checkout tax/card fees**. If 20% tax applies: ~£3.84 / ~£5.03. These GBP figures are calculations, not a guaranteed card checkout. Registrar/registry fees must be checked on the final cart; do not invent an additional ICANN fee for a UK ccTLD. Porkbun advertises free privacy where eligible; `.uk` registry disclosure/redaction rules apply, so confirm the specific privacy treatment. No paid privacy add-on is recommended.
+
+| Domain | Availability | Year 1 / year 2 before tax/FX fees | Why / drawback | Subjective score |
+|---|---|---|---|---|
+| uselane.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Clear SaaS invitation, short, UK credible; generic Lane brand needs clearance | 9/10 |
+| getlane.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Easy to say and action-oriented; closer to other get-Lane brands | 8.5/10 |
+| withlane.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Warm, broad product positioning; slightly less obvious download intent | 8.5/10 |
+| laneapp.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Clearly software; app suffix less elegant | 8/10 |
+| trylane.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Clear trial CTA; can sound temporary | 8/10 |
+| uselane.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Shortest shortlist option; some UK users instinctively add .co.uk | 8/10 |
+| laneflow.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Describes workflow; extends product name beyond Lane | 7/10 |
+| laneworkspace.co.uk | RDAP not found; checkout pending | £3.20 / £4.19 estimated | Clear broad workspace meaning; long to say/type | 7/10 |
+
+Recommendation: **uselane.co.uk at Porkbun**, later, after the owner confirms final checkout price. Public sources: [Porkbun .co.uk](https://porkbun.com/tld/co.uk), [Porkbun pricing API](https://api.porkbun.com/api/json/v3/pricing/get), [Nominet lookup](https://rdap.nominet.uk/uk/domain/uselane.co.uk), [exchange rate used](https://api.frankfurter.dev/v1/2026-09-11?base=USD&symbols=GBP). The same registry URL pattern was checked for each candidate. Search/score is preliminary: this is not trademark clearance. Check Lane and close variants in UKIPO software/SaaS classes before public branding or ads using the [official trademark search](https://www.gov.uk/search-for-trademark). Generic web searches did not establish a conflicting reseller product for the preferred full name; absence of a search result is not evidence of legal availability.
+
+## Registrar comparison
+
+- **Porkbun:** verified API quote above; lowest verified renewal in this pass. External nameservers allowed; can use Cloudflare DNS without buying hosting. Domain-only checkout; decline optional email/hosting. Confirm actual ccTLD privacy, taxes and card conversion at checkout.
+- **Cloudflare Registrar:** at-cost registration/renewal with no markup; Cloudflare nameservers required for registrar domains. Exact live `.co.uk` account quote not available without login, so no invented price. Good if owner prefers one DNS/registrar dashboard; compare final quote with Porkbun. [Registrar FAQ](https://developers.cloudflare.com/registrar/faq/).
+- **IONOS:** current `.co.uk` table shows £1 welcome, £4 special offer, £10 renewal, £4 transfer, ICANN column included, with VAT toggle OFF. Budget £1.20 welcome if eligible, otherwise £4.80 offer; £12 renewal with 20% VAT. Promotions/eligibility and bundles complicate comparison; lower first year does not beat Porkbun's verified long-term renewal. [Official price table](https://www.ionos.co.uk/domains/domain-name-prices).
+- **Krystal:** public page shows `.co.uk/.uk` £7.99 ex VAT/year (£9.59 inc VAT); distinct renewal/transfer terms not verified. UK-focused support, conventional DNS. Do not equate headline registration with a verified renewal. [Domains](https://krystal.io/domains).
+- **Spaceship:** public registration price could not be verified (403). Official transfer documentation shows UK transfers have no renewal extension and eligible privacy is included. Requires final registration/renewal quote; not ranked as cheaper without it. [Transfers](https://www.spaceship.com/en-GB/domains/transfer/).
+- **Namecheap:** `.co.uk` page available in search but direct quote blocked (403); current first-year/renewal not verified. Published UK transfer procedure uses IPS tag and permits transfers within 60 days. Check domain privacy eligibility and renewal before comparing. [UK domain](https://www.namecheap.com/domains/registration/cctld/co-uk/), [UK transfer](https://www.namecheap.com/support/knowledgebase/article.aspx/738/8/transfer-of-uk-couk-orguk-meuk-to-namecheap/).
+- **GoDaddy:** UK domain support verified, stable current first-year/renewal quote not retrieved. No evidence here that it beats the verified Porkbun total; not recommended on an unverified introductory offer. [UK domain conditions](https://www.godaddy.com/en-uk/help/about-uk-domains-5854).
+
+## Email, releases, legal and deployment gates
+
+**Email:** prefer Resend's free transactional plan (3,000/month, 100/day) once domain verification and an account/API key are approved. Alternatives: Brevo 300/day free; Postmark 100/month developer plan. Password reset hook is conditional on `RESEND_API_KEY` and `LANE_EMAIL_FROM`; no fake sent-message success when unavailable. Verify DNS/sender and actual delivery before public signup. Welcome/security messages and verification policy need a later delivery test. [Resend limits](https://resend.com/docs/knowledge-base/account-quotas-and-limits), [Brevo limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan), [Postmark](https://postmarkapp.com/pricing).
+
+**Desktop distribution:** use GitHub Releases with a versioned asset, SHA256 and release date once the packaged shared-account flow is verified. No random file host, no new R2 bucket needed. Current public download stays marked pending; never link to an old diagnostic installer just to make a button active. Confirm repository/release visibility before publication; unsigned notice remains required.
+
+**Legal/trust:** privacy, terms, cookies, contact and security pages are draft implementation-specific text. Owner legal/operator identity, verified support address, retention/deletion process and review of consumer terms are public launch blockers. Essential auth cookies need explanation; nonessential analytics must not be introduced without applicable consent controls. [ICO guidance](https://ico.org.uk/for-organisations/advice-for-small-organisations/privacy-notices-and-cookies/cookies-and-privacy-notices-in-detail/).
+
+**Deploy:** after owner login, create Neon Free Frankfurt; keep DATABASE_URL only in provider secrets. Import the existing Render blueprint with Free plan, set generated HTTPS origin as BETTER_AUTH_URL, keep billing/order polling/preview overrides off. Start command validates secrets and migrates before traffic. Test generated hostname first. Keep staging noindex. No raw secrets in Git/chat. No payment method/overage upgrades authorised.
+
+**Google:** optional until owner creates Google Cloud Web OAuth client. Add exact generated/final origin and `/api/auth/callback/google` redirect; put GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Render's environment settings. Never paste secrets in chat. After hostname change update BETTER_AUTH_URL, canonical DNS redirect and OAuth callbacks together; host-only cookies require fresh login on the new domain.
+
+**Release gates:** hosted signup/login/logout/trial persistence; actual Desktop browser approval under same user; token restore and revocation after restart; verified download; owner/legal/email configuration; final custom domain later. Current local PostgreSQL proof does not substitute for these hosted gates.
+
+FIRST DESKTOP FOLLOW-UP AFTER WEBSITE: full Vinted item detail extraction. Real discovered IDs/URLs now work, but Title unknown, incomplete photos/attributes and wardrobe completeness remain unresolved. Do not mark full import complete. Keep expansion, inventory tools, sales, finance, profits, intelligence and automation as roadmap-only work.

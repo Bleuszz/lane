@@ -30,6 +30,8 @@
  * a verified id via `@/lib/auth/middleware`.
  */
 import { betterAuth } from "better-auth";
+import { deploymentPolicy } from "./deployment";
+import { passwordResetConfigured, sendPasswordReset } from "./email.server";
 import { bearer, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
@@ -73,6 +75,7 @@ const env = (key: string): string | undefined => {
 // Explicit off-switch. The deployer sets `VITE_AUTH_ENABLED=true` when it
 // provisions auth; set it to "false" to force auth off everywhere (dev user).
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
+const deployment = deploymentPolicy(process.env);
 
 // Broker federation creds: the deployer injects a per-app client when deployed;
 // otherwise fall back to the shared live-preview client, which the broker accepts
@@ -115,7 +118,7 @@ const baseURL = explicitBaseURL ?? {
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
 const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
+  ? [explicitBaseURL, ...(deployment.deployed ? [] : LOCAL_DEV_ORIGINS)]
   : [
       // Host wildcards (matched against Origin's host)
       ...previewAllowedHosts,
@@ -141,7 +144,7 @@ const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
+  ? new Pool({ connectionString: databaseUrl, max: 3 })
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */
@@ -149,32 +152,41 @@ export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 
 // Built separately so the `betterAuth({...})` call stays easy to edit without
 // breaking brackets (models often trip on the conditional plugin spread).
-const grokOAuthPlugin = authConfigured
-  ? genericOAuth({
-      config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
-        providerId,
-        clientId: grokClientId as string,
-        clientSecret: grokClientSecret as string,
-        // Prefer static endpoints over `discoveryUrl` so initiating (and
-        // completing) OAuth does not wait on a broker discovery fetch.
-        authorizationUrl: grokAuthorizationUrl,
-        tokenUrl: grokTokenUrl,
-        userInfoUrl: grokUserInfoUrl,
-        scopes: ["openid", "profile", "email"],
-        // `prompt: "login"` forces the broker to re-authenticate against the
-        // upstream on every sign-in instead of silently reusing an existing
-        // broker session. Combined with the broker sending Google
-        // `prompt=select_account`, the user always gets the account chooser
-        // and can pick (or switch) which account to sign in with.
-        authorizationUrlParams: { idp, prompt: "login" },
-      })),
-    })
-  : null;
+const grokOAuthPlugin =
+  authConfigured &&
+  (!deployment.deployed || (env("GROK_AUTH_CLIENT_ID") && env("GROK_AUTH_CLIENT_SECRET")))
+    ? genericOAuth({
+        config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
+          providerId,
+          clientId: grokClientId as string,
+          clientSecret: grokClientSecret as string,
+          // Prefer static endpoints over `discoveryUrl` so initiating (and
+          // completing) OAuth does not wait on a broker discovery fetch.
+          authorizationUrl: grokAuthorizationUrl,
+          tokenUrl: grokTokenUrl,
+          userInfoUrl: grokUserInfoUrl,
+          scopes: ["openid", "profile", "email"],
+          // `prompt: "login"` forces the broker to re-authenticate against the
+          // upstream on every sign-in instead of silently reusing an existing
+          // broker session. Combined with the broker sending Google
+          // `prompt=select_account`, the user always gets the account chooser
+          // and can pick (or switch) which account to sign in with.
+          authorizationUrlParams: { idp, prompt: "login" },
+        })),
+      })
+    : null;
 
 export const auth = betterAuth({
-  ...(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET") && !authDisabled ? {
-    socialProviders: { google: { clientId: env("GOOGLE_CLIENT_ID")!, clientSecret: env("GOOGLE_CLIENT_SECRET")! } },
-  } : {}),
+  ...(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET") && !authDisabled
+    ? {
+        socialProviders: {
+          google: {
+            clientId: env("GOOGLE_CLIENT_ID")!,
+            clientSecret: env("GOOGLE_CLIENT_SECRET")!,
+          },
+        },
+      }
+    : {}),
   baseURL,
   // Deployed apps inject BETTER_AUTH_SECRET. Preview: process-stable secret on
   // globalThis so HMR doesn't invalidate PGLite-backed sessions (see above).
@@ -196,13 +208,10 @@ export const auth = betterAuth({
     encryptOAuthTokens: true,
     accountLinking: {
       enabled: true,
-      trustedProviders: [
-        ...GROK_PROVIDERS.map((p) => p.providerId),
-        GATE_PROVIDER_ID,
-      ],
+      trustedProviders: [...GROK_PROVIDERS.map((p) => p.providerId), GATE_PROVIDER_ID],
       // X's synthetic email is never "verified", so don't gate linking on the
       // local user's email-verified state.
-      requireLocalEmailVerified: false,
+      requireLocalEmailVerified: deployment.deployed,
     },
   },
 
@@ -213,7 +222,25 @@ export const auth = betterAuth({
   session: { cookieCache: { enabled: true, maxAge: 300 } },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
-  ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
+  ...(emailAndPasswordEnabled
+    ? {
+        emailAndPassword: {
+          enabled: true,
+          revokeSessionsOnPasswordReset: true,
+          ...(passwordResetConfigured
+            ? {
+                sendResetPassword: async ({
+                  user,
+                  url,
+                }: {
+                  user: { email: string };
+                  url: string;
+                }) => sendPasswordReset(user.email, url),
+              }
+            : {}),
+        },
+      }
+    : {}),
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that
   // carries a `Domain` attribute, so a sibling `*.grok.me` app cannot "toss" a
@@ -224,7 +251,7 @@ export const auth = betterAuth({
   // `http://localhost`, so local dev still works.)
   advanced: {
     useSecureCookies: false,
-    defaultCookieAttributes: { secure: true, sameSite: "lax", path: "/" },
+    defaultCookieAttributes: { secure: true, httpOnly: true, sameSite: "lax", path: "/" },
     cookies: {
       session_token: { name: SESSION_TOKEN_COOKIE },
       session_data: { name: "__Host-grok-auth.session_data" },
@@ -234,7 +261,7 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    gateIdentitySessions(),
+    ...(!deployment.deployed ? [gateIdentitySessions()] : []),
 
     // One genericOAuth provider per upstream (when auth is on), all federating
     // to the broker with the SAME client and differing only by the `idp` hint.
