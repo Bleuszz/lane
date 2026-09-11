@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-11 00:55 UTC (01:55 BST)
+Updated: 2026-09-11 00:58 UTC (01:58 BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -197,3 +197,28 @@ write, paid inference, deployment, scheduler activation or spending occurred.
 Next: authorized sandbox polling and baseline-stock reconciliation, including actual
 response shapes and remote follow-ups, before enabling this flag. See STAGING.md.
 Usage latest: 43% weekly used / 57% remaining; no reset used.
+
+AUTONOMOUS HANDOFF — WAITING FOR OWNER ACCESS
+Implementation d6945cd is pushed and the worktree was clean at verification.
+The release access gate remains unchanged across the last three continuations:
+00:42 dependency audit, the d6945cd polling checkpoint, and this configuration
+recheck. Current process has no eBay app credentials/RuName, database URL or
+worker secret; only .env.example exists. The polling feature remains disabled.
+No unchanged tests were rerun in this final access audit.
+
+When Nate returns:
+1. Configure existing eBay sandbox keys/RuName through local/provider secrets and
+   authorize the seller. Pair the current Lane bridge from a logged-in Vinted
+   session. These unlock authenticated import and real response verification.
+2. Confirm the exact sandbox test actions, then verify import/photos/mapping,
+   publish/retry/stock behavior and order polling against those authorized items.
+3. Which existing host and durable database should staging use? Deployment and
+   migrations need an explicit instruction after that target is identified.
+4. Supply eight more varied owned items for the ten-item comparison benchmark.
+
+No new service, spend, deployment or real marketplace action will be used to
+bypass these gates. The product remains a local beta; production readiness is
+unproven. Current checks: 297 tests / 279 pass / 18 inherited failures; all 46
+core pass, plus final type/lint/build and the documented browser checks.
+Account allowance: 43% used / 57% remaining. This is an access/authorization
+block, not an allowance limit. Resume from docs/STAGING.md when access is ready.
