@@ -13,6 +13,20 @@
   font-weight: 600;
   white-space: pre-line;
 }
+.session-diagnostic .setup,
+.session-diagnostic main > header,
+.session-diagnostic main > h1 {
+  display: none;
+}
+.session-diagnostic main {
+  padding-top: 20px;
+}
+.session-diagnostic .intro {
+  margin: 12px 0;
+}
+.session-diagnostic section {
+  margin-top: 18px;
+}
 * {
   box-sizing: border-box;
 }

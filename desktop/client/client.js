@@ -37,6 +37,7 @@ async function act(run) {
 }
 async function refresh() {
   const state = await api.status();
+  document.body.classList.toggle("session-diagnostic", state.diagnosticRun);
   $("build-fingerprint").textContent = state.buildInfo
     ? `Lane ${state.version} · ${state.diagnosticRun ? "SESSION DIAGNOSTIC — DIAGNOSTIC BUILD" : "BUILD"}\nCommit: ${state.buildInfo.shortCommit}\nBuild: ${state.buildInfo.builtAt}`
     : `Lane ${state.version} · SESSION DIAGNOSTIC\nUnpackaged development source`;
