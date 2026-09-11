@@ -1,14 +1,50 @@
 export const HELP = [
-  { category: "Plans", question: "How does the free trial work?", answer: "The no-card trial lasts seven days and includes 25 publish/relist actions across your supported accounts, with no AI credits. Each destination uses an action when its job starts; retries of the same job do not charge another action. Expiry or an exhausted allowance stops new publishing, while inventory, edits and delisting remain available. There is no automatic payment at the end." },
-  { category: "Getting started", question: "How do I crosslist my first item?", answer: "Connect a supported marketplace in Accounts. Import your item, open it in Products and review its photos, category and price. Choose a destination, fill the remaining required fields, save and publish. Check Activity for the result; a queued job is not a live listing." },
-  { category: "Connections", question: "Which marketplaces can I connect?", answer: "This beta implements eBay UK and Vinted UK connection workflows. eBay uses seller authorization; Vinted uses the Lane browser or desktop bridge. Other services appear in the catalogue as planned integrations. All supported connections are included on every tier. Availability also depends on the deployment and your marketplace account." },
-  { category: "Connections", question: "My account needs reconnecting. What should I do?", answer: "Open Accounts and read the status beside the affected shop. For eBay, reconnect through the official authorization window. For Vinted, sign in on the marketplace and keep the bridge available. Check Activity before retrying a publish so you do not accidentally create a duplicate." },
-  { category: "AI", question: "Does AI make up missing details?", answer: "Field completion looks for details explicitly supported by your listing text. Suggestions show the supporting text and are checked against the category's permitted values. Review them before applying. If the source does not establish a fact, enter it yourself; AI should not guess material composition, measurements, condition or authenticity." },
-  { category: "AI", question: "Can I use Lane without AI?", answer: "Yes. Starter has no AI credits and normal crosslisting remains manual. Seller and Pro include credits, but AI starts off. Enable it in Billing and choose when to request suggestions. It never publishes a listing for you." },
-  { category: "AI", question: "What uses an AI credit?", answer: "A successful listing-copy request or useful field-completion response uses one credit. Failed requests restore the reservation, and field searches with no usable suggestions use no credit. Credits reset each UTC calendar month without rollover. A monthly provider-cost guard may pause AI before all credits are used, especially after repeated timeouts. No automatic credit purchases or overage charges." },
-  { category: "Photos", question: "What can Photo studio do?", answer: "Rotate, square-crop, add breathing room and a white or warm frame, and adjust lighting and contrast. Processing runs on your device without an AI charge. A cleaned copy is added while the original stays. It does not remove a busy background or generate missing product details. Keep colours and flaws accurate." },
-  { category: "Photos", question: "Can I publish device photos and Photo studio copies to eBay?", answer: "Yes. Lane uploads selected JPEG/PNG files up to 2 MB each through your connected eBay account when publishing. Existing public HTTPS photos work too. Originals remain in Lane, and every selected photo must pass validation before the listing is sent. Live upload acceptance still needs beta verification." },
-  { category: "Publishing", question: "Why are there different questions for eBay?", answer: "Each category has its own required details and allowed values. Lane requests the current eBay field schema, preserves information already supplied, and shows what is still missing. Basic field lookup and manual editing do not consume AI credits." },
-  { category: "Publishing", question: "Will a sale automatically remove every other listing?", answer: "Record a sale on the item using its exact order-line reference. Lane updates stock and queues changes for linked listings. Vinted detection needs the bridge running. eBay order polling is an optional beta feature that stays off until verified; check its status in Activity. Unknown matches, payments and cancellations require review. Monitor both marketplaces; a queued delist is not a completed removal." },
-  { category: "Plans", question: "Can I switch plans or cancel?", answer: "When subscriptions are enabled, use Manage subscription in Billing. The payment provider shows the effective date and any charges before confirmation. Existing subscriptions are not automatically moved to new advertised prices. During a local preview, prices are informational and the app cannot charge you." },
+  {
+    category: "Getting started",
+    question: "How do I start?",
+    answer:
+      "Create one Lane account on the website. Your seven-day trial starts when you open account onboarding. Install the verified Windows release when available, then approve that desktop using the same Lane account.",
+  },
+  {
+    category: "Connections",
+    question: "Which marketplaces work?",
+    answer:
+      "Vinted and eBay desktop session connections and owner listing discovery work in the owner pilot. Other marketplaces are planned. Full Vinted detail extraction and reliable publishing are not yet release-proven.",
+  },
+  {
+    category: "Connections",
+    question: "Why does a listing say Title unknown?",
+    answer:
+      "Discovery has found its marketplace ID and URL, but has not extracted a reliable title. Full Vinted item detail extraction is the first desktop follow-up. Lane keeps unknown data unknown.",
+  },
+  {
+    category: "Connections",
+    question: "How do I reconnect?",
+    answer:
+      "Open Lane Desktop, choose Reconnect beside the affected marketplace and complete its sign-in or verification. Do not send cookies, passwords or tokens to support.",
+  },
+  {
+    category: "Plans",
+    question: "How does the trial work?",
+    answer:
+      "Seven days, no card and zero AI credits. Trial dates belong to your Lane account on the server. Reinstalling Desktop does not reset them. There is no automatic payment.",
+  },
+  {
+    category: "Security",
+    question: "Does Desktop need a separate account?",
+    answer:
+      "No. It opens the Lane website for sign-in and device approval. You can revoke that device on the website. Your marketplace browser sessions remain local.",
+  },
+  {
+    category: "Plans",
+    question: "Can I pay for Lane?",
+    answer:
+      "Paid checkout is closed until billing and release checks pass. Provisional monthly prices are Starter £9, Seller £19 and Pro £29.",
+  },
+  {
+    category: "AI",
+    question: "Is AI required?",
+    answer:
+      "No. The trial has zero AI credits. Optional assisted listing tools are planned; they will require review and will not invent unsupported item details.",
+  },
 ] as const;

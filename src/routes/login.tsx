@@ -13,14 +13,25 @@ export const Route = createFileRoute("/login")({
   validateSearch: (
     search: Record<string, unknown>,
   ): { returnTo?: string; authError?: boolean } => ({
-    returnTo: safeReturnPath(search.returnTo),
+    returnTo: safeReturnPath(search.returnTo, "/account"),
     authError: Boolean(search.authError || search.error),
   }),
   component: Login,
 });
 
 function Login() {
-  const { returnTo = "/onboarding", authError } = Route.useSearch();
+  const { returnTo = "/account", authError } = Route.useSearch();
+  return <LoginForm returnTo={returnTo} authError={authError} />;
+}
+export function LoginForm({
+  returnTo = "/account",
+  authError = false,
+  initialMode = "in",
+}: {
+  returnTo?: string;
+  authError?: boolean;
+  initialMode?: "in" | "up";
+}) {
   const config = useQuery({
     queryKey: ["auth-configuration"],
     queryFn: async () => {
@@ -33,7 +44,7 @@ function Login() {
     retry: false,
   });
   const { user, isPending } = useCurrentUserState();
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -94,11 +105,11 @@ function Login() {
           <LaneWordmark />
           <div>
             <h1 className="max-w-sm text-3xl font-medium tracking-[-0.03em] leading-tight">
-              One inventory record. Every channel listing hangs off it.
+              Your Lane account. At your desk and on the web.
             </h1>
             <p className="mt-4 max-w-sm text-sm text-muted leading-relaxed">
-              When it sells, the others come down. Vinted through your browser. eBay through
-              official OAuth. Passwords never leave the marketplace.
+              One account for your trial, devices and workspace. Connect Vinted and eBay separately
+              in Lane Desktop; their saved marketplace sessions stay on your computer.
             </p>
           </div>
           <p className="max-w-sm text-[11px] leading-relaxed text-subtle">{LEGAL_FOOTER}</p>
@@ -111,7 +122,9 @@ function Login() {
             <h2 className="text-xl font-medium tracking-[-0.02em]">
               {mode === "in" ? "Sign in" : "Create account"}
             </h2>
-            <p className="mt-1 text-sm text-muted">UK resellers. GBP. No marketplace passwords.</p>
+            <p className="mt-1 text-sm text-muted">
+              7 days free. No card required. No AI credits needed.
+            </p>
 
             {authEnabled ? (
               <>
@@ -153,6 +166,11 @@ function Login() {
                     {busy ? "Working…" : mode === "in" ? "Sign in" : "Create account"}
                   </Button>
                 </form>
+                {mode === "in" && (
+                  <Link to="/forgot-password" className="mt-4 block text-sm underline">
+                    Forgot password?
+                  </Link>
+                )}
                 <button
                   type="button"
                   className="mt-3 text-sm text-muted hover:text-ink"
@@ -179,20 +197,22 @@ function Login() {
                       </button>
                     </p>
                   )}
-                  {config.data?.providers.map((p) => (
-                    <div key={p.providerId}>
-                      <Button
-                        key={p.providerId}
-                        variant="secondary"
-                        className="w-full"
-                        disabled={busy || !p.available}
-                        onClick={() => void social(p.providerId)}
-                      >
-                        Continue with {p.label}
-                      </Button>
-                      {!p.available && <p className="mt-1 text-xs text-muted">{p.reason}</p>}
-                    </div>
-                  ))}
+                  {config.data?.providers
+                    .filter((p) => p.available)
+                    .map((p) => (
+                      <div key={p.providerId}>
+                        <Button
+                          key={p.providerId}
+                          variant="secondary"
+                          className="w-full"
+                          disabled={busy || !p.available}
+                          onClick={() => void social(p.providerId)}
+                        >
+                          Continue with {p.label}
+                        </Button>
+                        {!p.available && <p className="mt-1 text-xs text-muted">{p.reason}</p>}
+                      </div>
+                    ))}
                 </div>
               </>
             ) : (

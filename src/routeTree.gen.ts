@@ -11,10 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DownloadRouteImport } from './routes/download'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SecurityRouteImport } from './routes/security'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
 import { Route as AppDevicesRouteImport } from './routes/_app.devices'
 import { Route as AppImportRouteImport } from './routes/_app.import'
@@ -24,6 +31,7 @@ import { Route as AppNewRouteImport } from './routes/_app.new'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSoldRouteImport } from './routes/_app.sold'
 import { Route as ApiWorkerRouteImport } from './routes/api/worker'
+import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as AppInventoryIndexRouteImport } from './routes/_app.inventory.index'
@@ -52,9 +60,19 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DownloadRoute = DownloadRouteImport.update({
   id: '/download',
   path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpRoute = HelpRouteImport.update({
@@ -71,6 +89,31 @@ const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppActivityRoute = AppActivityRouteImport.update({
   id: '/activity',
@@ -115,6 +158,11 @@ const AppSoldRoute = AppSoldRouteImport.update({
 const ApiWorkerRoute = ApiWorkerRouteImport.update({
   id: '/api/worker',
   path: '/api/worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalCookiesRoute = LegalCookiesRouteImport.update({
+  id: '/legal/cookies',
+  path: '/legal/cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
@@ -210,10 +258,17 @@ const ApiVintedConnectSplatRoute = ApiVintedConnectSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/security': typeof SecurityRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
   '/devices': typeof AppDevicesRoute
   '/import': typeof AppImportRoute
@@ -223,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRouteWithChildren
   '/sold': typeof AppSoldRoute
   '/api/worker': typeof ApiWorkerRoute
+  '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
@@ -244,10 +300,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/security': typeof SecurityRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
   '/devices': typeof AppDevicesRoute
   '/import': typeof AppImportRoute
@@ -255,6 +318,7 @@ export interface FileRoutesByTo {
   '/new': typeof AppNewRoute
   '/sold': typeof AppSoldRoute
   '/api/worker': typeof ApiWorkerRoute
+  '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
@@ -278,10 +342,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/security': typeof SecurityRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/account': typeof AppAccountRoute
   '/_app/activity': typeof AppActivityRoute
   '/_app/devices': typeof AppDevicesRoute
   '/_app/import': typeof AppImportRoute
@@ -291,6 +362,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/sold': typeof AppSoldRoute
   '/api/worker': typeof ApiWorkerRoute
+  '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/_app/inventory/$id': typeof AppInventoryIdRoute
@@ -314,10 +386,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/contact'
     | '/download'
+    | '/forgot-password'
     | '/help'
     | '/login'
     | '/onboarding'
+    | '/robots.txt'
+    | '/security'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/account'
     | '/activity'
     | '/devices'
     | '/import'
@@ -327,6 +406,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sold'
     | '/api/worker'
+    | '/legal/cookies'
     | '/legal/privacy'
     | '/legal/terms'
     | '/inventory/$id'
@@ -348,10 +428,17 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/contact'
     | '/download'
+    | '/forgot-password'
     | '/help'
     | '/login'
     | '/onboarding'
+    | '/robots.txt'
+    | '/security'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/account'
     | '/activity'
     | '/devices'
     | '/import'
@@ -359,6 +446,7 @@ export interface FileRouteTypes {
     | '/new'
     | '/sold'
     | '/api/worker'
+    | '/legal/cookies'
     | '/legal/privacy'
     | '/legal/terms'
     | '/inventory/$id'
@@ -381,10 +469,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/contact'
     | '/download'
+    | '/forgot-password'
     | '/help'
     | '/login'
     | '/onboarding'
+    | '/robots.txt'
+    | '/security'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/_app/account'
     | '/_app/activity'
     | '/_app/devices'
     | '/_app/import'
@@ -394,6 +489,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/sold'
     | '/api/worker'
+    | '/legal/cookies'
     | '/legal/privacy'
     | '/legal/terms'
     | '/_app/inventory/$id'
@@ -417,11 +513,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  ContactRoute: typeof ContactRoute
   DownloadRoute: typeof DownloadRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SecurityRoute: typeof SecurityRoute
+  SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiWorkerRoute: typeof ApiWorkerRoute
+  LegalCookiesRoute: typeof LegalCookiesRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -450,11 +553,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/download': {
       id: '/download'
       path: '/download'
       fullPath: '/download'
       preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help': {
@@ -477,6 +594,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/account': {
+      id: '/_app/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/activity': {
       id: '/_app/activity'
@@ -539,6 +691,13 @@ declare module '@tanstack/react-router' {
       path: '/api/worker'
       fullPath: '/api/worker'
       preLoaderRoute: typeof ApiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/cookies': {
+      id: '/legal/cookies'
+      path: '/legal/cookies'
+      fullPath: '/legal/cookies'
+      preLoaderRoute: typeof LegalCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legal/privacy': {
@@ -707,6 +866,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAccountRoute: typeof AppAccountRoute
   AppActivityRoute: typeof AppActivityRoute
   AppDevicesRoute: typeof AppDevicesRoute
   AppImportRoute: typeof AppImportRoute
@@ -718,6 +878,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAccountRoute: AppAccountRoute,
   AppActivityRoute: AppActivityRoute,
   AppDevicesRoute: AppDevicesRoute,
   AppImportRoute: AppImportRoute,
@@ -733,11 +894,18 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ContactRoute: ContactRoute,
   DownloadRoute: DownloadRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SecurityRoute: SecurityRoute,
+  SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiWorkerRoute: ApiWorkerRoute,
+  LegalCookiesRoute: LegalCookiesRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

@@ -99,6 +99,7 @@ export default async function grokPwaMiddleware(
   if (!isDocumentPath(path)) return next();
 
   const result = await next();
+  if (process.env.LANE_ENV === "staging" || process.env.LANE_ENV === "production") return result;
   if (
     result instanceof Response &&
     result.body &&

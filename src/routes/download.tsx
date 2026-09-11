@@ -18,7 +18,7 @@ function DownloadPage() {
         </Link>
         <div className="flex items-center gap-6 text-sm">
           <Link to="/help">Help</Link>
-          <Link to="/inbox">Open web app ↗</Link>
+          <Link to="/account">Your Lane account ↗</Link>
         </div>
       </header>
       <section className="mx-auto grid max-w-6xl gap-14 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:py-24">

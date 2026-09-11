@@ -1,4 +1,50 @@
-LANE VINTED REPAIR — ACTIVE CHECKPOINT 11 SEPTEMBER 2026
+LANE PHASE 2 — ACTIVE CHECKPOINT 11 SEPTEMBER 2026
+Repository/branch unchanged: Bleuszz/lane, codex/lane-smart-crosslisting.
+OWNER UPDATE: eBay and Vinted authentication/session flow and Vinted listing discovery work.
+DESKTOP DEVELOPMENT: PAUSED. Do not change these working connectors in website phase.
+FIRST DESKTOP FOLLOW-UP: FULL VINTED ITEM DETAIL EXTRACTION. Many discovered rows show
+  Title unknown. Verify title, description, price, all photos/order, brand, size, condition,
+  colour, category, material and other attributes against real owner listings. Discovery
+  is NOT full import; wardrobe completeness also remains unproven.
+
+WEBSITE: LOCALLY PROVEN — revised responsive public homepage, honest Vinted/eBay beta copy,
+  provisional £9/£19/£29 plans and £0 seven-day trial, signup/login, account dashboard,
+  devices, legal/privacy/cookies/contact/security drafts. Genuine test-account screenshot.
+AUTH / DATABASE: LOCALLY PROVEN against isolated PostgreSQL 16 with persistent Docker volume.
+  Real Chrome form signup/login/logout, 168-hour trial, unchanged dates after re-login,
+  Secure/HttpOnly cookies and rejected foreign-origin sign-out pass. No PGlite for hosted use.
+SHARED ACCOUNT: LOCALLY PROVEN web approval/exchange uses exact same Better Auth user ID;
+  exchange single-use, device revocation blocks refresh. Actual packaged Desktop ↔ staging
+  browser approval, restart and revocation still require deployed account access.
+HOSTING: SELECTED Render Free Frankfurt + Neon Free Frankfurt for staging (not production SLA).
+  Cloudflare DNS later. Current expected infrastructure £0/month within quotas. No spending.
+  Existing Node/Nitro build preserved; no Workers rewrite. Render idle cold starts documented.
+DEPLOYMENT: BLOCKED on Render/Neon account access; no hosted service/database or public URL yet.
+  render.yaml/start-server validates secure config, migrates and starts built server.
+  Built-server checks pass canonical metadata, noindex staging, private/no-store, origin rejection.
+DOMAIN: OWNER DEFERRED PURCHASE. Free staging URL first. Recommended uselane.co.uk later;
+  8 provisional RDAP-absent choices/pricing/registrar comparison in docs/PHASE2_HOSTING_DOMAINS.md.
+GOOGLE: NOT CONFIGURED; optional, hidden when unavailable. Owner OAuth client + exact callback
+  and provider secrets required. No credentials in chat or Git.
+EMAIL: CONDITIONAL RESET FLOW IMPLEMENTED; Resend sender/API configuration + delivery test pending.
+  Forgot-password honestly reports unavailable until configured. Verification/welcome/security
+  email policy and delivery remain follow-ups before general public signup.
+DOWNLOAD: PUBLIC VERIFIED RELEASE PENDING. Do not advertise an old installer. GitHub Releases,
+  version/date/SHA256/unsigned notice chosen after packaged staging-pairing acceptance.
+LEGAL / SUPPORT: Draft only. Operator legal identity, verified support address, retention/deletion
+  process and owner/legal review required before general public launch.
+TESTS: production Node build; typecheck; 10 focused auth/deployment/pairing/trial tests; actual
+  browser + PostgreSQL account/pairing test; built Node startup/headers/canonical/origin proof.
+  Evidence kept in ignored artifacts/phase2-*; secrets in ignored .env.phase2.local only.
+LOCAL PREVIEW: http://localhost:8080 (not public staging). Local fixture DB container/volume:
+  lane-phase2-postgres on loopback 15439. Independent of other Docker projects and marketplace data.
+BUDGET: £0 spent. COMPUTE: 62% weekly used / 38% remaining at checkpoint.
+NEXT ACTIONS: owner sign into Render + Neon free accounts; provision configured staging and
+  durable cloud DB, migrate/test deployed account flows, pair actual Desktop, verify release.
+  Domain stays deferred until owner buys it. No live billing or additional marketplace work.
+
+HISTORICAL DESKTOP CHECKPOINT BELOW — superseded by the active Phase 2 status above.
+LANE VINTED REPAIR — CHECKPOINT 11 SEPTEMBER 2026
 Branch: codex/lane-smart-crosslisting. Baseline b80e3f7; f34d7b1 present.
 Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
 DESKTOP APP: IN PROGRESS — focused Vinted diagnostic repair; build/launch handled by agent.

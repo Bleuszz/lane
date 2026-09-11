@@ -1,16 +1,11 @@
 export const PRODUCT_NAME = "Lane";
-
 export const LEGAL_FOOTER =
-  "Lane never asks for marketplace passwords. eBay uses official OAuth. Vinted: you sign in on Vinted’s own site; the Windows app (or Lane Bridge) captures the session and closes the window. Keep a signed-in browser for fallback. Aggressive automation can breach marketplace terms — we cap rates to reduce risk, we cannot eliminate it.";
-
+  "Lane is independent of Vinted and eBay. Sign into marketplaces directly in Lane Desktop. Their browser sessions remain local and separate from your Lane account. Listing discovery is in beta; full detail extraction and publishing are still being verified.";
 export const EXTENSION_HONESTY =
-  "Vinted runs from a captured session when one exists, otherwise from Lane Bridge on an open vinted.co.uk tab. Closing that tab parks jobs as waiting_for_browser unless a server session is stored. eBay runs on the server via OAuth.";
-
+  "Use Lane Desktop for the current Vinted and eBay beta. A browser extension is not required for these session connections.";
 export const VINTED_CONNECT_COPY =
-  "Lane never sees your Vinted password. In the Windows app, Connect opens vinted.co.uk. When you are signed in, the window closes by itself. On the website in a normal browser, pair Lane Bridge or use the phone Firefox path.";
-
+  "Open Lane Desktop and connect Vinted. Complete sign-in on Vinted itself. Your session stays on this computer.";
 export const EBAY_CONNECT_COPY =
-  "Official eBay REST OAuth. You will be sent to eBay to approve sell.inventory access. Requires EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_RU_NAME and Business Policy IDs on the server.";
-
+  "Open Lane Desktop and connect eBay using your own browser session. The official developer API is not the active beta transport.";
 export const PHONE_CONNECT_COPY =
-  "A phone browser cannot hand Vinted’s login cookies to a website. Generate a link, then tap Open in Lane on this Windows PC — the app opens Vinted, captures the session, and closes the window. Scanning the QR on a phone only works with Firefox + Lane Bridge on Android. Safari cannot capture the session.";
+  "Connect marketplaces on your Windows computer using Lane Desktop. Your Lane web account is available in a phone browser.";

@@ -26,7 +26,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#f6f4ee" },
       {
         name: "description",
-        content: "UK reseller crosslisting. One inventory, every channel. Sign in on the marketplace’s own page.",
+        content: "Lane is a workspace for UK resellers. One Lane account across web and desktop, with Vinted and eBay session connections in beta.",
       },
     ],
     links: [
