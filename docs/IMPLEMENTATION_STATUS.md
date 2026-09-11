@@ -22,6 +22,12 @@ Temporary eBay connection/response failures and HTTP 408/429/500/502/503/504 aut
 
 Per-seller eBay policies/location are selected and revalidated against that account. `/api/worker` uses a dedicated secret and processes bounded batches. No scheduler has been activated. Automatic retry means eligibility for subsequent queue processing, not a running scheduled service; staging needs a configured trigger and measured runtime.
 
+## Manual sale recording
+
+Manual entry now selects the exact linked shop, whole-unit quantity, total item sale amount excluding postage, optional entered fees and a stable order-line ID/reference. Vinted entries are restricted to one unit; eBay supports available multi-unit stock. Input is server-validated and the source is always manual. The same reference cannot reduce stock twice; different details under an existing reference stop for review. Imported events can reconcile only when the exact same provider order-line key is available; universal manual-versus-poll matching is not claimed.
+
+Sale, stock and follow-up queue writes remain one database transaction. Migration 0015 stores the entered reference, amount basis and total item-cost snapshot; later item edits cannot change that cost. No historical costs are backfilled. Blank fees leave net unknown. The Sold page labels estimates, reports only its latest 100 entries, and calculates costs/margin only for entries with entered fees and a saved cost. Postage, refunds, tax and payment receipt are outside that margin. This does not collect money or establish cash received.
+
 ## Trial, AI and billing
 
 The seven-day no-card trial grants 25 lifetime publish/relist actions and zero AI. Proposed GBP9/19/29 plans have server-enforced allowances; checkout stays gated pending verification. AI is opt-in, evidence-backed, limited to supported values and preserves manual entries. Credits, usage estimates, refunds and supplier cost guards are separate; unknown usage retains its conservative provider-cost reservation. Local photo adjustments use no paid image model.
@@ -30,14 +36,14 @@ Signed Stripe events reconcile current paid subscription state with durable dedu
 
 ## Current evidence
 
-TypeScript, production build and current changed-file ESLint pass. The full portable suite reports **287 tests: 269 pass, 18 inherited failures**. All **36 core tests** pass within that run. The inherited failures concern missing template/skill/auth fixtures, Grok metadata assumptions and Windows symlink permissions; they are not disabled.
+TypeScript, production build and current changed-file ESLint pass. The full portable suite reports **290 tests: 272 pass, 18 inherited failures**. All **39 core tests** pass within that run. The inherited failures concern missing template/skill/auth fixtures, Grok metadata assumptions and Windows symlink permissions; they are not disabled.
 
-Tests use real isolated PGlite with mocked providers. They cover persistence/rollback, ownership, concurrency, quotas, source details, snapshot-backed bridge dispatch, lost eBay acknowledgements, stock changes during uploads, retained sale follow-ups, photo receipt expiry, billing replay and automatic retry cooldown/exhaustion. The retry integration proves one remote listing and one action/hourly reservation after a lost publish response. Browser QA covered draft/photo save and reload, 362x698 cards/dialogs/focus, no horizontal overflow, batch blockers and invalid URL feedback. No connected end-to-end publication has been verified.
+Tests use real isolated PGlite with mocked providers. They cover persistence/rollback, ownership, concurrency, quotas, source details, snapshot-backed bridge dispatch, lost eBay acknowledgements, stock changes during uploads, retained sale follow-ups, photo receipt expiry, billing replay, automatic retry cooldown/exhaustion and manual-sale replay/rollback/cost snapshots. The retry integration proves one remote listing and one action/hourly reservation after a lost publish response. Browser QA covered draft/photo save and reload, 362x698 cards/dialogs/focus, no horizontal overflow, batch blockers, invalid URL feedback, unlinked manual-sale gating and unknown sales-summary values. No connected end-to-end publication has been verified.
 
 ## Remaining gates and productive local work
 
 - Authorized eBay keys/RuName/seller session and Vinted bridge login are needed for real import, current taxonomy/conditions, seller policies, photo acceptance and controlled marketplace tests. Eight more varied owned items are needed for the ten-item benchmark.
-- Staging needs an explicitly chosen host/database, secure auth/token configuration, migration approval, measured storage/runtime, a worker trigger and verified sold-event ingestion. No infrastructure was created. Follow `STAGING.md`, including migrations through 0014 and legacy-job review.
+- Staging needs an explicitly chosen host/database, secure auth/token configuration, migration approval, measured storage/runtime, a worker trigger and verified sold-event ingestion. No infrastructure was created. Follow `STAGING.md`, including migrations through 0015 and legacy-job review.
 - Verify provider rate-limit scope and account/application cooldown behavior before volume tests; the current job policy alone does not coordinate a shared provider quota.
-- Add the quantity/reference form for manual multi-unit sales. Review deletion and snapshot retention without deleting pending work or erasing evidence needed for reconciliation.
+- Verify the linked manual-sale form with an authorized staging item. Review deletion and snapshot retention without deleting pending work or erasing evidence needed for reconciliation.
 - Reconcile fees before presenting seller profit. SaaS unit economics remain assumptions in `ECONOMICS_DEPLOYMENT.md`; no paid pilot, revenue or competitive performance claim is established by these tests.

@@ -1,3 +1,4 @@
+import { RecordSale } from "@/components/record-sale";
 import { PublishPreview } from "@/components/publish-preview";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,7 +10,6 @@ import {
   getBootstrap,
   getItemFn,
   getSettingsExtras,
-  markSoldFn,
   publishItems,
   pushUpdate,
   relistListing,
@@ -35,6 +35,7 @@ function ItemPage() {
   const extras = useQuery({ queryKey: ["settings-extras"], queryFn: () => getSettingsExtras() });
   const [targetOverride, setTargetOverride] = useState<ListingTarget | null>(null);
   const [review, setReview] = useState(false);
+  const [saleChannelId, setSaleChannelId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ItemDraft | null>(null);
   const [accountIds, setAccountIds] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
@@ -67,6 +68,12 @@ function ItemPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {saleChannelId !== null && <RecordSale item={item} channelId={saleChannelId || undefined} onClose={() => setSaleChannelId(null)} onRecorded={result => {
+        setSaleChannelId(null);
+        setDraft(current => current ? {...current,quantity:String(result.remainingQuantity)} : null);
+        setMsg(result.recorded ? `Sale recorded. ${result.remainingQuantity} remaining; linked stock updates are queued.` : "This sale was already recorded. Stock has not been reduced again.");
+        void qc.invalidateQueries();
+      }}/>}
       {review && <PublishPreview draft={draft} accounts={picked} rules={extras.data?.rules ?? []} onClose={() => setReview(false)} onConfirm={async () => {
         await save.mutateAsync();
         const result = await publishItems({data:{itemIds:[id],accountIds}});
@@ -84,6 +91,7 @@ function ItemPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={item.quantity < 1 || ["sold","archived"].includes(item.status)} onClick={() => setSaleChannelId("")}>Record a sale</Button>
           <Button variant="secondary" onClick={() => save.mutate()} disabled={save.isPending}>
             Save
           </Button>
@@ -174,18 +182,8 @@ function ItemPage() {
                       <Button size="sm" variant="ghost" onClick={() => relistListing({ data: { channelListingId: c.id } }).then(() => qc.invalidateQueries())}>
                         Relist
                       </Button>
-                      <Button
-                        size="sm"
-                        disabled={item.quantity !== 1}
-                        title={item.quantity !== 1 ? "Per-unit sale entry is not available yet" : undefined}
-                        onClick={() =>
-                          markSoldFn({ data: { itemId: id, marketplace: c.marketplace, via: "manual" } }).then(() => {
-                            setMsg("Sale recorded. Other live channels queued for delist if qty is now 0.");
-                            void qc.invalidateQueries();
-                          })
-                        }
-                      >
-                        Mark sold here
+                      <Button size="sm" disabled={item.quantity < 1} onClick={() => setSaleChannelId(c.id)}>
+                        Record sale here
                       </Button>
                     </>
                   ) : null}

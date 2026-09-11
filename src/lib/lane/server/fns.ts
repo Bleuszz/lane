@@ -1,3 +1,5 @@
+import { manualSaleSchema, type ManualSaleInput } from "../manual-sale";
+import { recordManualSale } from "./manual-sales";
 import { assertPublishReviews, publishReviewHash, withPublishItems } from "./publish-review";
 import { insertItem } from "./items";
 import { createHash } from "node:crypto";
@@ -34,7 +36,6 @@ import {
   mapTemplate,
 } from "./map";
 import {
-  applySale,
   enqueueJob,
   liveEbayToken,
   tickOauthJobs,
@@ -915,19 +916,12 @@ export const pushUpdate = createServerFn({ method: "POST" })
 
 export const markSoldFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { itemId: string; marketplace: MarketplaceId; via?: "webhook" | "extension_poll" | "manual" }) => {
-    marketplaceSchema.parse(d.marketplace);
-    return d;
-  })
+  .validator((data: ManualSaleInput) => manualSaleSchema.parse(data))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    await applySale(sql, context.userId, {
-      itemId: data.itemId,
-      marketplace: data.marketplace,
-      via: data.via ?? "manual",
-    });
+    const result = await recordManualSale(sql, context.userId, data);
     await tickOauthJobs(sql, context.userId);
-    return { ok: true as const };
+    return result;
   });
 
 export const retryJob = createServerFn({ method: "POST" })

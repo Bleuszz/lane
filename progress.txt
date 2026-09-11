@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-11 00:10 UTC (01:10 BST)
+Updated: 2026-09-11 00:24 UTC (01:24 BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -37,6 +37,12 @@ IMPLEMENTED
 - Atomic item/photo/tag creation; transactional source imports and item edits.
 - Durable job intent deduplication, atomic claims/leases, guarded retries, eBay
   offer reconciliation, sale-event deduplication and transactional delist outbox.
+- Manual sale form selects the exact linked shop, quantity, total item amount,
+  optional entered fees and a stable order-line/reference. Duplicate submissions
+  cannot reduce stock again; conflicting details stop for review. Vinted stays one unit.
+- Manual sale costs are captured per unit at sale time. Unknown fees/net stay unknown;
+  the Sold page distinguishes entered/estimated amounts and limits margin to complete
+  entries, excluding postage/refunds/tax. It does not verify payment receipt.
 - Seven-day no-card trial: 25 publish/relist actions, zero AI credits.
 - Optional AI extraction with evidence/allowed-value checks, manual override protection,
   credit ledger, usage estimates, refunds and monthly provider-cost guards.
@@ -51,6 +57,12 @@ IMPLEMENTED
 
 VERIFICATION
 - TypeScript and production build: pass again after photo delivery changes.
+- Manual-sale tests cover real concurrent replay, total amounts/cost snapshots,
+  unknown fees, ownership, insufficient stock, duplicate reference conflicts and
+  atomic rollback of sale/stock/outbox if metadata persistence fails.
+- Browser: unlinked sale entry explains its gate, modal closes/restores focus, and
+  Sold shows unknown cost/margin with no fabricated payment receipt. Linked form
+  submission is covered by server tests; connected browser submission remains a gate.
 - Actual process/retry tests confirm lost publish acknowledgement recovery after
   cooldown, no early HTTP call, one remote listing, one action/hourly reservation,
   permanent-error review and bounded exhaustion. Transport classification tests pass.
@@ -70,10 +82,10 @@ VERIFICATION
   account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 36 pass within the full suite, including actual PGlite persistence,
+- Focused core tests: 39 pass within the full suite, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 287 tests, 269 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 290 tests, 272 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -101,7 +113,10 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
    remain release gates. No Stripe network calls or payment actions were made.
 
 NEXT ACTIONS
-- Continue the multi-unit manual-sale flow and inventory deletion/retention review locally.
+- Continue inventory deletion/retention review locally; protect pending jobs and
+  sale/reconciliation history without removing data while the owner is away.
+- Verify the linked manual-sale form end to end using an authorized staging item;
+  migration 0015 adds sale metadata and must precede that route.
 - Verify account/application-wide rate-limit handling before load tests. Current retry
   cooldown is job-scoped; it is not a global API-quota coordinator.
 - Apply migration 0014 only during an approved staging migration. Reconcile legacy
@@ -121,7 +136,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 36% consumed, 64% remaining at latest check.
+Account-wide weekly usage: 38% consumed, 62% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -136,6 +151,7 @@ f280508: signed billing reconciliation and durable replay protection.
 054afef: immutable queued listing snapshots and quantity-only partial-sale updates.
 38a42ce: eBay photo delivery, retry cache, file validation and regression tests.
 9f53b92: stock rechecks, preserved account pauses and event-scoped sale outbox.
-Current checkpoint: bounded automatic eBay retry, cooldown visibility and full-process tests.
+ccbc35d: bounded automatic eBay retry, cooldown visibility and full-process tests.
+Current checkpoint: manual sale entry, immutable cost metadata and honest unknown totals.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

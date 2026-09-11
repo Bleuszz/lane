@@ -242,6 +242,9 @@ export type SaleView = {
   detectedVia: string;
   createdAt: string;
   costPriceGbp: number | null;
+  costTotalGbp: number | null;
+  amountsBasis: "entered" | "estimated";
+  reference: string | null;
 };
 
 export type ShippingProfileView = {
