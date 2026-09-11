@@ -1,4 +1,33 @@
-LANE SESSION DIAGNOSTIC — ACTIVE CHECKPOINT 11 SEPTEMBER 2026
+LANE VINTED REPAIR — ACTIVE CHECKPOINT 11 SEPTEMBER 2026
+Branch: codex/lane-smart-crosslisting. Baseline b80e3f7; f34d7b1 present.
+Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
+DESKTOP APP: IN PROGRESS — focused Vinted diagnostic repair; build/launch handled by agent.
+Source fingerprint generated from clean HEAD; unpacked Lane.exe, no installer this phase.
+EBAY SESSION / READ: LOCALLY PROVEN by owner; saved diagnostics show 24/24 links,
+  stable identity, same visible/background Session, successful close and discovery.
+  eBay flow unchanged; synthetic regression passes. Owner cold restart not yet recorded.
+VINTED SESSION: IN PROGRESS — real saved session now resolves identity and passes
+  independent hidden inbox validation. Confirmed SPA full-load hang plus pre-hydration
+  menu click. Vinted-only dom-ready/mainFrame execution and bounded menu retry repair.
+VINTED WARDROBE IMPORT: IN PROGRESS — matching live owned profile, 20 discovered links;
+  pink target 9912534056 found/read. Second target absent from current set; completeness
+  unknown. Detail reader has one photo and partial attributes, unknowns kept unknown.
+  Do not call full import or fresh interactive connection fixed yet.
+EBAY WRITE CAPABILITY: UNSUPPORTED in session mode; no marketplace writes made.
+DOWNLOAD PAGE / EXTENSION / DEPLOYMENT / DATABASE: unchanged in focused connector repair.
+TESTS: 19 targeted state/security/diagnostics pass; actual Electron Vinted delayed
+  hydration + never-finished-load fixture passes; unchanged eBay session-flow and reader
+  fixtures pass; Windows encrypted storage cross-process fixture passes.
+BUDGET: £0 spent. COMPUTE: 58% weekly used, 42% remaining at this checkpoint.
+BLOCKERS: owner fresh Vinted Connect test, UI auto-close/background refresh and real app
+  restart acceptance. No login credentials, manual cookie extraction or eBay API needed.
+NEXT: package clean committed source, verify ASAR/fingerprint, launch exact EXE and inspect
+  visible UI. Then one owner Vinted test; diagnose any remaining gate from new evidence.
+Full source/function comparison and live limitations: docs/VINTED_CONTROL_COMPARISON.md.
+Do not use old VBS/installed shortcuts; preserve all existing Lane profiles/session data.
+
+HISTORICAL CHECKPOINT BELOW — superseded by the active status above.
+LANE SESSION DIAGNOSTIC — CHECKPOINT 11 SEPTEMBER 2026
 Branch: codex/lane-smart-crosslisting; started at ddc3076.
 Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
 

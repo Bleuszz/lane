@@ -36,7 +36,8 @@
       "connection-manager.cjs",
       "session-transport.cjs",
       "session-diagnostics.cjs",
-      "build-info.json"
+      "build-info.json",
+      "vinted-readiness.cjs"
     ],
     "win": {
       "target": [

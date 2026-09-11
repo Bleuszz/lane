@@ -14,6 +14,8 @@ function cookieMetadata(cookies) {
 function pageSummary(e = {}) {
   return {
     identityResolved: Boolean(e.identity),
+    currentRoute: e.currentRoute || null,
+    wardrobeFound: Boolean(e.wardrobeUrl || e.wardrobeFound),
     pageAccessConfirmed: Boolean(e.pageAccessConfirmed),
     validationResult: e.challenge
       ? "challenge"
@@ -64,6 +66,15 @@ function profileDiagnostics(p) {
     visibleSessionMatches: d.visibleSessionMatches ?? null,
     backgroundSessionMatches: d.backgroundSessionMatches ?? null,
     navigationBlocked: Boolean(d.navigationBlocked),
+    vintedNavigation: d.vintedNavigation
+      ? {
+          domReady: Boolean(d.vintedNavigation.domReady),
+          finished: Boolean(d.vintedNavigation.finished),
+          inPage: Boolean(d.vintedNavigation.inPage),
+          route: d.vintedNavigation.route || null,
+          lastEvent: d.vintedNavigation.lastEvent || null,
+        }
+      : null,
     validationResult: d.validationResult || "unknown",
     listingStateKnown: Boolean(d.listingStateKnown),
     linksFound: d.linksFound ?? p.links?.length ?? 0,

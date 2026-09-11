@@ -3,6 +3,7 @@ const { MARKETPLACES, marketplaceUrl, cookieAllowed } = require("./security.cjs"
 const { readScript } = require("./session-reader.cjs");
 const { failure } = require("./connection-manager.cjs");
 const { cookieMetadata, pageSummary, profileDiagnostics } = require("./session-diagnostics.cjs");
+const vintedReadiness = require("./vinted-readiness.cjs");
 const identityHosts = [
   "accounts.google.com",
   "appleid.apple.com",
@@ -149,11 +150,14 @@ function createSessionTransport({
       },
     });
     secureWindow(win, p, r, interactive);
+    if (p.marketplace === "vinted_uk") vintedReadiness.observeNavigation(win, p);
     if (interactive) r.window = win;
     return win;
   }
   async function inspect(win, p) {
     if (win.isDestroyed()) return { closed: true };
+    if (p.marketplace === "vinted_uk")
+      return vintedReadiness.inspect(win, p, undefined, supportMode);
     if (!marketplaceUrl(win.webContents.getURL(), p.marketplace)) return { authenticated: false };
     try {
       let result = await win.webContents.executeJavaScript(
@@ -196,6 +200,8 @@ function createSessionTransport({
     };
     signal?.addEventListener("abort", abort, { once: true });
     try {
+      if (p.marketplace === "vinted_uk")
+        return await vintedReadiness.visit(win, url, p, signal, supportMode);
       let timeout;
       try {
         await Promise.race([
@@ -354,6 +360,10 @@ function createSessionTransport({
       win.once("closed", () => signal.removeEventListener("abort", abort));
       let timer;
       try {
+        if (p.marketplace === "vinted_uk") {
+          await vintedReadiness.navigate(win, MARKETPLACES[p.marketplace].login, p, signal);
+          return win;
+        }
         await Promise.race([
           win.loadURL(MARKETPLACES[p.marketplace].login),
           new Promise((_, reject) => {
