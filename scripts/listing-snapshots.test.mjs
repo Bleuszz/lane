@@ -13,10 +13,11 @@ const hooks = registerHooks({resolve(specifier,context,next){
   if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier) && context.parentURL?.includes("/src/")) return next(`${specifier}.ts`,context);
   return next(specifier,context);
 }});
-const {enqueueJob,isSaleStockJob} = await import("../src/lib/lane/server/process.ts");
+const {enqueueJob,isSaleStockJob,processJob} = await import("../src/lib/lane/server/process.ts");
 const {loadItem} = await import("../src/lib/lane/server/map.ts");
-const {claimJob} = await import("../src/lib/lane/server/operations.ts");
+const {claimJob,guardEbayStockWrite,queueJobRetry} = await import("../src/lib/lane/server/operations.ts");
 const {pendingJobs} = await import("../src/lib/lane/server/bridge.ts");
+const {seal} = await import("../src/lib/lane/server/secret.ts");
 hooks.deregister();
 
 test("real enqueue/claim retains the approved revision on retry, with live stock and owner isolation", async()=>{
@@ -102,5 +103,91 @@ test("bridge dispatch sends frozen fields and price, and sends nothing after sto
     assert.equal(dispatched[0].item.photos[0].url,"https://example.test/reviewed.jpg");
     assert.ok(dispatched[0].claimToken);
     assert.deepEqual(await pendingJobs(sql,"owner",first),[],"claimed jobs cannot be dispatched twice");
+  } finally {await db.close();}
+});
+
+
+test("slow photo delivery stops stale stock, retry uses current quantity and successful work preserves an account pause",async()=>{
+  const db=new PGlite();
+  const sql=async(strings,...values)=>(await db.query(strings.reduce((q,p,i)=>q+(i?`$${i}`:"")+p,""),values)).rows;
+  const originalFetch=globalThis.fetch;
+  const png="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=";
+  let uploads=0,writes=0;
+  globalThis.fetch=async(url,options)=>{
+    const path=new URL(url).pathname;
+    if(path.endsWith("create_image_from_file")) {
+      uploads++;
+      // A sale is recorded while the provider is handling the image.
+      await sql`select lane_record_sale('owner','item',null,'vinted_uk',null,'during-upload','sale-during-upload',22,0,22,'manual',1)`;
+      return Response.json({imageUrl:"https://i.ebayimg.com/images/fixture.jpg",expirationDate:new Date(Date.now()+86_400_000).toISOString()},{status:201});
+    }
+    if(options.method==="GET" && path.includes("inventory_item/")) return Response.json({product:{title:"Before",description:"Before"}});
+    if(options.method==="GET" && path.endsWith("/offer/offer")) return Response.json({offerId:"offer",availableQuantity:2});
+    if(options.method==="PUT") {
+      writes++;
+      const body=JSON.parse(options.body);
+      if(path.includes("inventory_item/")) {
+        assert.equal(body.availability.shipToLocationAvailability.quantity,1);
+        assert.equal(body.product.title,"Approved title");
+        assert.deepEqual(body.product.imageUrls,["https://i.ebayimg.com/images/fixture.jpg"]);
+      } else {
+        assert.equal(body.availableQuantity,1);
+        // Pause after the final remote request: completion must not reactivate it.
+        await sql`update marketplace_accounts set status='paused' where id='shop'`;
+      }
+      return new Response(null,{status:204});
+    }
+    throw new Error(`Unexpected fixture request: ${options.method} ${path}`);
+  };
+  try {
+    for(const name of (await readdir(new URL("../migrations/",import.meta.url))).filter(n=>n.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(`../migrations/${name}`,import.meta.url),"utf8"));
+    await sql`insert into user_settings(user_id) values ('owner')`;
+    await sql`insert into marketplace_accounts(id,user_id,marketplace,mode,label,status,oauth_access_token,oauth_refresh_token,oauth_expires_at) values ('shop','owner','ebay_uk','oauth','Test shop','green',${seal("fixture-access")},${seal("fixture-refresh")},'2100-01-01')`;
+    await sql`insert into items(id,user_id,title,description,condition,base_price_gbp,quantity) values ('item','owner','Approved title','Original flaws retained','good',20,2)`;
+    await sql`insert into item_photos(id,item_id,user_id,url) values ('photo','item','owner',${png})`;
+    await sql`insert into channel_listings(id,item_id,user_id,marketplace,marketplace_account_id,channel_price_gbp,remote_status,ebay_offer_id,ebay_sku,quantity_on_channel) values ('channel','item','owner','ebay_uk','shop',22,'live','offer','sku',2)`;
+    const job=await enqueueJob(sql,{userId:"owner",type:"update",marketplace:"ebay_uk",accountId:"shop",itemId:"item",channelListingId:"channel"});
+    const first=await processJob(sql,"owner",job,"worker");
+    assert.equal(first.ok,false);
+    assert.match(first.error,/Stock changed/);
+    assert.equal(writes,0,"a slow upload must not be followed by a stale inventory write");
+    assert.equal(uploads,1);
+    assert.equal((await sql`select status from jobs where id='during-upload:channel'`)[0].status,"queued","the real sale outbox survives the active content update");
+    await sql`update items set title='Later unapproved edit' where id='item'`;
+    await queueJobRetry(sql,"owner",job);
+    assert.deepEqual(await processJob(sql,"owner",job,"worker"),{ok:true});
+    assert.equal(writes,2);
+    assert.equal(uploads,1,"retry reuses the completed photo receipt");
+    assert.equal((await sql`select quantity_on_channel from channel_listings where id='channel'`)[0].quantity_on_channel,1);
+    assert.equal((await sql`select status from marketplace_accounts where id='shop'`)[0].status,"paused");
+    assert.equal((await sql`select status from jobs where id=${job}`)[0].status,"done");
+  } finally {globalThis.fetch=originalFetch;await db.close();}
+});
+
+test("outward stock guards reject sold, archived, paused, foreign and expired work without enlarging approved stock",async()=>{
+  const db=new PGlite();
+  const sql=async(strings,...values)=>(await db.query(strings.reduce((q,p,i)=>q+(i?`$${i}`:"")+p,""),values)).rows;
+  try {
+    for(const name of (await readdir(new URL("../migrations/",import.meta.url))).filter(n=>n.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(`../migrations/${name}`,import.meta.url),"utf8"));
+    await sql`insert into marketplace_accounts(id,user_id,marketplace,mode,label,status) values ('shop','owner','ebay_uk','oauth','Test','green')`;
+    await sql`insert into items(id,user_id,title,base_price_gbp,quantity) values ('item','owner','Test',20,3)`;
+    const id=await enqueueJob(sql,{userId:"owner",type:"update",marketplace:"ebay_uk",accountId:"shop",itemId:"item",channelListingId:null});
+    await claimJob(sql,"owner",id,"lease","worker");
+    const guard=(quantity,stockOnly=false)=>guardEbayStockWrite(sql,"owner",id,"lease",quantity,stockOnly);
+    await guard(2); // Approved stock remains capped even when more exists now.
+    await guard(3,true);
+    await assert.rejects(guard(2,true),/Stock changed/);
+    await assert.rejects(guard(4),/Stock changed/);
+    await assert.rejects(guardEbayStockWrite(sql,"foreign",id,"lease",2),/lease expired/);
+    await sql`update marketplace_accounts set status='paused' where id='shop'`;
+    await assert.rejects(guard(2),/paused or disconnected/);
+    await sql`update marketplace_accounts set status='green' where id='shop'`;
+    for(const status of ["sold","archived"]) {
+      await sql`update items set status=${status} where id='item'`;
+      await assert.rejects(guard(1),/Stock changed/);
+      await guard(0,true); // Ending availability is safe even with a stale stored count.
+    }
+    await sql`update jobs set lease_expires_at=now()-interval '1 second' where id=${id}`;
+    await assert.rejects(guard(0,true),/lease expired/);
   } finally {await db.close();}
 });

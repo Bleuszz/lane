@@ -80,7 +80,7 @@ test("remote event replay cannot decrement twice; distinct order lines sell sepa
     const outbox = await sql`select * from jobs where type = 'delist'`;
     assert.equal(outbox.length, 1);
     assert.equal(outbox[0].status, "waiting_for_browser");
-    assert.equal(outbox[0].idempotency_key, intentKey("delist", "v", "i", "vc"));
+    assert.deepEqual(JSON.parse(outbox[0].idempotency_key), ["sale", "sale3", "vc"]);
     await sell("late", "order3-line1");
     assert.equal((await sql`select count(*)::int as count from sales`)[0].count, 2);
   } finally { await db.close(); }
@@ -107,4 +107,33 @@ test("reconciliation returns remote success, rejects ambiguity and never substit
   assert.equal(selectSellerPolicy([policy], "fulfillmentPolicyId"), "mine");
   assert.throws(() => selectSellerPolicy([policy], "fulfillmentPolicyId", "other-shop"), /belonging/);
   assert.notEqual(saleEventKey({ marketplace: "ebay_uk", accountId: "a", itemId: "i", eventId: "one" }), saleEventKey({ marketplace: "ebay_uk", accountId: "a", itemId: "i", eventId: "two" }));
+});
+
+
+test("each new sale keeps its stock follow-up behind active content and stock jobs; replay creates none",async()=>{
+  const {db,sql}=await fixture();
+  try {
+    await sql`update items set quantity=4 where id='i'`;
+    await sql`update marketplace_accounts set status='green' where id='a'`;
+    await sql`insert into jobs(id,user_id,type,status,marketplace,account_id,item_id,channel_listing_id,request_id,idempotency_key)
+      values ('content','u','update','queued','ebay_uk','a','i','c','content-request',${intentKey("update","a","i","c")})`;
+    assert.ok(await claimJob(sql,"u","content","content-lease","worker"));
+    const sell=(id,event,quantity=1)=>sql`select lane_record_sale('u','i',null,'vinted_uk',null,${id},${event},20,0,20,'manual',${quantity}) as recorded`;
+    await sell("first","event-one");
+    assert.equal((await sql`select status from jobs where id='first:c'`)[0].status,"queued");
+    assert.equal(await claimJob(sql,"u","first:c","too-soon","worker"),null,"active content write holds channel lease");
+    await sql`update jobs set status='done',lease_token=null,lease_expires_at=null where id='content'`;
+    assert.ok(await claimJob(sql,"u","first:c","stock-lease","worker"));
+    await sell("second","event-two");
+    assert.equal((await sql`select status from jobs where id='second:c'`)[0].status,"queued","sale during a running stock write must survive");
+    assert.equal((await sell("duplicate","event-two"))[0].recorded,false);
+    assert.equal((await sql`select quantity from items where id='i'`)[0].quantity,2);
+    assert.equal((await sql`select * from jobs where channel_listing_id='c'`).length,3);
+    assert.equal(await claimJob(sql,"u","second:c","too-soon-again","worker"),null);
+    await sell("final","event-three",2);
+    assert.equal((await sql`select type from jobs where id='final:c'`)[0].type,"delist");
+    await sql`update jobs set status='done',lease_token=null,lease_expires_at=null where id='first:c'`;
+    assert.ok(await claimJob(sql,"u","second:c","next-stock-lease","worker"));
+    assert.equal((await sql`select count(*)::int as n from sales`)[0].n,3);
+  } finally {await db.close();}
 });

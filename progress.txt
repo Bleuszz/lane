@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-10 23:52 UTC (11 September BST)
+Updated: 2026-09-11 00:01 UTC (01:01 BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -20,6 +20,11 @@ IMPLEMENTED
 - Queued content actions reference immutable owner-scoped listing snapshots. Retries
   retain text, photos, fields and price; live stock can only reduce queued quantity.
 - Database-generated partial-sale jobs use quantity-only eBay updates, preserving content.
+- New sales retain separate durable follow-ups even during active content/stock jobs.
+  Duplicate sale delivery still cannot decrement stock twice; channel leases serialize jobs.
+- Stock and account availability are rechecked before each eBay photo/content/quantity
+  write. A reduction stops stale work; retry loads current stock with approved content.
+  Successful completion preserves a concurrent account pause and records updated quantity.
 - eBay photo delivery uploads local JPEG/PNG copies through its Media API on an
   authorized job. Cached receipts preserve order, survive partial failures and expire;
   originals and queued snapshots stay unchanged. No separate storage service added.
@@ -43,6 +48,9 @@ IMPLEMENTED
 
 VERIFICATION
 - TypeScript and production build: pass again after photo delivery changes.
+- Stock-race tests execute the real sale transaction during a mocked photo upload,
+  verify zero stale listing writes, retry with reduced stock, retained sale follow-ups,
+  pause preservation, and sold/archived/foreign/expired-lease guards.
 - Photo tests verify multipart bytes, whole-selection preflight, receipt reuse/expiry,
   owner/account/environment isolation, lost leases, incomplete replies and no silent
   omissions. Mocked listing updates wait for all photos; already-live retries skip uploads.
@@ -56,10 +64,10 @@ VERIFICATION
   account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 30 pass, including actual PGlite persistence,
+- Focused core tests: 33 pass within the full suite, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 281 tests, 263 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 284 tests, 266 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -87,6 +95,9 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
    remain release gates. No Stripe network calls or payment actions were made.
 
 NEXT ACTIONS
+- Continue bounded retry/error recovery and the multi-unit manual-sale flow locally.
+- Apply migration 0014 only during an approved staging migration. Reconcile legacy
+  pending jobs/current channel stock; older suppressed sale follow-ups are not recreated.
 - Verify policy/location selectors against the authorized eBay account when available.
 - Verify the complete approved batch path with authorized connected destinations.
   Local offline-account/missing-field review is verified; no batch was published.
@@ -102,7 +113,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 34% consumed, 66% remaining at latest check.
+Account-wide weekly usage: 35% consumed, 65% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -115,6 +126,7 @@ f280508: signed billing reconciliation and durable replay protection.
 43d6a65: mobile product cards, modal focus/scroll behavior and explicit bulk selection.
 702c4d7: per-item batch review and transactional queue writes.
 054afef: immutable queued listing snapshots and quantity-only partial-sale updates.
-Current checkpoint: eBay photo delivery, retry cache, file validation and regression tests.
+38a42ce: eBay photo delivery, retry cache, file validation and regression tests.
+Current checkpoint: stock rechecks, preserved account pauses and event-scoped sale outbox.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

@@ -24,7 +24,7 @@ A seven-day no-card trial has 25 lifetime actions and zero AI. Paid plans have s
 
 ## Test baseline
 
-The portable full runner exposes 281 tests: 263 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 30 pass in the current full run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
+The portable full runner exposes 284 tests: 266 pass and 18 inherited template tests fail. These cover absent `.grok`/skill/auth fixture files, Grok-specific metadata expectations and Windows symlink permissions. They existed before the Lane changes and are not disabled. Core 33 pass in the current full run; auth/app-data 55 passed in the previous run. Continue tracking that baseline rather than claiming the whole repository is green.
 
 Builds and migrations are separate operations. Node 24.14 was used locally. No remote database was migrated.
 
@@ -78,3 +78,11 @@ The worker supplies a lazy photo resolver to eBay publishing/updating. Already-l
 Migration 0013 stores only content hashes and upload receipts in the existing database. Receipts are cached separately for each owner, account and environment, expire with a five-minute safety margin, and survive later-photo failures. Canonical image data and immutable queued snapshots are not replaced. A missing/lost response before persistence may still leave an unused provider image, and concurrent jobs may upload the same image; exactly-once media creation is not claimed. Listing reconciliation remains independent.
 
 Thirty focused core tests pass, including three new photo tests covering database-backed cache behavior and mocked multipart/listing requests. Full suite: 281 total, 263 pass, the same 18 inherited failures. TypeScript/build pass; current photo-change lint has zero errors and two existing React refresh warnings. Local browser checks confirmed invalid URL feedback, loaded originals and the unconnected publish gate. No real upload or marketplace mutation was performed.
+
+## Stock changes during execution
+
+Before each eBay photo/content/quantity write, the worker renews its lease and rereads owner-scoped item stock and account status. Content jobs cannot exceed the approved snapshot or current availability; stock-only jobs require the exact current quantity. Sold/archived, paused/disconnected and expired/foreign work stop. An interrupted job's retry reloads current stock while retaining its original content and upload receipts. Successful update bookkeeping now records quantity, and completion preserves a concurrent account pause/re-auth state.
+
+Migration 0014 gives each distinct sale its own outbox key. A sale during an existing content or stock job therefore retains a queued follow-up rather than colliding with that older intent. Sale-event deduplication still prevents duplicate decrements; per-channel leases serialize execution. Existing jobs are preserved. No automatic reconstruction of previously suppressed jobs is attempted.
+
+These checks narrow the interval between stock read and outward write; they are not an atomic transaction with eBay. A sale after the check still needs its durable follow-up, and an unobserved remote sale still requires ingestion. No overselling guarantee is made. Three new regression tests pass, including an actual database sale during a mocked upload and queued follow-ups behind running jobs. Current full suite: 284 total / 266 pass / 18 inherited failures; 33 core tests pass within that run. TypeScript, changed-server lint and production build pass.

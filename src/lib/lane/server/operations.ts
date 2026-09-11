@@ -3,7 +3,7 @@ import type { Sql } from "@/lib/db";
 export const JOB_LEASE_SECONDS = 300;
 
 export function intentKey(type: string, accountId: string, itemId: string | null, channelId: string | null) {
-  // Match PostgreSQL jsonb_build_array(... )::text for the transactional sale outbox.
+  // Stable user-initiated intent. Sale outbox jobs use separate event-scoped keys.
   return `[${[type, accountId, itemId, itemId ? null : channelId].map((value) => JSON.stringify(value)).join(", ")}]`;
 }
 
@@ -61,6 +61,29 @@ export async function renewJobLease(sql: Sql, userId: string, jobId: string, lea
     where id = ${jobId} and user_id = ${userId} and lease_token = ${leaseToken}
       and lease_expires_at > now() returning id`;
   if (!rows[0]) throw new Error("Job lease expired. Reconcile the marketplace before continuing.");
+}
+
+/** Recheck after slow uploads/reads and before each eBay content/quantity write.
+ * This narrows the stale-stock window; remote sales still need event ingestion.
+ */
+export async function guardEbayStockWrite(sql: Sql, userId: string, jobId: string, leaseToken: string, quantity: number, stockOnly = false) {
+  await renewJobLease(sql, userId, jobId, leaseToken);
+  const rows = await sql<{quantity:number;status:string;account_status:string}>`
+    select i.quantity,i.status,a.status as account_status from jobs j
+    join items i on i.id=j.item_id and i.user_id=j.user_id
+    join marketplace_accounts a on a.id=j.account_id and a.user_id=j.user_id
+    where j.id=${jobId} and j.user_id=${userId} and j.lease_token=${leaseToken}
+      and j.lease_expires_at>now() and a.marketplace='ebay_uk' and a.mode='oauth'`;
+  const current = rows[0];
+  if (!current) throw new Error("Listing job or inventory is unavailable. Reconcile before retrying.");
+  if (!["green", "rate_limited"].includes(current.account_status)) throw new Error("The eBay account was paused or disconnected. No further listing write was sent.");
+  if (!Number.isInteger(current.quantity) || current.quantity < 0 || !Number.isInteger(quantity) || quantity < 0) throw new Error("Inventory quantity needs review.");
+  const available = ["sold", "archived"].includes(current.status) ? 0 : current.quantity;
+  // Listing snapshots cap stock; a later increase must never enlarge an approval.
+  // Sale propagation instead needs the exact current quantity, including zero.
+  if (stockOnly ? available !== quantity : quantity < 1 || available < quantity) {
+    throw new Error("Stock changed while this job was running. Retry to reload current stock before any further listing write.");
+  }
 }
 
 /** Never turn an active/done job back into a queued publish on repeated clicks. */
