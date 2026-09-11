@@ -10,6 +10,8 @@
     "start": "electron .",
     "dist": "electron-builder --win nsis",
     "dist:dir": "electron-builder --win dir",
+    "predist:dir": "node write-build-info.cjs --diagnostic",
+    "predist": "node write-build-info.cjs",
     "verify:runtime": "electron verify-runtime.cjs"
   },
   "devDependencies": {
@@ -33,7 +35,8 @@
       "package.json",
       "connection-manager.cjs",
       "session-transport.cjs",
-      "session-diagnostics.cjs"
+      "session-diagnostics.cjs",
+      "build-info.json"
     ],
     "win": {
       "target": [

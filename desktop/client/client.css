@@ -4,6 +4,15 @@
   background: #f4f2ed;
   font-synthesis: none;
 }
+.build-fingerprint {
+  background: #fff;
+  border: 2px solid #243f35;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: pre-line;
+}
 * {
   box-sizing: border-box;
 }

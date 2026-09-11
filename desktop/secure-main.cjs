@@ -23,7 +23,14 @@ const {
 const { createConnectionManager } = require("./connection-manager.cjs");
 const { createSessionTransport } = require("./session-transport.cjs");
 const { profileDiagnostics } = require("./session-diagnostics.cjs");
-const diagnosticRun = process.argv.includes("--diagnostic-run") && !app.isPackaged;
+let buildInfo = null;
+try {
+  buildInfo = require("./build-info.json");
+} catch {
+  if (app.isPackaged) throw new Error("Packaged build fingerprint is missing.");
+}
+const diagnosticRun =
+  Boolean(buildInfo?.diagnostic) || (process.argv.includes("--diagnostic-run") && !app.isPackaged);
 if (diagnosticRun) app.setPath("userData", path.join(app.getPath("appData"), "Lane"));
 let transport, connections;
 const qaSmoke = process.argv.includes("--qa-smoke") && !app.isPackaged;
@@ -95,6 +102,7 @@ function publicState() {
   return {
     version: app.getVersion(),
     diagnosticRun,
+    buildInfo,
     origin: state.origin || "",
     paired: Boolean(state.deviceToken),
     pairingCode: state.pairing?.code || null,
@@ -368,7 +376,9 @@ action("startup", async (value) => {
   return publicState();
 });
 action("diagnostics", async () => {
-  clipboard.writeText(JSON.stringify(diagnostics(state, app.getVersion()), null, 2));
+  clipboard.writeText(
+    JSON.stringify({ ...diagnostics(state, app.getVersion()), buildInfo }, null, 2),
+  );
   return {
     message: "Diagnostics copied. No session values, account names or website addresses included.",
   };

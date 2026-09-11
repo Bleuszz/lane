@@ -37,6 +37,9 @@ async function act(run) {
 }
 async function refresh() {
   const state = await api.status();
+  $("build-fingerprint").textContent = state.buildInfo
+    ? `Lane ${state.version} · ${state.diagnosticRun ? "SESSION DIAGNOSTIC — DIAGNOSTIC BUILD" : "BUILD"}\nCommit: ${state.buildInfo.shortCommit}\nBuild: ${state.buildInfo.builtAt}`
+    : `Lane ${state.version} · SESSION DIAGNOSTIC\nUnpackaged development source`;
   $("unpair").hidden = !state.paired;
   $("sign-in").hidden = state.paired;
   $("version").textContent =
@@ -71,6 +74,9 @@ async function refresh() {
     const actions = document.createElement("div");
     actions.className = "actions";
     actions.append(button(p ? "Reconnect" : "Connect " + name, () => api.connect(marketplace)));
+    actions.append(
+      button("SESSION PROBE", () => (p ? showProbe(p.id) : showEmptyProbe(marketplace)), true),
+    );
     if (p) {
       const refreshButton = button("Refresh listings", () => api.inspect(p.id), true);
       const readButton = button("Read item details", () => api.read(p.id), true);
@@ -83,7 +89,6 @@ async function refresh() {
       actions.append(
         refreshButton,
         readButton,
-        button("Session probe", () => showProbe(p.id), true),
         button("Discovered listings", () => showLinks(p.id), true),
         button("Review read items", () => reviewItems(p.id), true),
         button("Disconnect", () => api.disconnect(p.id), true),
@@ -102,9 +107,26 @@ async function refresh() {
     $("profiles").append(card);
   }
 }
+async function showEmptyProbe(marketplace) {
+  return showProbeResult({
+    marketplace,
+    stage: "DISCONNECTED",
+    sessionPresent: false,
+    cookieCount: 0,
+    identityResolved: false,
+    validationResult: "not_started",
+    listingStateKnown: false,
+    linksFound: 0,
+    lastErrorCode: null,
+    lastSuccessfulStage: null,
+  });
+}
 async function showProbe(id) {
   const result = await api.probe(id);
   if (!result.probe) return result;
+  return showProbeResult(result.probe);
+}
+function showProbeResult(probe) {
   const dialog = document.createElement("dialog");
   dialog.className = "observations";
   const close = textElement("button", "Close", "secondary");
@@ -116,7 +138,7 @@ async function showProbe(id) {
       "p",
       "Metadata only. No cookie values, tokens or page content. A readable seller page with unresolved identity is a parser gate; a logged-out background page is a session/validation gate.",
     ),
-    textElement("pre", JSON.stringify(result.probe, null, 2)),
+    textElement("pre", JSON.stringify(probe, null, 2)),
   );
   dialog.addEventListener("close", () => dialog.remove(), { once: true });
   document.body.append(dialog);
