@@ -104,22 +104,22 @@ function ItemPage() {
           <Button
             variant="ghost"
             onClick={() =>
-              archiveItemFn({ data: { id } }).then(() => nav({ to: "/inventory" }))
+              archiveItemFn({ data: { id, restore: item.status === "archived" } }).then(() => { void qc.invalidateQueries(); }).catch(e => setMsg(e instanceof Error ? e.message : "Could not update archive status."))
             }
           >
-            Archive
+            {item.status === "archived" ? "Restore" : "Archive"}
           </Button>
           <Button
             variant="danger"
             onClick={() => {
               if (
                 !window.confirm(
-                  "Delete this listing from Lane? Live marketplace listings are not ended. Delist first if you want them taken down.",
+                  "Permanently delete this unlisted draft and its photos? Items with jobs or sales history are kept; archive completed items instead.",
                 )
               ) {
                 return;
               }
-              void deleteItemsFn({ data: { itemIds: [id] } }).then(() => nav({ to: "/inventory" }));
+              void deleteItemsFn({ data: { itemIds: [id] } }).then(() => nav({ to: "/inventory" })).catch(e => setMsg(e instanceof Error ? e.message : "Could not delete this draft."));
             }}
           >
             Delete
@@ -194,7 +194,7 @@ function ItemPage() {
         </div>
       </section>
 
-      {item.status !== "sold" ? (
+      {!["sold","archived"].includes(item.status) ? (
         <section>
           <h2 className="text-sm font-medium">Publish to</h2>
           <div className="mt-3">

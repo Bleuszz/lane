@@ -22,6 +22,14 @@ Temporary eBay connection/response failures and HTTP 408/429/500/502/503/504 aut
 
 Per-seller eBay policies/location are selected and revalidated against that account. `/api/worker` uses a dedicated secret and processes bounded batches. No scheduler has been activated. Automatic retry means eligibility for subsequent queue processing, not a running scheduled service; staging needs a configured trigger and measured runtime.
 
+## Inventory lifecycle and retention
+
+Permanent deletion is restricted to unlisted draft/archived-draft items with no jobs, sales or remote listing history. The whole batch locks parent rows, validates every item and commits atomically. Eligible deletion removes local photos/tags, draft channel rows and unreferenced snapshots; it never deletes job or sales history. Protected selections produce visible errors. No real item was deleted during this work.
+
+Archive and restore are allowed only after live/unresolved listings and pending/error/reconciliation work are resolved. It retains item, photo, job, sale and snapshot records. Archived inventory is accessible through its filter; Restore returns positive-stock items to draft and zero-stock items to sold. Browser QA archived and restored the synthetic draft while preserving both images.
+
+Migration 0016 adds owner-qualified parent constraints for photos, tags, channels, jobs, sales and snapshots. New orphan/foreign-parent writes are rejected even if they race deletion. Constraints are NOT VALID for legacy rows: audit existing orphans before validation; no old records are automatically removed or repaired. A broader unused-snapshot retention policy is still a staging decision, separate from eligible explicit draft deletion.
+
 ## Manual sale recording
 
 Manual entry now selects the exact linked shop, whole-unit quantity, total item sale amount excluding postage, optional entered fees and a stable order-line ID/reference. Vinted entries are restricted to one unit; eBay supports available multi-unit stock. Input is server-validated and the source is always manual. The same reference cannot reduce stock twice; different details under an existing reference stop for review. Imported events can reconcile only when the exact same provider order-line key is available; universal manual-versus-poll matching is not claimed.
@@ -36,14 +44,14 @@ Signed Stripe events reconcile current paid subscription state with durable dedu
 
 ## Current evidence
 
-TypeScript, production build and current changed-file ESLint pass. The full portable suite reports **290 tests: 272 pass, 18 inherited failures**. All **39 core tests** pass within that run. The inherited failures concern missing template/skill/auth fixtures, Grok metadata assumptions and Windows symlink permissions; they are not disabled.
+TypeScript, production build and current changed-file ESLint pass. The full portable suite reports **293 tests: 275 pass, 18 inherited failures**. All **42 core tests** pass within that run. The inherited failures concern missing template/skill/auth fixtures, Grok metadata assumptions and Windows symlink permissions; they are not disabled.
 
-Tests use real isolated PGlite with mocked providers. They cover persistence/rollback, ownership, concurrency, quotas, source details, snapshot-backed bridge dispatch, lost eBay acknowledgements, stock changes during uploads, retained sale follow-ups, photo receipt expiry, billing replay, automatic retry cooldown/exhaustion and manual-sale replay/rollback/cost snapshots. The retry integration proves one remote listing and one action/hourly reservation after a lost publish response. Browser QA covered draft/photo save and reload, 362x698 cards/dialogs/focus, no horizontal overflow, batch blockers, invalid URL feedback, unlinked manual-sale gating and unknown sales-summary values. No connected end-to-end publication has been verified.
+Tests use real isolated PGlite with mocked providers. They cover persistence/rollback, ownership, concurrency, quotas, source details, snapshot-backed bridge dispatch, lost eBay acknowledgements, stock changes during uploads, retained sale follow-ups, photo receipt expiry, billing replay, automatic retry cooldown/exhaustion and manual-sale replay/rollback/cost snapshots and deletion/archive/parent constraints. The retry integration proves one remote listing and one action/hourly reservation after a lost publish response. Browser QA covered draft/photo save and reload, 362x698 cards/dialogs/focus, no horizontal overflow, batch blockers, invalid URL feedback, unlinked manual-sale gating, unknown sales-summary values and archive/filter/restore with photos retained. No connected end-to-end publication has been verified.
 
 ## Remaining gates and productive local work
 
 - Authorized eBay keys/RuName/seller session and Vinted bridge login are needed for real import, current taxonomy/conditions, seller policies, photo acceptance and controlled marketplace tests. Eight more varied owned items are needed for the ten-item benchmark.
-- Staging needs an explicitly chosen host/database, secure auth/token configuration, migration approval, measured storage/runtime, a worker trigger and verified sold-event ingestion. No infrastructure was created. Follow `STAGING.md`, including migrations through 0015 and legacy-job review.
+- Staging needs an explicitly chosen host/database, secure auth/token configuration, migration approval, measured storage/runtime, a worker trigger and verified sold-event ingestion. No infrastructure was created. Follow `STAGING.md`, including migrations through 0016 and legacy-job review.
 - Verify provider rate-limit scope and account/application cooldown behavior before volume tests; the current job policy alone does not coordinate a shared provider quota.
-- Verify the linked manual-sale form with an authorized staging item. Review deletion and snapshot retention without deleting pending work or erasing evidence needed for reconciliation.
+- Verify the linked manual-sale form with an authorized staging item. Audit legacy parent references and choose an unused-snapshot retention policy without erasing reconciliation evidence.
 - Reconcile fees before presenting seller profit. SaaS unit economics remain assumptions in `ECONOMICS_DEPLOYMENT.md`; no paid pilot, revenue or competitive performance claim is established by these tests.

@@ -75,3 +75,12 @@ Apply 0015 before using the revised manual-sale route. It adds reference, amount
 With an authorized staging item, verify quantity/reference entry, accurate shop selection, repeat submission after a lost response, different details under a used reference, insufficient stock, a partial sale and final depletion. Use the actual marketplace order-line ID when available so later imported events can share its key. Vinted sold-listing observations do not necessarily provide that key; manual-versus-automatic reconciliation still needs real response verification before promising universal deduplication.
 
 Local tests use real PGlite transactions and no marketplace calls. They verify concurrent duplicate prevention, owner boundaries, immutable cost totals, unknown fees and rollback of the sale/stock/outbox if the metadata update fails. Browser QA covers the unlinked gate and modal focus, not a real connected sale submission. No genuine sale was recorded during implementation.
+
+
+## Inventory retention and parent guards (migration 0016)
+
+0016 creates a unique owner/item index and owner-qualified foreign keys for photos, tags, channel listings, jobs, sales and snapshots. New writes must have a matching parent; ON DELETE RESTRICT prevents bypassing child protection. The foreign keys are initially NOT VALID so adding them does not discard or repair legacy rows. Before validating, inspect each child's non-null item reference with an owner-qualified left join to items and review unmatched rows. Preserve backups and reconciliation evidence; do not delete data to force validation success.
+
+The app now deletes only unlisted drafts without job/sale/remote history, in an all-or-nothing transaction. It can remove those drafts' photos/tags, empty draft channels and unreferenced snapshots. Completed items with history must be archived. Archive and restore refuse active/unresolved listings and unfinished/reconciliation jobs; Restore never revives zero stock. The Archived filter exposes retained items for review. Broader snapshot garbage collection and account-level erasure are not implemented by this change.
+
+Tests verify real rollback, owner isolation, rejected late/foreign child insertion and protected parent deletion. Local browser QA archived/restored the synthetic draft with both photos intact. No real inventory/history was deleted, no constraint validation was run against an external database, and no marketplace action was made.

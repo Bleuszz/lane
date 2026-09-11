@@ -35,6 +35,7 @@ function InventoryPage() {
   const rows = useMemo(() => {
     const list = items.data ?? [];
     return list.filter((r) => {
+      if (status === "all" && r.status === "archived") return false;
       if (status !== "all" && r.status !== status) return false;
       if (q.trim()) {
         const n = q.toLowerCase();
@@ -118,12 +119,12 @@ function InventoryPage() {
     if (!ids.length) return;
     if (
       !window.confirm(
-        `Delete ${ids.length} listing(s) from Lane? This removes the inventory rows here. Live Vinted/eBay listings are NOT ended — Delist first if you want them taken down.`,
+        `Permanently delete ${ids.length} unlisted draft(s) and their photos? Items with job or sales history are kept. If any selected item is protected, nothing is deleted.`,
       )
     ) {
       return;
     }
-    await remove.mutateAsync();
+    try { await remove.mutateAsync(); } catch { /* The mutation error is shown below. */ }
   }
 
   async function onExport() {
@@ -157,9 +158,10 @@ function InventoryPage() {
         </div>
       </div>
 
+      {remove.isError && <p role="alert" className="mt-3 text-sm text-danger">{remove.error.message}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, SKU, brand" className="max-w-xs" />
-        {["all", "live", "draft", "error", "sold", "queued"].map((s) => (
+        {["all", "live", "draft", "error", "sold", "queued", "archived"].map((s) => (
           <button
             key={s}
             type="button"

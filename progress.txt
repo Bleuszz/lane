@@ -1,5 +1,5 @@
 LANE — IMPLEMENTATION CHECKPOINT
-Updated: 2026-09-11 00:24 UTC (01:24 BST)
+Updated: 2026-09-11 00:33 UTC (01:33 BST)
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting
 
@@ -34,6 +34,13 @@ IMPLEMENTED
 - Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
 - Source normalization preserves photos, category identity, UK size ranges, colours,
   brand and unknown condition/material; neutral per-marketplace field overrides.
+- Permanent delete is restricted to unlisted drafts with no jobs/sales/remote history.
+  Batch deletion is transactional; photos/tags/unreferenced snapshots are removed
+  only for eligible drafts. History is retained through archive and restore.
+- Archive/restore block live/unresolved channels and pending/error/reconciliation work.
+  Archived inventory is accessible; zero-stock items restore as sold, not available.
+- New owner-qualified parent constraints block raced/foreign child writes. Legacy
+  constraints are NOT VALID pending audit; no existing orphan data was purged.
 - Atomic item/photo/tag creation; transactional source imports and item edits.
 - Durable job intent deduplication, atomic claims/leases, guarded retries, eBay
   offer reconciliation, sale-event deduplication and transactional delist outbox.
@@ -57,6 +64,9 @@ IMPLEMENTED
 
 VERIFICATION
 - TypeScript and production build: pass again after photo delivery changes.
+- Lifecycle tests cover protected/mixed/foreign selections, deletion rollback,
+  history preservation, archive/restore gates, and database enforcement against
+  foreign/deleted parents. Browser archive/filter/restore preserved both test photos.
 - Manual-sale tests cover real concurrent replay, total amounts/cost snapshots,
   unknown fees, ownership, insufficient stock, duplicate reference conflicts and
   atomic rollback of sale/stock/outbox if metadata persistence fails.
@@ -82,10 +92,10 @@ VERIFICATION
   account approval and incomplete fields, and left final confirmation disabled.
 - Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
   cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
-- Focused core tests: 39 pass within the full suite, including actual PGlite persistence,
+- Focused core tests: 42 pass within the full suite, including actual PGlite persistence,
   concurrency, rollback, limits, photo preservation and mocked eBay failures.
 - Existing auth/app-data tests: 55 pass.
-- Full portable suite: 290 tests, 272 pass, 18 fail. The same 18 inherited template
+- Full portable suite: 293 tests, 275 pass, 18 fail. The same 18 inherited template
   failures concern missing .grok skills/config/auth fixtures, Grok metadata and
   Windows symlink permissions. They are not hidden or skipped.
 - Production build: passed after final implementation changes.
@@ -113,8 +123,11 @@ USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
    remain release gates. No Stripe network calls or payment actions were made.
 
 NEXT ACTIONS
-- Continue inventory deletion/retention review locally; protect pending jobs and
-  sale/reconciliation history without removing data while the owner is away.
+- Verify remaining release gates against real authorized connector state. Avoid
+  expanding features before the first real crosslisting/ten-item benchmark.
+- Audit legacy orphan rows before validating migration 0016 constraints; do not
+  delete or repair history automatically. Unused snapshot retention beyond explicit
+  eligible-draft deletion remains a separate staging decision.
 - Verify the linked manual-sale form end to end using an authorized staging item;
   migration 0015 adds sale metadata and must precede that route.
 - Verify account/application-wide rate-limit handling before load tests. Current retry
@@ -136,7 +149,7 @@ NEXT ACTIONS
 - Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
 
 COMPUTE
-Account-wide weekly usage: 38% consumed, 62% remaining at latest check.
+Account-wide weekly usage: 40% consumed, 60% remaining at latest check.
 Separate five-hour window: unavailable (not assumed unused).
 Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
 Preserve at least 60 percentage points for staging, real connector diagnosis and
@@ -152,6 +165,7 @@ f280508: signed billing reconciliation and durable replay protection.
 38a42ce: eBay photo delivery, retry cache, file validation and regression tests.
 9f53b92: stock rechecks, preserved account pauses and event-scoped sale outbox.
 ccbc35d: bounded automatic eBay retry, cooldown visibility and full-process tests.
-Current checkpoint: manual sale entry, immutable cost metadata and honest unknown totals.
+d1a7d9c: manual sale entry, immutable cost metadata and honest unknown totals.
+Current checkpoint: transactional draft deletion, history-safe archive/restore and parent guards.
 Draft PR: https://github.com/Bleuszz/lane/pull/5
 No PR has been merged. No production launch is claimed.

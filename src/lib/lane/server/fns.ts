@@ -1,3 +1,4 @@
+import { archiveInventoryItem, deleteInventoryDrafts } from "./inventory-lifecycle";
 import { manualSaleSchema, type ManualSaleInput } from "../manual-sale";
 import { recordManualSale } from "./manual-sales";
 import { assertPublishReviews, publishReviewHash, withPublishItems } from "./publish-review";
@@ -161,9 +162,9 @@ async function loadInbox(sql: SqlClient, userId: string) {
   };
 }
 
-async function inventoryRows(sql: SqlClient, userId: string): Promise<InventoryRow[]> {
+async function inventoryRows(sql: SqlClient, userId: string, includeArchived = false): Promise<InventoryRow[]> {
   const items = await sql<Record<string, unknown>>`
-    select * from items where user_id = ${userId} and status <> 'archived' order by created_at desc
+    select * from items where user_id = ${userId} and (${includeArchived} or status <> 'archived') order by created_at desc
   `;
   const photos = await sql<{ item_id: string; url: string }>`
     select item_id, url from item_photos where user_id = ${userId} and is_primary = true
@@ -236,7 +237,7 @@ export const getInventory = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<InventoryRow[]> => {
     const sql = await getSql();
     await ensureUser(sql, context.userId);
-    return inventoryRows(sql, context.userId);
+    return inventoryRows(sql, context.userId, true);
   });
 
 export const getItemFn = createServerFn({ method: "POST" })
@@ -714,33 +715,13 @@ export const cloneItemFn = createServerFn({ method: "POST" })
 
 export const archiveItemFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { id: string }) => d)
-  .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    await sql`update items set status = 'archived', updated_at = now() where id = ${data.id} and user_id = ${context.userId}`;
-    return { ok: true as const };
-  });
+  .validator((data: {id:string;restore?:boolean}) => z.object({id:z.string().min(1).max(200),restore:z.boolean().optional()}).parse(data))
+  .handler(async ({context,data}) => archiveInventoryItem(await getSql(),context.userId,data.id,data.restore));
 
 export const deleteItemsFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { itemIds: string[] }) => d)
-  .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    const ids = data.itemIds.filter(Boolean).slice(0, 200);
-    let deleted = 0;
-    for (const id of ids) {
-      const owned = await sql<{ id: string }>`select id from items where id = ${id} and user_id = ${context.userId}`;
-      if (!owned[0]) continue;
-      await sql`delete from item_photos where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from item_tags where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from channel_listings where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from jobs where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from sales where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from items where id = ${id} and user_id = ${context.userId}`;
-      deleted += 1;
-    }
-    return { deleted };
-  });
+  .validator((data:{itemIds:string[]}) => z.object({itemIds:z.array(z.string().min(1).max(200)).min(1).max(200)}).parse(data))
+  .handler(async ({context,data}) => deleteInventoryDrafts(await getSql(),context.userId,data.itemIds));
 
 const publishSelectionSchema = z.object({ itemIds: z.array(z.string().min(1).max(200)).min(1).max(200), accountIds: z.array(z.string().min(1).max(200)).min(1).max(20) });
 
