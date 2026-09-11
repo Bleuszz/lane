@@ -22,6 +22,9 @@ const {
 } = require("./security.cjs");
 const { createConnectionManager } = require("./connection-manager.cjs");
 const { createSessionTransport } = require("./session-transport.cjs");
+const { profileDiagnostics } = require("./session-diagnostics.cjs");
+const diagnosticRun = process.argv.includes("--diagnostic-run") && !app.isPackaged;
+if (diagnosticRun) app.setPath("userData", path.join(app.getPath("appData"), "Lane"));
 let transport, connections;
 const qaSmoke = process.argv.includes("--qa-smoke") && !app.isPackaged;
 if (qaSmoke) app.setPath("userData", path.resolve(__dirname, "../artifacts/desktop-ui-state"));
@@ -91,6 +94,7 @@ async function deviceHeartbeat() {
 function publicState() {
   return {
     version: app.getVersion(),
+    diagnosticRun,
     origin: state.origin || "",
     paired: Boolean(state.deviceToken),
     pairingCode: state.pairing?.code || null,
@@ -104,6 +108,8 @@ function publicState() {
       marketplace: p.marketplace,
       status: p.status,
       busy: connections?.busy(p.id) || false,
+      operation: connections?.operation(p.id) || null,
+      diagnostic: profileDiagnostics(p),
       connectionError: p.connectionError || null,
       lastSyncAt: p.lastSyncAt || null,
       validatedAt: p.validatedAt || null,
@@ -257,7 +263,7 @@ action("connect", async (marketplace) => {
       marketplace,
       key: profileKey(state.deviceId, marketplace, id),
       status: "DISCONNECTED",
-      connectionVersion: 1,
+      connectionVersion: 2,
       links: [],
       items: [],
     };
@@ -273,14 +279,45 @@ action("connect", async (marketplace) => {
 });
 action("inspect", async (id) => {
   if (state.paused) return { error: "Lane is paused. Resume it to refresh listings." };
+  if (connections.busy(id))
+    return {
+      error:
+        "Finish the current " +
+        connections.operation(id) +
+        " operation first. No refresh was started.",
+    };
   void connections.refresh(getProfile(id));
   return { ...publicState(), message: "Refreshing your account and listings in the background." };
 });
 action("read", async (id) => {
   if (state.paused) return { error: "Lane is paused. Resume it to read listings." };
+  if (connections.busy(id))
+    return {
+      error:
+        "Finish the current " +
+        connections.operation(id) +
+        " operation first. No detail read was started.",
+    };
   void connections.read(getProfile(id));
   return { ...publicState(), message: "Reading up to two owned listing pages in the background." };
 });
+const probing = new Set();
+action("probe", async (id) => {
+  if (probing.has(id)) return { error: "Session probe is already running." };
+  probing.add(id);
+  try {
+    return { probe: await transport.probe(getProfile(id), AbortSignal.timeout(30000)) };
+  } finally {
+    probing.delete(id);
+  }
+});
+action("listing-links", async (id) => ({
+  links: (getProfile(id).links || []).map((a) => ({
+    remoteId: a.remoteId,
+    url: a.url,
+    title: a.title || null,
+  })),
+}));
 action("observations", async (id) => {
   const profile = getProfile(id);
   // Return listing data only, never the profile's encrypted session or Lane credentials.
@@ -345,9 +382,9 @@ else {
       state.pairing = null;
       state.bridgeHealth = "offline";
       for (const p of state.profiles) {
-        if (!p.connectionVersion) {
+        if (p.connectionVersion !== 2) {
           p.identity = null;
-          p.connectionVersion = 1;
+          p.connectionVersion = 2;
         }
         p.status = "RECONNECT_REQUIRED";
         p.validatedAt = null;
@@ -371,7 +408,8 @@ else {
         save();
       },
     });
-    if (!qaSmoke && !state.paused) for (const p of state.profiles) void connections.refresh(p);
+    if (!qaSmoke && !state.paused)
+      for (const p of state.profiles) if (p.identity) void connections.refresh(p);
     mainWindow = new BrowserWindow({
       show: !qaSmoke,
       width: 1060,
@@ -464,6 +502,16 @@ else {
             await persist(profile);
           } catch {
             state.errorCode = "SESSION_SAVE_FAILED";
+            profile.diagnostic ||= {};
+            Object.assign(profile.diagnostic, {
+              lastErrorCode: "STORAGE",
+              lastErrorCategory: "storage",
+              lastErrorAt: new Date().toISOString(),
+              stage: "SESSION_PERSIST_FAILED",
+            });
+            profile.status = "ERROR";
+            profile.connectionError =
+              "Session persistence failed. Lane could not save the refreshed session securely; reconnect after checking local storage.";
           }
         }
       }

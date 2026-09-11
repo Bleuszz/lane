@@ -60,7 +60,7 @@ function Onboarding() {
             completed.
           </p>
           <Link to="/settings/channels" className="inline-block text-sm underline">
-            Account settings and official eBay connection
+            Lane account settings
           </Link>
         </Panel>
         {boot.isError && (

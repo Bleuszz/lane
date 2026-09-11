@@ -1,5 +1,9 @@
 # Lane Desktop 0.3.1 — auth/session rebuild beta
 
+The newer session diagnostic runs from `Launch Lane Session Diagnostic.vbs` using local
+development source. It is **not included in this installer**. See `docs/SESSION_DIAGNOSTIC.md`.
+The next installer waits for live owner-session/read acceptance.
+
 This is a Windows x64 test build. It is not a verified production crosslisting release.
 
 ## Included

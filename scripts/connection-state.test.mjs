@@ -157,8 +157,56 @@ test("unavailable listing state cannot reuse stale owned links for detail reads"
   });
   f.p.links = f.evidence.links;
   await f.manager.read(f.p);
-  assert.equal(f.p.status, "CONNECTED");
+  assert.equal(f.p.status, "ERROR");
+  assert.equal(f.p.diagnostic.lastErrorCode, "LISTING_STATE_UNKNOWN");
   assert.equal(f.p.listingCount, null);
   assert.deepEqual(f.p.links, []);
   assert.equal(reads, 0);
+});
+
+test("refresh/read during connect are explicitly blocked, never represented as a refresh", async () => {
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const f = fixture({
+    openLogin: async () => {
+      await gate;
+      return {};
+    },
+  });
+  const connect = f.manager.connect(f.p);
+  assert.equal(f.manager.operation(f.p.id), "connect");
+  assert.deepEqual(await f.manager.refresh(f.p), { blocked: true, operation: "connect" });
+  assert.deepEqual(await f.manager.read(f.p), { blocked: true, operation: "connect" });
+  release();
+  await connect;
+  assert.equal(f.manager.operation(f.p.id), null);
+});
+test("nonzero marketplace count and no owned links is an extraction failure, never a zero sync", async () => {
+  const f = fixture({
+    listings: async () => ({
+      ...f.evidence,
+      visibleListingCount: 7,
+      links: [],
+      listingStateKnown: false,
+    }),
+  });
+  await f.manager.refresh(f.p);
+  assert.equal(f.p.status, "ERROR");
+  assert.equal(f.p.diagnostic.lastErrorCode, "EXTRACTION_FAILED");
+  assert.equal(f.p.lastSyncAt, undefined);
+});
+test("known empty account is distinct from unknown, and incomplete pagination fails clearly", async () => {
+  const empty = fixture({
+    listings: async () => ({ ...empty.evidence, visibleListingCount: 0, links: [] }),
+  });
+  await empty.manager.refresh(empty.p);
+  assert.equal(empty.p.status, "CONNECTED");
+  assert.equal(empty.p.listingCount, 0);
+  const partial = fixture({
+    listings: async () => ({ ...partial.evidence, visibleListingCount: 7 }),
+  });
+  await partial.manager.refresh(partial.p);
+  assert.equal(partial.p.diagnostic.lastErrorCode, "LISTING_COUNT_MISMATCH");
+  assert.equal(partial.p.links.length, 1);
+  assert.equal(partial.p.lastSyncAt, undefined);
 });

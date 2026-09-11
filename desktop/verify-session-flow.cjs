@@ -28,12 +28,15 @@ app
     };
     const r = await transport.runtime(p);
     let signedIn = false;
-    const page = () =>
+    const page = (url) =>
       signedIn
-        ? '<title>Manage active listings - eBay Seller Hub</title><header id="gh"><span id="gh_user">Hi Fixture!</span><a href="https://www.ebay.co.uk/logout">Sign out</a></header><main id="shlistings-cntr"><h1>Manage active listings</h1><a href="https://www.ebay.co.uk/itm/123456789012">Fixture sweater</a></main>'
+        ? `<title>Manage active listings - eBay Seller Hub</title><header id="gh"><span class="gh-identity"><span class="gh-identity__greeting" onmouseover="this.parentElement.querySelector('.gh-identity__dialog').innerHTML='&lt;a href=https://www.ebay.co.uk/usr/fixture-seller&gt;Profile&lt;/a&gt;&lt;a href=https://www.ebay.co.uk/logout&gt;Sign out&lt;/a&gt;'">Hello Fixture</span><div class="gh-identity__dialog"></div></span><div id="gh_user"></div></header><main id="shlistings-cntr"><h2>Manage active listings(2)</h2><a href="https://www.ebay.co.uk/itm/${url.includes("page=2") ? "123456789013" : "123456789012"}">Fixture sweater</a>${url.includes("page=2") ? "" : '<a rel="next" href="https://www.ebay.co.uk/sh/lst/active?page=2">Next</a>'}</main>`
         : '<title>Sign in</title><main><input type="password"></main>';
     r.session.protocol.handle("https", (request) => {
-      return new Response(page(), { headers: { "Content-Type": "text/html" } });
+      const detail = request.url.includes("/itm/")
+        ? '<script type="application/ld+json">{"@type":"Product","name":"Fixture sweater","offers":{"price":"10","priceCurrency":"GBP"}}</script>'
+        : "";
+      return new Response(page(request.url) + detail, { headers: { "Content-Type": "text/html" } });
     });
     for (const [name, fn] of Object.entries(transport))
       if (typeof fn === "function")
@@ -56,7 +59,9 @@ app
       await new Promise((resolve) => setTimeout(resolve, 20));
     assert.ok(r.window);
     const login = r.window;
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    for (let i = 0; i < 100 && p.status !== "WAITING_FOR_USER_LOGIN"; i++)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(p.status, "WAITING_FOR_USER_LOGIN");
     assert.notEqual(p.status, "CONNECTED");
     await r.session.cookies.set({
       url: "https://www.ebay.co.uk",
@@ -69,13 +74,25 @@ app
     await login.loadURL("https://www.ebay.co.uk/sh/lst/active");
     await pending;
     assert.equal(p.status, "CONNECTED");
-    assert.equal(p.listingCount, 1);
+    assert.equal(p.listingCount, 2);
+    assert.equal(p.identity, "ebay:fixture-seller");
+    assert.equal(p.diagnostic.visibleSessionMatches, true);
+    assert.equal(p.diagnostic.backgroundSessionMatches, true);
+    assert.equal(p.diagnostic.cookiesAfterLoginClosed, 1);
+    assert.equal(r.session, require("electron").session.fromPartition(p.diagnostic.sessionId));
     assert.equal(login.isDestroyed(), true);
     assert.ok(vault.read(p.key).cookies.length);
     await manager.refresh(p);
     assert.equal(p.status, "CONNECTED");
     assert.equal(r.window, null);
     assert.equal(r.windows.size, 0);
+    await manager.read(p);
+    assert.equal(p.items.length, 2);
+    assert.deepEqual(
+      p.items.map((i) => i.remoteId),
+      ["123456789012", "123456789013"],
+    );
+    assert.equal(r.window, null);
     signedIn = false;
     await manager.refresh(p);
     assert.equal(p.status, "SESSION_EXPIRED");

@@ -1,3 +1,59 @@
+LANE SESSION DIAGNOSTIC — ACTIVE CHECKPOINT 11 SEPTEMBER 2026
+Branch: codex/lane-smart-crosslisting; started at ddc3076.
+Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
+
+EBAY TRANSPORT: OWNER'S AUTHENTICATED ELECTRON SESSION ONLY.
+The developer application was rejected. No EBAY_CLIENT_ID, EBAY_CLIENT_SECRET,
+RuName, approval wait or reapplication is part of this seven-day phase.
+Official connector code is retained solely for possible future use.
+
+DESKTOP APP: IN PROGRESS — diagnostic development source, not a new installer.
+Launch: desktop/Launch Lane Session Diagnostic.vbs. Quit installed Lane first.
+Expect VERSION 0.3.1 · SESSION DIAGNOSTIC. Uses existing local Lane user-data directory.
+New installer deferred until owner live-session/read acceptance.
+
+EBAY SESSION: IN PROGRESS — saved cookies reached actual Seller Hub in a hidden window.
+- Observed 34 eBay cookies: 8 HTTP-only, 5 session cookies. Values never printed.
+- Actual page displayed 24 active listings and 26 global item anchors. Owned unique
+  links/identity remain unverified; neither number is hard-coded in the extractor.
+- Observed lazy .gh-identity account flyout, no rendered profile link and count outside
+  the old h1-only lookup. Identified identity/parser and extraction gates.
+- Later saved-cookie replay returned Sign in. Stopped replaying the snapshot; need fresh
+  owner login followed by immediate same-process validation. No storage rewrite assumed.
+EBAY READ CAPABILITY: IN PROGRESS — stable profile identity required; greeting removed.
+- Bounded account-flyout hover, heading/row/link readers, next-link pagination/scrolling.
+- Nonzero count with no links is EXTRACTION_FAILED; partial count fails sync explicitly.
+- Probe records exact visible/background Session identity, cookie metadata and gate results.
+EBAY WRITE CAPABILITY: UNSUPPORTED in session mode. No marketplace writes.
+
+VINTED SESSION: BLOCKED on fresh owner evidence — 24 saved cookies restored, 7 HTTP-only;
+  hidden navigation timed out. Navigation failure separated from identity/parser gates.
+VINTED WARDROBE IMPORT: BLOCKED on live owner validation; own/foreign wardrobe fixture passes.
+DOWNLOAD PAGE / BROWSER EXTENSION / DEPLOYMENT / DATABASE: no work in this focused repair.
+Option A (memory partition + DPAPI cookies) retained. Option B persistent Chromium storage
+not selected or live-tested; compare only if same-process success/cold-restart failure gives
+evidence of missing origin storage. See docs/SESSION_DIAGNOSTIC.md for limits/threat model.
+
+CHECKS: 19 targeted Node checks pass. Actual Electron fixture verifies lazy account flyout,
+stable profile identity, pagination, same-session object identity, cookie survival after
+window close, invisible refresh, expiry/disconnect. Reader fixtures and Desktop smoke pass.
+Typecheck passes. No new installer, web build or broad full-suite rerun for this milestone.
+These are fixture/local implementation checks, NOT real marketplace acceptance.
+
+BUDGET: GBP0 spent; GBP30 advertising reserve untouched.
+COMPUTE: last shared weekly meter 55% used / 45% remaining (started this repair at 54%).
+No reset credits. No speculative infrastructure or additional marketplace work.
+REMINDER: 3 PM reminder remains deleted; do not recreate.
+
+BLOCKERS / EXACT NEXT ACTIONS
+1. ONE fresh owner diagnostic test, eBay then Vinted; exact user-action fields in
+   docs/SESSION_DIAGNOSTIC.md. Keep a stuck login window open and run Session probe.
+2. Diagnose returned live session/identity/validation/extraction gate evidence.
+3. After same-process read success, separately prove cold restart, expiry and Disconnect.
+4. After owner acceptance, build the next installer. No API credential detours.
+No connector is declared fixed. Other product work remains paused for this repair.
+
+HISTORICAL PACKAGED CHECKPOINT (superseded by the diagnostic status above):
 LANE AUTH/SESSION REBUILD — CHECKPOINT 11 SEPTEMBER 2026
 Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
 Draft PR: https://github.com/Bleuszz/lane/pull/5

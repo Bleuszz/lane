@@ -1,5 +1,10 @@
 # Desktop/session phase handoff
 
+Active repair: [SESSION_DIAGNOSTIC.md](SESSION_DIAGNOSTIC.md). The eBay developer
+application was rejected. This seven-day phase exclusively uses the owner's local browser
+session; no API credentials, RuName, approval wait or reapplication is required. Older
+official-connector evidence below is future-only and is not a current blocker.
+
 Scope: Vinted UK + eBay UK only. Official eBay API code remains available. Connector evidence distinguishes official API, desktop session, extension, assisted manual and unsupported transports; evidence belongs to an account/device, not a global marketing claim.
 
 Current auth rebuild details and owner steps: [AUTH_SESSION_REBUILD.md](AUTH_SESSION_REBUILD.md). Desktop version 0.3.1. The 3 PM reminder was deleted; do not recreate it.

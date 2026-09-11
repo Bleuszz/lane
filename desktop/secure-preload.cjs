@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld("laneClient", {
   connect: (marketplace) => ipcRenderer.invoke("client:connect", marketplace),
   inspect: (id) => ipcRenderer.invoke("client:inspect", id),
   read: (id) => ipcRenderer.invoke("client:read", id),
+  probe: (id) => ipcRenderer.invoke("client:probe", id),
+  listingLinks: (id) => ipcRenderer.invoke("client:listing-links", id),
   observations: (id) => ipcRenderer.invoke("client:observations", id),
   disconnect: (id) => ipcRenderer.invoke("client:disconnect", id),
   pause: (value) => ipcRenderer.invoke("client:pause", value),

@@ -32,7 +32,8 @@
       "assets/**",
       "package.json",
       "connection-manager.cjs",
-      "session-transport.cjs"
+      "session-transport.cjs",
+      "session-diagnostics.cjs"
     ],
     "win": {
       "target": [

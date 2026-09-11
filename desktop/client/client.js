@@ -32,13 +32,15 @@ async function act(run) {
   } finally {
     busy = false;
     document.querySelectorAll("button").forEach((b) => (b.disabled = false));
+    await refresh();
   }
 }
 async function refresh() {
   const state = await api.status();
   $("unpair").hidden = !state.paired;
   $("sign-in").hidden = state.paired;
-  $("version").textContent = "VERSION " + state.version;
+  $("version").textContent =
+    "VERSION " + state.version + (state.diagnosticRun ? " · SESSION DIAGNOSTIC" : "");
   $("startup").checked = state.startup;
   $("pause").checked = state.paused;
   if (document.activeElement !== $("origin")) $("origin").value = state.origin;
@@ -70,9 +72,19 @@ async function refresh() {
     actions.className = "actions";
     actions.append(button(p ? "Reconnect" : "Connect " + name, () => api.connect(marketplace)));
     if (p) {
+      const refreshButton = button("Refresh listings", () => api.inspect(p.id), true);
+      const readButton = button("Read item details", () => api.read(p.id), true);
+      for (const b of [refreshButton, readButton]) {
+        b.disabled = p.busy;
+        b.title = p.busy
+          ? "Finish connecting " + name + " first (or wait for the current operation)."
+          : "";
+      }
       actions.append(
-        button("Refresh listings", () => api.inspect(p.id), true),
-        button("Read item details", () => api.read(p.id), true),
+        refreshButton,
+        readButton,
+        button("Session probe", () => showProbe(p.id), true),
+        button("Discovered listings", () => showLinks(p.id), true),
         button("Review read items", () => reviewItems(p.id), true),
         button("Disconnect", () => api.disconnect(p.id), true),
       );
@@ -80,10 +92,61 @@ async function refresh() {
     const feedback = document.createElement("p");
     feedback.className = "connection-feedback";
     feedback.setAttribute("role", "status");
-    feedback.textContent = p?.connectionError || p?.syncMessage || "";
+    feedback.textContent =
+      (p?.connectionError || p?.syncMessage || "") +
+      (p?.diagnostic?.stage ? " · " + p.diagnostic.stage : "") +
+      (p?.operation === "connect"
+        ? " · Finish connecting " + name + " first; Refresh and Read are disabled."
+        : "");
     card.append(h, status, detail, feedback, actions);
     $("profiles").append(card);
   }
+}
+async function showProbe(id) {
+  const result = await api.probe(id);
+  if (!result.probe) return result;
+  const dialog = document.createElement("dialog");
+  dialog.className = "observations";
+  const close = textElement("button", "Close", "secondary");
+  close.onclick = () => dialog.close();
+  dialog.append(
+    close,
+    textElement("h2", "Session probe"),
+    textElement(
+      "p",
+      "Metadata only. No cookie values, tokens or page content. A readable seller page with unresolved identity is a parser gate; a logged-out background page is a session/validation gate.",
+    ),
+    textElement("pre", JSON.stringify(result.probe, null, 2)),
+  );
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  return {
+    message: "Session probe completed. Copy diagnostics includes its sanitised gate summary.",
+  };
+}
+async function showLinks(id) {
+  const result = await api.listingLinks(id);
+  const dialog = document.createElement("dialog");
+  dialog.className = "observations";
+  const close = textElement("button", "Close", "secondary");
+  close.onclick = () => dialog.close();
+  dialog.append(close, textElement("h2", "Discovered owned listings"));
+  for (const link of result.links || [])
+    dialog.append(
+      textElement("p", `${link.remoteId} · ${link.title || "Title unknown"} · ${link.url}`),
+    );
+  if (!result.links?.length)
+    dialog.append(
+      textElement(
+        "p",
+        "No owned listing links extracted. This does not establish an empty account.",
+      ),
+    );
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  return {};
 }
 $("configure").onsubmit = (e) => {
   e.preventDefault();

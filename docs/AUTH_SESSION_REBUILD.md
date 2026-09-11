@@ -1,5 +1,9 @@
 # Auth/session rebuild — Desktop 0.3.1
 
+This records the packaged 0.3.1 checkpoint. The active browser-session diagnostic repair is
+in [SESSION_DIAGNOSTIC.md](SESSION_DIAGNOSTIC.md). eBay API approval was rejected; API
+credentials and reapplication are not dependencies of this seven-day phase.
+
 Status: implementation and local checks complete; real provider/session proof remains incomplete.
 The 15:00 reminder was deleted at Nate's request. Do not recreate it.
 

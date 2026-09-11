@@ -1,6 +1,7 @@
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { profileDiagnostics } = require("./session-diagnostics.cjs");
 const MARKETPLACES = {
   vinted_uk: {
     label: "Vinted",
@@ -107,13 +108,7 @@ function diagnostics(state, version) {
     paired: Boolean(state.deviceToken),
     paused: Boolean(state.paused),
     lastSuccessfulAction: state.lastSuccessfulAction || null,
-    profiles: (state.profiles || []).map((p) => ({
-      marketplace: p.marketplace,
-      status: p.status,
-      lastSeen: p.lastSeen || null,
-      lastSyncAt: p.lastSyncAt || null,
-      validatedAt: p.validatedAt || null,
-    })),
+    profiles: (state.profiles || []).map(profileDiagnostics),
     error: state.errorCode || null,
   };
 }
