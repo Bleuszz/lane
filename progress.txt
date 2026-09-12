@@ -1,26 +1,42 @@
 LANE FINAL DEPLOYMENT HARDENING — 12 SEPTEMBER 2026 — CURRENT STATUS
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting; continued from d9e854f, no connector changes.
-DEPLOYMENT READINESS: IN PROGRESS — clean-install/fresh-Postgres release gate running.
-CODE READY: final integrated proof pending; no provider credentials requested.
+DEPLOYMENT READINESS: READY FOR FREE STAGING; actual provisioning remains external.
+CODE READY: YES — complete check:deploy PASS on clean committed code e1b0774.
 STACK: Render Free Node 24.14.0, Frankfurt + Neon Free PostgreSQL 16 Frankfurt; DNS later.
-RENDER CONFIG: local official JSON-schema validation PASS; real provider validation pending.
-NEON CONFIG: TLS/pool contract ready; actual remote provisioning/connection untested.
-MIGRATIONS: all 22 audited; transactional concurrent-start lock/checksums/rollback implemented.
-PRODUCTION BUILD: clean source snapshot build PASS; final combined proof running.
-AUTH/TRIAL/DEVICE: focused tests PASS; fresh HTTPS/Postgres browser proof pending.
-SEO: explicit PUBLIC_INDEXING=false, noindex staging, inspectable sitemap; integrated check pending.
+RENDER CONFIG: PASS locally against official JSON schema; provider validation pending.
+NEON CONFIG: PASS preparation; verified-TLS/pool contract tested, actual cloud connection untested.
+DATABASE MIGRATIONS: PASS all 22 on fresh PostgreSQL 16; concurrent/repeat/checksum/rollback tests.
+PRODUCTION BUILD: PASS, fresh tracked-source copy + clean npm ci, Node 24.14.0; no cached .env/DB/build.
+FRESH BOOT: PASS with no optional keys. Loopback PostgreSQL only; cloud TLS remains a live gate.
+AUTH: PASS real signup/logout/login, secure cookies, CSRF, safe errors and login rate limits.
+TRIAL: PASS 168 hours, original dates persist after login/restart/pairing; expiry retains inventory.
+DEVICE PAIRING: PASS browser approval, same owner, exchange, heartbeat, server restart, refresh/revoke.
+  Packaged Desktop on hosted Render remains a live test; no marketplace session logic changed.
+SEO: PASS public metadata/canonicals/schema/links/404/headers; PUBLIC_INDEXING=false; sitemap readable.
 LOGGING: safe categories/request IDs; no arbitrary SQL/errors/credentials in app logger.
 ANALYTICS: OPTIONAL, OFF. GOOGLE/EMAIL: OPTIONAL, NOT CONFIGURED. BILLING: DISABLED.
 AI/SCHEDULER/IMAGE NORMALIZATION: skeletons preserved, flags OFF and unfinished controls gated.
 LIVE DEPLOYED: NO. BLOCKED — EXTERNAL OWNER AUTH ONLY for Render/Neon provisioning.
 OWNER ACTION: future provider login/GitHub approval/private secret entry, not requested now.
 KNOWN NEXT PRODUCT TASK: Vinted full listing-detail extraction; Title unknown is not full import.
-COMPUTE: latest check 17% weekly used / 83% remaining; reset 19 Sep 2026 09:34 BST.
+COMPUTE: latest check 20% weekly used / 80% remaining; reset 19 Sep 2026 09:34 BST.
   Separate short rolling-window usage/reset unavailable, not zero. No reset redeemed.
 SPENT: £0. No purchases, external AI calls or marketplace writes.
-NEXT: finish check:deploy, inspect local screenshots, fix release failures, record evidence,
-  commit/push and verify remote. Then only provisioning/live acceptance remains for this phase.
+TESTS: 69 focused tests PASS; typecheck + production build + fresh PostgreSQL/browser proof PASS.
+  Account axe: zero violations; home overflow checks PASS at 320/390/768/1440px. Screenshots inspected.
+  Sensitive-log scan PASS. Test app/container cleaned; existing local preview is an earlier build.
+EVIDENCE: docs/qa/deployment-readiness (10 synthetic LOCAL screenshots + result summaries).
+  Raw local logs: artifacts/deploy-check/1789222441257-1cdcd1. Result dated 12 Sep 14:17 UTC.
+  No new Lighthouse or LIVE STAGING screenshot is claimed. screenshots:live is prepared.
+SOURCE CHECKPOINT: e1b0774 pushed and remote verified; final evidence-only checkpoint is in git log.
+NEXT WHEN OWNER RETURNS (estimated owner interaction 5–10 minutes, build time additional):
+  1. Owner signs into Neon/Render, approves repository access and privately transfers DATABASE_URL.
+  2. Apply free Blueprint; generated auth secret/origin + automatic checked startup migrations.
+  3. Codex verifies hosted HTTPS/auth/trial/DB/device/revoke and captures genuine live screenshots.
+  4. Return to Vinted full item-detail extraction only after website deployment/live gates.
+COMMERCIAL LAUNCH LIMITS: recovery email, operator/contact/legal review and verified installer
+  still need their release gates; these do not block restricted free staging tests.
 Authoritative docs: DEPLOYMENT_ARCHITECTURE, ENVIRONMENT, MIGRATIONS, DEPLOYMENT_HANDOFF,
   DESKTOP_STAGING_TEST, LIVE_ACCEPTANCE, BACKUP_AND_RECOVERY, STAGING_RELEASE_NOTES.
 
