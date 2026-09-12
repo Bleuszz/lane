@@ -1,3 +1,4 @@
+import { safeLog, requestId, safeRequestCategory } from "../../src/lib/safe-log";
 import { PUBLIC_PAGES } from "../../src/lib/lane/public-site";
 const escape = (s: string) =>
   s
@@ -9,10 +10,32 @@ export default async function lanePublic(
   event: { req: Request; url: URL },
   next: () => unknown | Promise<unknown>,
 ) {
-  const result = await next();
+  const id = requestId(),
+    started = performance.now();
+  let result: unknown;
+  try {
+    result = await next();
+  } catch {
+    safeLog("REQUEST_FAILED", "error", {
+      requestId: id,
+      category: safeRequestCategory(event.url.pathname),
+      status: 503,
+    });
+    result = Response.json(
+      { error: "Service temporarily unavailable. Please try again.", requestId: id },
+      { status: 503 },
+    );
+  }
   if (!(result instanceof Response)) return result;
   const headers = new Headers(result.headers);
   if (!["staging", "production"].includes(process.env.LANE_ENV || "")) return result;
+  headers.set("X-Request-ID", id);
+  safeLog("REQUEST_COMPLETED", result.status >= 500 ? "error" : "info", {
+    requestId: id,
+    category: safeRequestCategory(event.url.pathname),
+    status: result.status,
+    latencyMs: Math.round(performance.now() - started),
+  });
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set("X-Frame-Options", "DENY");
@@ -25,7 +48,11 @@ export default async function lanePublic(
   );
   const path = event.url.pathname;
   const page = PUBLIC_PAGES[path as keyof typeof PUBLIC_PAGES];
-  const indexable = process.env.LANE_ENV === "production" && Boolean(page) && result.status === 200;
+  const indexable =
+    process.env.LANE_ENV === "production" &&
+    process.env.PUBLIC_INDEXING === "true" &&
+    Boolean(page) &&
+    result.status === 200;
   if (!indexable) headers.set("X-Robots-Tag", "noindex, nofollow");
   headers.set(
     "Cache-Control",

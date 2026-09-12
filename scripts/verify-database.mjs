@@ -1,21 +1,32 @@
 import { Pool } from "pg";
-import { readdirSync } from "node:fs";
-if (!process.env.DATABASE_URL) throw Error("DATABASE_URL required");
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 1,
-  connectionTimeoutMillis: 15000,
-});
+import { postgresOptions } from "../src/lib/postgres-options.ts";
+import { migrationFiles } from "./migrate.mjs";
+let pool;
 try {
-  const names = readdirSync("migrations").filter((n) => /^\d+.*\.sql$/.test(n));
-  const applied = (await pool.query("select name from _migrations")).rows.map((r) => r.name);
+  pool = new Pool(postgresOptions(process.env.DATABASE_URL, 1));
+  const files = await migrationFiles(),
+    names = files.map((f) => f.name);
+  const records = (await pool.query("select name,sha256 from _migrations")).rows;
+  const applied = records.map((r) => r.name);
+  const checksumMismatches = files.filter((f) => {
+    const r = records.find((r) => r.name === f.name);
+    return r && r.sha256 !== f.sha256;
+  }).length;
+  const extra = applied.filter((n) => !names.includes(n));
   const missing = names.filter((n) => !applied.includes(n));
   const tables = [
+    "request_limits",
     "user",
     "session",
     "account",
     "user_settings",
     "items",
+    "item_photos",
+    "marketplace_accounts",
+    "channel_listings",
+    "remote_listings",
+    "jobs",
+    "sales",
     "desktop_devices",
     "desktop_pairings",
     "support_requests",
@@ -47,6 +58,8 @@ try {
         connected: true,
         migrationsApplied: applied.length,
         missingMigrations: missing,
+        extraMigrations: extra,
+        checksumMismatches,
         missingTables,
         tls: tls.rows[0]?.ssl === true,
       },
@@ -55,11 +68,17 @@ try {
     ),
   );
   const local = ["localhost", "127.0.0.1"].includes(new URL(process.env.DATABASE_URL).hostname);
-  if (missing.length || missingTables.length || (!local && tls.rows[0]?.ssl !== true))
+  if (
+    extra.length ||
+    checksumMismatches ||
+    missing.length ||
+    missingTables.length ||
+    (!local && tls.rows[0]?.ssl !== true)
+  )
     process.exitCode = 1;
 } catch {
   console.error("Database verification failed; check credentials, TLS and migrations privately.");
   process.exitCode = 1;
 } finally {
-  await pool.end();
+  if (pool) await pool.end();
 }

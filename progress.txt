@@ -1,4 +1,31 @@
-LANE SAFE SCHEDULER + IMAGE FOUNDATION — 12 SEPTEMBER 2026 — CURRENT ADDENDUM
+LANE FINAL DEPLOYMENT HARDENING — 12 SEPTEMBER 2026 — CURRENT STATUS
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting; continued from d9e854f, no connector changes.
+DEPLOYMENT READINESS: IN PROGRESS — clean-install/fresh-Postgres release gate running.
+CODE READY: final integrated proof pending; no provider credentials requested.
+STACK: Render Free Node 24.14.0, Frankfurt + Neon Free PostgreSQL 16 Frankfurt; DNS later.
+RENDER CONFIG: local official JSON-schema validation PASS; real provider validation pending.
+NEON CONFIG: TLS/pool contract ready; actual remote provisioning/connection untested.
+MIGRATIONS: all 22 audited; transactional concurrent-start lock/checksums/rollback implemented.
+PRODUCTION BUILD: clean source snapshot build PASS; final combined proof running.
+AUTH/TRIAL/DEVICE: focused tests PASS; fresh HTTPS/Postgres browser proof pending.
+SEO: explicit PUBLIC_INDEXING=false, noindex staging, inspectable sitemap; integrated check pending.
+LOGGING: safe categories/request IDs; no arbitrary SQL/errors/credentials in app logger.
+ANALYTICS: OPTIONAL, OFF. GOOGLE/EMAIL: OPTIONAL, NOT CONFIGURED. BILLING: DISABLED.
+AI/SCHEDULER/IMAGE NORMALIZATION: skeletons preserved, flags OFF and unfinished controls gated.
+LIVE DEPLOYED: NO. BLOCKED — EXTERNAL OWNER AUTH ONLY for Render/Neon provisioning.
+OWNER ACTION: future provider login/GitHub approval/private secret entry, not requested now.
+KNOWN NEXT PRODUCT TASK: Vinted full listing-detail extraction; Title unknown is not full import.
+COMPUTE: latest check 17% weekly used / 83% remaining; reset 19 Sep 2026 09:34 BST.
+  Separate short rolling-window usage/reset unavailable, not zero. No reset redeemed.
+SPENT: £0. No purchases, external AI calls or marketplace writes.
+NEXT: finish check:deploy, inspect local screenshots, fix release failures, record evidence,
+  commit/push and verify remote. Then only provisioning/live acceptance remains for this phase.
+Authoritative docs: DEPLOYMENT_ARCHITECTURE, ENVIRONMENT, MIGRATIONS, DEPLOYMENT_HANDOFF,
+  DESKTOP_STAGING_TEST, LIVE_ACCEPTANCE, BACKUP_AND_RECOVERY, STAGING_RELEASE_NOTES.
+
+PREVIOUS CHECKPOINT (historical evidence follows):
+LANE SAFE SCHEDULER + IMAGE FOUNDATION — 12 SEPTEMBER 2026
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting (continued from 132a748; no restart/new branch).
 SCHEDULER: READY AS A LOCALLY VERIFIED FOUNDATION. Not live marketplace automation.

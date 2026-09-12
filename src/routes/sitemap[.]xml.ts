@@ -5,8 +5,7 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: () => {
         const origin = process.env.BETTER_AUTH_URL;
-        if (!origin || process.env.LANE_ENV !== "production")
-          return new Response("Not published", { status: 404 });
+        if (!origin) return new Response("Not published", { status: 404 });
         const paths = Object.keys(PUBLIC_PAGES);
         return new Response(
           '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +

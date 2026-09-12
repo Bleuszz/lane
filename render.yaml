@@ -2,6 +2,7 @@
 services:
   - type: web
     name: lane-staging
+    rootDir: .
     runtime: node
     plan: free
     region: frankfurt
@@ -13,6 +14,10 @@ services:
     envVars:
       - key: LANE_ENV
         value: staging
+      - key: PUBLIC_INDEXING
+        value: "false"
+      - key: LOG_LEVEL
+        value: "warn"
       - key: NODE_VERSION
         value: 24.14.0
       - key: VITE_AUTH_ENABLED

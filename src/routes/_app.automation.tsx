@@ -1,3 +1,4 @@
+import { ReleaseGate } from "@/components/release-gate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -21,7 +22,11 @@ export const Route = createFileRoute("/_app/automation")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: Automation,
+  component: () => (
+    <ReleaseGate feature="scheduler">
+      <Automation />
+    </ReleaseGate>
+  ),
 });
 const inputClass = "mt-1 block w-full rounded border border-line bg-paper p-2";
 function Automation() {

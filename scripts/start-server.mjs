@@ -1,7 +1,20 @@
 import { spawn } from "node:child_process";
 import { deploymentPolicy } from "../src/lib/auth/deployment.ts";
 process.env.LANE_ENV ||= "staging";
-deploymentPolicy(process.env);
+process.env.NODE_ENV ||= "production";
+try {
+  deploymentPolicy(process.env);
+} catch (error) {
+  console.error(
+    "[startup] " +
+      (/^(Deployment requires|BETTER_AUTH_|DATABASE_URL|Remote PostgreSQL|TLS verification|Preview plans|Public indexing|Invalid LOG_LEVEL|Invalid Render)/.test(
+        error.message,
+      )
+        ? error.message
+        : "Invalid deployment configuration"),
+  );
+  process.exit(1);
+}
 const migrate = spawn(process.execPath, ["scripts/migrate.mjs"], {
   stdio: "inherit",
   env: process.env,

@@ -1,3 +1,4 @@
+import { ReleaseGate } from "@/components/release-gate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -18,7 +19,11 @@ export const Route = createFileRoute("/_app/image-tools")({
   head: () => ({
     meta: [{ title: "Image exports | Lane" }, { name: "robots", content: "noindex, nofollow" }],
   }),
-  component: ImageTools,
+  component: () => (
+    <ReleaseGate feature="images">
+      <ImageTools />
+    </ReleaseGate>
+  ),
 });
 function ImageTools() {
   const state = useQuery({

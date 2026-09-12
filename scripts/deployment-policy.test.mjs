@@ -5,7 +5,7 @@ const valid = {
   LANE_ENV: "staging",
   DATABASE_URL: "postgresql://fixture@localhost/lane",
   BETTER_AUTH_URL: "https://lane.example",
-  BETTER_AUTH_SECRET: "x".repeat(40),
+  BETTER_AUTH_SECRET: "f782e410683a74d917c5b090d811672fc42a798fd15fc03292dcb543df4eee70",
   VITE_AUTH_ENABLED: "true",
 };
 test("hosted Lane fails closed without durable DB, auth or a stable secret", () => {

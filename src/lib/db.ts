@@ -1,3 +1,6 @@
+import { databaseError } from "./database-error";
+import { postgresOptions } from "./postgres-options";
+import { safeLog } from "./safe-log";
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 import { deploymentPolicy } from "./auth/deployment";
 deploymentPolicy(process.env);
@@ -73,10 +76,27 @@ function toSql(run: Run, transaction?: Sql["transaction"]): Sql {
     // Rebuild with $1, $2, … placeholders so values stay parameterized.
     let text = strings[0];
     for (let i = 0; i < values.length; i += 1) text += `$${i + 1}${strings[i + 1]}`;
-    return run<T>(text, values);
+    try {
+      return await run<T>(text, values);
+    } catch (error) {
+      if (databaseUrl) {
+        safeLog("DATABASE_QUERY_FAILED");
+        throw databaseError(error);
+      }
+      throw error;
+    }
   }) as unknown as Sql;
-  sql.query = <T = Record<string, unknown>>(text: string, params: unknown[] = []) =>
-    run<T>(text, params);
+  sql.query = async <T = Record<string, unknown>>(text: string, params: unknown[] = []) => {
+    try {
+      return await run<T>(text, params);
+    } catch (error) {
+      if (databaseUrl) {
+        safeLog("DATABASE_QUERY_FAILED");
+        throw databaseError(error);
+      }
+      throw error;
+    }
+  };
   sql.transaction =
     transaction ??
     (async () => {
@@ -93,19 +113,18 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({
-      connectionString: databaseUrl,
-      max: 5,
-      connectionTimeoutMillis: 15000,
-      idleTimeoutMillis: 30000,
-    });
+    const pool = new Pool(postgresOptions(databaseUrl, 5));
+    pool.on("error", () => safeLog("DATABASE_POOL_ERROR"));
     return toSql(
       async <T>(text: string, params: unknown[]) => {
         const res = await pool.query(text, params);
         return res.rows as T[];
       },
       async (run) => {
-        const client = await pool.connect();
+        const client = await pool.connect().catch((error) => {
+          safeLog("DATABASE_CONNECT_FAILED");
+          throw databaseError(error);
+        });
         try {
           await client.query("begin");
           const result = await run(
@@ -117,7 +136,7 @@ function createNeonSql(): Promise<Sql> {
           await client.query("commit");
           return result;
         } catch (error) {
-          await client.query("rollback");
+          await client.query("rollback").catch(() => safeLog("DATABASE_ROLLBACK_FAILED"));
           throw error;
         } finally {
           client.release();

@@ -29,6 +29,8 @@
  * components read the user via `@/lib/auth/use-current-user`; server functions get
  * a verified id via `@/lib/auth/middleware`.
  */
+import { postgresOptions } from "../postgres-options";
+import { safeLog } from "../safe-log";
 import { betterAuth } from "better-auth";
 import { deploymentPolicy } from "./deployment";
 import { passwordResetConfigured, sendPasswordReset } from "./email.server";
@@ -37,7 +39,8 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
-import { ensureDbReady, getPglite } from "../db";
+import { ensureDbReady, getPglite, getSql } from "../db";
+import { consumeLimit } from "../request-limits";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -144,7 +147,7 @@ const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl, max: 3 })
+  ? new Pool(postgresOptions(databaseUrl, 3))
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */
@@ -176,7 +179,33 @@ const grokOAuthPlugin =
       })
     : null;
 
+if (database instanceof Pool) database.on("error", () => safeLog("AUTH_DATABASE_POOL_ERROR"));
 export const auth = betterAuth({
+  rateLimit: {
+    enabled: deployment.deployed,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-up/email": { window: 3600, max: 10 },
+      "/sign-in/email": { window: 60, max: 10 },
+      "/request-password-reset": { window: 3600, max: 5 },
+    },
+    ...(deployment.deployed
+      ? {
+          customStorage: {
+            get: async () => {
+              throw Error("ATOMIC_RATE_LIMIT_REQUIRED");
+            },
+            set: async () => {
+              throw Error("ATOMIC_RATE_LIMIT_REQUIRED");
+            },
+            consume: async (key: string, rule: { window: number; max: number }) =>
+              consumeLimit(await getSql(), "auth:" + key, rule, process.env.BETTER_AUTH_SECRET!),
+          },
+        }
+      : {}),
+  },
+  logger: { disabled: false, log: () => safeLog("AUTH_LIBRARY_EVENT", "warn") },
   ...(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET") && !authDisabled
     ? {
         socialProviders: {
@@ -215,11 +244,12 @@ export const auth = betterAuth({
     },
   },
 
-  // Cache the session in the short-lived signed `session_data` cookie so reads
-  // (incl. the client's `/get-session`) skip the DB — this shrinks the "loading"
-  // window and reduces auth flicker. See the `auth` skill for the full
-  // flicker-prevention guidance (gate on `isPending`; SSR the session).
-  session: { cookieCache: { enabled: true, maxAge: 300 } },
+  // Deployed session reads consult PostgreSQL so revocation is effective immediately.
+  session: {
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+    cookieCache: { enabled: !deployment.deployed, maxAge: 300 },
+  },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
   ...(emailAndPasswordEnabled

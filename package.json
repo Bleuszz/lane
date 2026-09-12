@@ -1,5 +1,5 @@
 {
-  "name": "app-builder-workspace",
+  "name": "lane",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -21,7 +21,11 @@
     "format": "prettier --write .",
     "test:lane": "node --test scripts/entitlements.test.mjs scripts/reliable-operations.test.mjs scripts/ebay-retry.test.mjs scripts/source-mapping.test.mjs scripts/item-persistence.test.mjs scripts/worker.test.mjs scripts/billing-webhooks.test.mjs scripts/publish-review.test.mjs scripts/listing-snapshots.test.mjs scripts/ebay-photos.test.mjs scripts/ebay-transport.test.mjs scripts/ebay-orders.test.mjs scripts/manual-sales.test.mjs scripts/inventory-lifecycle.test.mjs",
     "build:node": "node scripts/build-node.mjs",
-    "test:desktop": "node --test scripts/desktop-security.test.mjs scripts/desktop-pairing.test.mjs scripts/desktop-return-path.test.mjs scripts/download-url.test.mjs scripts/connection-state.test.mjs scripts/auth-configuration.test.mjs"
+    "test:desktop": "node --test scripts/desktop-security.test.mjs scripts/desktop-pairing.test.mjs scripts/desktop-return-path.test.mjs scripts/download-url.test.mjs scripts/connection-state.test.mjs scripts/auth-configuration.test.mjs",
+    "db:verify": "node scripts/verify-database.mjs",
+    "secret:generate": "node scripts/generate-secret.mjs",
+    "check:deploy": "node scripts/check-deploy.mjs",
+    "screenshots:live": "node scripts/screenshots-live.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
@@ -88,6 +92,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "ajv": "^8.20.0",
     "chrome-launcher": "^1.2.1",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
@@ -100,8 +105,14 @@
     "nitro": "3.0.260610-beta",
     "playwright": "^1.62.0",
     "prettier": "^3.4.0",
+    "selfsigned": "^5.5.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "yaml": "^2.9.1"
+  },
+  "version": "0.1.0-staging.1",
+  "engines": {
+    "node": ">=24.14.0 <25"
   }
 }

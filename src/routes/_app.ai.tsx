@@ -1,3 +1,4 @@
+import { ReleaseGate } from "@/components/release-gate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -28,7 +29,11 @@ export const Route = createFileRoute("/_app/ai")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: AiStudio,
+  component: () => (
+    <ReleaseGate feature="ai">
+      <AiStudio />
+    </ReleaseGate>
+  ),
 });
 const errorText: Record<string, string> = {
   FEATURE_DISABLED: "This feature is switched off.",

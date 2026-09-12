@@ -1,3 +1,4 @@
+import { releaseFeatures } from "../release-features.ts";
 export function authConfiguration(env: Record<string, string | undefined>, origin: string) {
   const present = (key: string) => Boolean(env[key]?.trim());
   const enabled = env.VITE_AUTH_ENABLED !== "false";
@@ -15,6 +16,7 @@ export function authConfiguration(env: Record<string, string | undefined>, origi
       : "This provider is not configured. Use email sign-in or ask the Lane administrator to enable it.";
   return {
     enabled,
+    features: releaseFeatures(env),
     passwordResetAvailable: enabled && present("RESEND_API_KEY") && present("LANE_EMAIL_FROM"),
     providers: [
       {

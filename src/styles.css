@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+/* Scan application UI explicitly, never release artifacts or nested clean-build fixtures. */
+@source "./";
 
 @theme {
   --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
