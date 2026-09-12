@@ -11,8 +11,11 @@ dist/
 .env.*.local
 .grok/
 artifacts/
+desktop/build-info.json
 screenshots/
 *.log
+*.vault
+*.vault.tmp
 .DS_Store
 AGENTS.md
 AGENTS.project.md

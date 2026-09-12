@@ -1,3 +1,4 @@
+import { recordActivation } from "@/lib/lane/server/events";
 import { createFileRoute } from "@tanstack/react-router";
 import { getSql } from "@/lib/db";
 import { exchangeEbayCode, ebayUser } from "@/lib/lane/server/ebay";
@@ -61,6 +62,7 @@ export const Route = createFileRoute("/api/ebay/callback")({
               )
             `;
           }
+          await recordActivation(sql, userId, "destination_connected", "ebay_uk");
           dest.searchParams.set("ebay", "connected");
           dest.searchParams.set("user", identity.username);
           return Response.redirect(dest, 302);

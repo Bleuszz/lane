@@ -1,6 +1,8 @@
+import { isHttpsPhoto, localPhoto, MAX_LOCAL_PHOTO_BYTES } from "@/lib/lane/photos";
+import { SmartFields } from "./smart-fields";
+import { PhotoStudio } from "./photo-studio";
 import { CATEGORIES } from "@/lib/lane/categories";
 import { CHANNELS } from "@/lib/lane/channels";
-import { compareTakeHome } from "@/lib/lane/fees";
 import { formatMoney } from "@/lib/lane/format";
 import {
   COLOURS,
@@ -18,20 +20,20 @@ import { CONDITION_LABELS, CONDITIONS, type AiVoice, type ItemDraft, type Pricin
 import { generateListingCopy } from "@/lib/lane/server/fns";
 import { Button, Field, Input, NativeSelect, Textarea } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export const EMPTY_DRAFT: ItemDraft = {
   title: "",
   description: "",
   brand: "",
-  categoryCanonical: "menswear.tops.tshirts",
-  condition: "good",
+  categoryCanonical: "",
+  condition: "unknown",
   sizeUk: "",
   sizeEu: "",
   sizeUs: "",
   colour: "",
   material: "",
-  gender: "men",
+  gender: "",
   era: "",
   costPriceGbp: "",
   basePriceGbp: "",
@@ -93,18 +95,18 @@ export function ItemForm({
   const f = fieldsFor(target);
   const set = (patch: Partial<ItemDraft>) => onChange({ ...draft, ...patch });
   const price = Number(draft.basePriceGbp) || 0;
-  const take = compareTakeHome({ listPriceGbp: price, categoryCanonical: draft.categoryCanonical });
   const ebayPrice = applyPricingRule(price, rules.find((r) => r.marketplace === "ebay_uk"));
   const vintedPrice = applyPricingRule(price, rules.find((r) => r.marketplace === "vinted_uk"));
   const [voice, setVoice] = useState<AiVoice>("short");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [extras, setExtras] = useState(false);
+  const [editPhoto, setEditPhoto] = useState<string | null>(null);
   const [dept, setDept] = useState<"all" | "men" | "women" | "kids" | "other">("all");
   const kind = sizeKindForCategory(draft.categoryCanonical);
   const sizeTable = kind === "footwear" ? FOOTWEAR_SIZES : CLOTHING_SIZES;
   const cats = CATEGORIES.filter((c) => (dept === "all" ? true : departmentOf(c.id) === dept));
-  const httpsCount = draft.photos.filter((p) => /^https?:\/\//i.test(p.url)).length;
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   function onUkSize(value: string) {
     const row = convertSize(value, "uk", kind);
@@ -112,20 +114,25 @@ export function ItemForm({
   }
 
   function onCategory(id: string) {
-    set({ categoryCanonical: id, gender: genderFromCategory(id) });
+    set({ categoryCanonical: id, gender: genderFromCategory(id), channelFields: { ...draft.channelFields, ebay_uk: { aspects: {} } } });
   }
 
   async function onFiles(files: FileList | null) {
     if (!files) return;
     const next = [...draft.photos];
+    setPhotoError(null);
     for (const file of Array.from(files)) {
       if (next.length >= 12) break;
-      if (file.size > 2_000_000) continue;
+      if (file.size > MAX_LOCAL_PHOTO_BYTES) { setPhotoError("Choose JPEG or PNG files up to 2 MB each."); continue; }
       const url = await readFile(file);
+      if (!localPhoto(url)) { setPhotoError("Choose JPEG or PNG files up to 2 MB each."); continue; }
       next.push({ url });
     }
     set({ photos: next });
   }
+
+  const latestDraft = useRef(draft);
+  latestDraft.current = draft;
 
   async function fillAi() {
     setAiBusy(true);
@@ -143,16 +150,8 @@ export function ItemForm({
         setAiError(res.error);
         return;
       }
-      set({
-        title: res.draft.title,
-        description: res.draft.description,
-        brand: res.draft.brand,
-        categoryCanonical: res.draft.categoryCanonical,
-        condition: res.draft.condition,
-        colour: res.draft.colour,
-        material: res.draft.material,
-        gender: genderFromCategory(res.draft.categoryCanonical),
-      });
+      const current = latestDraft.current;
+      onChange({ ...current, title: current.title || res.draft.title, description: current.description || res.draft.description });
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "AI failed");
     } finally {
@@ -165,13 +164,15 @@ export function ItemForm({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+      {editPhoto && <PhotoStudio source={editPhoto} onClose={() => setEditPhoto(null)} onSave={(url) => { set({ photos: [{ url }, ...draft.photos].slice(0, 12) }); setEditPhoto(null); }} />}
       <div className="space-y-5">
         <section className="space-y-3">
-          <h2 className="text-sm font-medium">Photos {f.vinted && !f.ebay ? "(1–12)" : f.ebay ? "(https required for eBay)" : ""}</h2>
+          <h2 className="text-sm font-medium">Photos (1–12)</h2>
           <div className="flex flex-wrap gap-2">
             {draft.photos.map((p, i) => (
-              <div key={`${p.url}-${i}`} className="relative h-24 w-20 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-raised">
+              <div key={`${p.url}-${i}`} className="relative h-36 w-28 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-raised">
                 <img src={p.url} alt="" className="h-full w-full object-cover" />
+                <button type="button" className="absolute right-1 top-1 rounded bg-surface px-2 py-1 text-xs text-ink" disabled={draft.photos.length >= 12} onClick={() => setEditPhoto(p.url)}>Edit photo</button>
                 <div className="absolute inset-x-0 bottom-0 flex">
                   <button
                     type="button"
@@ -197,14 +198,14 @@ export function ItemForm({
             ))}
             <label className="grid h-24 w-20 cursor-pointer place-items-center rounded-[var(--radius-sm)] border border-dashed border-line-strong text-xs text-muted">
               Add
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => void onFiles(e.target.files)} />
+              <input type="file" accept="image/jpeg,image/png" multiple className="hidden" onChange={(e) => void onFiles(e.target.files)} />
             </label>
           </div>
+          {photoError && <p role="alert" className="text-xs text-danger">{photoError}</p>}
           {f.httpsPhotos ? (
             <>
               <p className="text-[11px] text-subtle">
-                File uploads work for Vinted. eBay Inventory needs a public https URL. {httpsCount} https photo
-                {httpsCount === 1 ? "" : "s"} ready.
+                JPEG/PNG files up to 2 MB and Photo studio copies upload to eBay when you publish. Public HTTPS photos work too. Originals stay in Lane.
               </p>
               <form
                 className="flex gap-2"
@@ -212,7 +213,8 @@ export function ItemForm({
                   e.preventDefault();
                   const input = e.currentTarget.elements.namedItem("photoUrl") as HTMLInputElement | null;
                   const value = input?.value.trim() ?? "";
-                  if (!/^https?:\/\//i.test(value)) return;
+                  if (!isHttpsPhoto(value)) { setPhotoError("Use a public HTTPS photo URL."); return; }
+                  setPhotoError(null);
                   if (draft.photos.length >= 12) return;
                   set({ photos: [...draft.photos, { url: value }] });
                   if (input) input.value = "";
@@ -239,7 +241,7 @@ export function ItemForm({
             />
           </Field>
           {f.sku ? (
-            <Field label="SKU" hint="eBay requires a unique SKU. Leave blank to auto-generate.">
+            <Field label="SKU" hint="Optional stock reference for your own records. Lane creates the eBay reference automatically.">
               <Input value={draft.sku} onChange={(e) => set({ sku: e.target.value })} className="font-mono" />
             </Field>
           ) : null}
@@ -279,6 +281,7 @@ export function ItemForm({
             }
           >
             <NativeSelect value={draft.categoryCanonical} onChange={(e) => onCategory(e.target.value)}>
+              <option value="">Choose the destination category</option>
               {cats.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.path}
@@ -299,7 +302,7 @@ export function ItemForm({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Brand" hint={f.vinted ? "Vinted requires a brand, or No brand." : "eBay item specific."}>
-            <Input value={draft.brand === "No brand" ? "" : draft.brand} onChange={(e) => set({ brand: e.target.value })} disabled={draft.brand === "No brand"} />
+            <Input aria-label="Brand" value={draft.brand === "No brand" ? "" : draft.brand} onChange={(e) => set({ brand: e.target.value })} disabled={draft.brand === "No brand"} />
             {f.vinted ? (
               <label className="mt-2 flex items-center gap-2 text-xs text-muted">
                 <input
@@ -314,6 +317,7 @@ export function ItemForm({
           <Field label="Colour">
             <NativeSelect value={draft.colour} onChange={(e) => set({ colour: e.target.value })}>
               <option value="">Select colour</option>
+              {draft.colour && !COLOURS.includes(draft.colour as typeof COLOURS[number]) && <option value={draft.colour}>{draft.colour} (imported)</option>}
               {COLOURS.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -328,6 +332,7 @@ export function ItemForm({
             <Field label="Size (UK)">
               <NativeSelect value={draft.sizeUk} onChange={(e) => onUkSize(e.target.value)}>
                 <option value="">Select size</option>
+                {draft.sizeUk && !sizeTable.some((s) => s.uk === draft.sizeUk) && <option value={draft.sizeUk}>{draft.sizeUk} (imported)</option>}
                 {sizeTable.map((s) => (
                   <option key={s.uk} value={s.uk}>
                     UK {s.uk}
@@ -427,6 +432,7 @@ export function ItemForm({
           </div>
         ) : null}
 
+        {f.ebay && <SmartFields draft={draft} onChange={onChange} aiEnabled={aiEnabled} />}
         <div className="rounded-[var(--radius-md)] border border-line bg-raised p-3 text-xs text-muted">
           {f.ebay ? (
             <p>
@@ -444,47 +450,34 @@ export function ItemForm({
 
       <aside className="space-y-4">
         <div className="rounded-[var(--radius-md)] border border-line bg-raised p-3">
-          <p className="text-xs font-medium text-ink">You receive at this list price</p>
+          <p className="text-xs font-medium text-ink">Your destination prices</p>
           <div className="mt-2 space-y-2 text-sm">
             {f.ebay ? (
               <>
                 <div className="flex justify-between">
                   <span className="text-muted">
-                    {CHANNELS.ebay_uk.short} {formatMoney(ebayPrice)}
+                    {CHANNELS.ebay_uk.short}
                   </span>
-                  <span className="tabular">{formatMoney(take.ebay.youReceiveGbp)}</span>
+                  <span className="tabular">{price > 0 ? formatMoney(ebayPrice) : "—"}</span>
                 </div>
-                <p className="text-[11px] text-subtle">{take.ebay.note}</p>
+                <p className="text-[11px] text-subtle">Before marketplace fees, postage and any tax. Your pricing rule is included.</p>
               </>
             ) : null}
             {f.vinted ? (
               <>
                 <div className={cn("flex justify-between", f.ebay && "border-t border-line pt-2")}>
                   <span className="text-muted">
-                    {CHANNELS.vinted_uk.short} {formatMoney(vintedPrice)}
+                    {CHANNELS.vinted_uk.short}
                   </span>
-                  <span className="tabular">{formatMoney(take.vinted.youReceiveGbp)}</span>
+                  <span className="tabular">{price > 0 ? formatMoney(vintedPrice) : "—"}</span>
                 </div>
-                <p className="text-[11px] text-subtle">{take.vinted.note}</p>
+                <p className="text-[11px] text-subtle">Your pricing rule is included. Check postage separately.</p>
               </>
             ) : null}
           </div>
         </div>
 
-        <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-raised p-3">
-          <p className="text-xs font-medium">AI fill</p>
-          <p className="text-[11px] text-subtle">Lands in this form. Never auto-publishes.</p>
-          <NativeSelect value={voice} onChange={(e) => setVoice(e.target.value as AiVoice)}>
-            <option value="short">Short</option>
-            <option value="detailed">Detailed</option>
-            <option value="vintage">Vintage</option>
-            <option value="streetwear">Streetwear</option>
-          </NativeSelect>
-          <Button variant="secondary" size="sm" className="w-full" disabled={aiBusy || !aiEnabled} onClick={() => void fillAi()}>
-            {aiBusy ? "Writing…" : aiEnabled ? "Fill from notes" : "Enable AI pack in Billing"}
-          </Button>
-          {aiError ? <p className="text-xs text-danger">{aiError}</p> : null}
-        </div>
+        <div className="space-y-2 rounded-lg border border-line bg-raised p-3"><p className="text-xs font-medium">AI is not live</p><p className="text-xs text-muted">Save this listing first. Optional mock suggestions are reviewed separately.</p><a className="text-sm underline" href="/ai">Open AI Studio</a></div>
       </aside>
     </div>
   );
@@ -500,6 +493,7 @@ function readFile(file: File): Promise<string> {
 }
 
 export function draftFromItem(item: {
+  channelFields?: ItemDraft["channelFields"];
   title: string;
   description: string;
   brand: string | null;
@@ -527,16 +521,17 @@ export function draftFromItem(item: {
 }): ItemDraft {
   return {
     title: item.title,
+    channelFields: item.channelFields,
     description: item.description,
     brand: item.brand ?? "",
-    categoryCanonical: item.categoryCanonical ?? "menswear.tops.tshirts",
+    categoryCanonical: item.categoryCanonical ?? "",
     condition: item.condition,
     sizeUk: item.sizeUk ?? "",
     sizeEu: item.sizeEu ?? "",
     sizeUs: item.sizeUs ?? "",
     colour: item.colour ?? "",
     material: item.material ?? "",
-    gender: item.gender ?? "men",
+    gender: item.gender ?? "",
     era: item.era ?? "",
     costPriceGbp: item.costPriceGbp != null ? String(item.costPriceGbp) : "",
     basePriceGbp: String(item.basePriceGbp),
@@ -545,7 +540,7 @@ export function draftFromItem(item: {
     lengthCm: item.lengthCm != null ? String(item.lengthCm) : "",
     widthCm: item.widthCm != null ? String(item.widthCm) : "",
     heightCm: item.heightCm != null ? String(item.heightCm) : "",
-    postageProfileId: item.postageProfileId ?? "vinted_medium",
+    postageProfileId: item.postageProfileId ?? "",
     notes: item.notes ?? "",
     tags: item.tags.join(","),
     sku: item.sku ?? "",

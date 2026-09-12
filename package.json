@@ -1,5 +1,5 @@
 {
-  "name": "app-builder-workspace",
+  "name": "lane",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -7,18 +7,25 @@
     "nf3": "0.3.17"
   },
   "scripts": {
-    "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
+    "dev": "node scripts/with-app-env.mjs node node_modules/vite/bin/vite.js dev --host 127.0.0.1 --port 8080",
+    "build": "node scripts/with-app-env.mjs node node_modules/vite/bin/vite.js build",
     "db:migrate": "node scripts/migrate.mjs",
-    "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
+    "build:dev": "node scripts/with-app-env.mjs node node_modules/vite/bin/vite.js build --mode development",
     "preview": "node scripts/with-app-env.mjs vite preview",
     "preview:restart": "node scripts/preview.mjs restart",
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
+    "test": "node scripts/run-tests.mjs",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:lane": "node --test scripts/entitlements.test.mjs scripts/reliable-operations.test.mjs scripts/ebay-retry.test.mjs scripts/source-mapping.test.mjs scripts/item-persistence.test.mjs scripts/worker.test.mjs scripts/billing-webhooks.test.mjs scripts/publish-review.test.mjs scripts/listing-snapshots.test.mjs scripts/ebay-photos.test.mjs scripts/ebay-transport.test.mjs scripts/ebay-orders.test.mjs scripts/manual-sales.test.mjs scripts/inventory-lifecycle.test.mjs",
+    "build:node": "node scripts/build-node.mjs",
+    "test:desktop": "node --test scripts/desktop-security.test.mjs scripts/desktop-pairing.test.mjs scripts/desktop-return-path.test.mjs scripts/download-url.test.mjs scripts/connection-state.test.mjs scripts/auth-configuration.test.mjs",
+    "db:verify": "node scripts/verify-database.mjs",
+    "secret:generate": "node scripts/generate-secret.mjs",
+    "check:deploy": "node scripts/check-deploy.mjs",
+    "screenshots:live": "node scripts/screenshots-live.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
@@ -66,7 +73,9 @@
     "react-hook-form": "^7.54.0",
     "react-resizable-panels": "^4.6.5",
     "recharts": "^2.13.0",
+    "sharp": "^0.35.4",
     "sonner": "^2.0.7",
+    "stripe": "22.6.2",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.3.0",
     "tw-animate-css": "^1.3.4",
@@ -75,6 +84,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.20.0",
     "@types/node": "^22.16.5",
     "@types/pg": "^8.11.10",
@@ -82,18 +92,27 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "ajv": "^8.20.0",
+    "chrome-launcher": "^1.2.1",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "lighthouse": "^13.4.1",
     "lightningcss": "^1.28.0",
     "nitro": "3.0.260610-beta",
     "playwright": "^1.62.0",
     "prettier": "^3.4.0",
+    "selfsigned": "^5.5.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "yaml": "^2.9.1"
+  },
+  "version": "0.1.0-staging.1",
+  "engines": {
+    "node": ">=24.14.0 <25"
   }
 }

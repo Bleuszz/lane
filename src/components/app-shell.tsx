@@ -1,3 +1,5 @@
+import { useReleaseFeatures } from "./release-gate";
+import { Modal } from "./modal";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { UserButton } from "@/lib/auth/gates";
@@ -27,7 +29,7 @@ import {
 import { useEffect, useState } from "react";
 
 const NAV = [
-  { to: "/inbox", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/inbox", label: "Today", icon: LayoutDashboard },
   { to: "/inventory", label: "Products", icon: Package },
   { to: "/new", label: "New listing", icon: Plus },
   { to: "/import", label: "Import", icon: Upload },
@@ -36,17 +38,36 @@ const NAV = [
 ] as const;
 
 const MANAGE = [
+  { to: "/automation", label: "Scheduling & safety", icon: Settings },
+  { to: "/image-tools", label: "Image preparation", icon: Settings },
+  { to: "/ai", label: "AI Studio & usage", icon: Activity },
+  { to: "/devices", label: "Your devices", icon: Settings },
   { to: "/settings/channels", label: "Accounts", icon: Settings },
   { to: "/settings/billing", label: "Billing", icon: CreditCard },
 ] as const;
 
 export function AppShell() {
+  const features = useReleaseFeatures();
+  const manage = MANAGE.filter((item) =>
+    item.to === "/ai"
+      ? features.ai
+      : item.to === "/automation"
+        ? features.scheduler
+        : item.to === "/image-tools"
+          ? features.images
+          : true,
+  );
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, isPending } = useCurrentUserState();
-  const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap(), refetchInterval: 8000 });
+  const boot = useQuery({
+    queryKey: ["bootstrap"],
+    queryFn: () => getBootstrap(),
+    refetchInterval: 8000,
+  });
   const [open, setOpen] = useState(false);
   const data = boot.data;
-  const failCount = (data?.inbox.failedJobs.length ?? 0) + (data?.inbox.offlineAccounts.length ?? 0);
+  const failCount =
+    (data?.inbox.failedJobs.length ?? 0) + (data?.inbox.offlineAccounts.length ?? 0);
   const connected = data?.accounts.find((a) => a.status === "green");
   const token = data?.settings.pairingToken ?? "";
 
@@ -61,29 +82,38 @@ export function AppShell() {
     <div className="min-h-screen bg-paper text-ink">
       <ExtensionBridge bootstrap={data} />
       <div className="flex min-h-screen">
-        <aside className="hidden w-[240px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <aside className="hidden w-[220px] shrink-0 flex-col border-r border-line bg-surface md:flex">
           <div className="flex h-14 items-center px-4">
             <Link to="/inbox" className="flex items-center">
               <LaneWordmark />
             </Link>
           </div>
           <div className="mx-3 mb-3 rounded-[var(--radius-md)] border border-line bg-raised px-3 py-2.5">
-            <p className="truncate text-sm font-medium">{user?.displayName ?? user?.primaryEmail ?? "Seller"}</p>
+            <p className="truncate text-sm font-medium">
+              {user?.displayName ?? user?.primaryEmail ?? "Seller"}
+            </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted">
               <span className={cn("h-1.5 w-1.5 rounded-full", connected ? "bg-ok" : "bg-subtle")} />
-              {connected ? `${CHANNELS[connected.marketplace]?.short} connected` : "No channel connected"}
+              {connected
+                ? `${CHANNELS[connected.marketplace]?.short} connected`
+                : "No channel connected"}
             </p>
           </div>
           <nav className="flex flex-1 flex-col gap-0.5 px-2 py-1">
             {NAV.map((item) => {
-              const isActive = item.to === "/inbox" ? pathname === "/inbox" : pathname === item.to || pathname.startsWith(`${item.to}/`);
+              const isActive =
+                item.to === "/inbox"
+                  ? pathname === "/inbox"
+                  : pathname === item.to || pathname.startsWith(`${item.to}/`);
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={cn(
                     "flex h-10 items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-sm transition-colors duration-[var(--motion-quick)]",
-                    isActive ? "bg-raised text-ink" : "text-muted hover:bg-raised/70 hover:text-ink",
+                    isActive
+                      ? "bg-mark text-mark-fg"
+                      : "text-muted hover:bg-raised/70 hover:text-ink",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.75} />
@@ -96,16 +126,24 @@ export function AppShell() {
                 </Link>
               );
             })}
-            <p className="mt-4 px-2.5 text-[10px] uppercase tracking-[0.14em] text-subtle">Manage</p>
-            {MANAGE.map((item) => {
-              const isActive = pathname.startsWith(item.to) || (item.to === "/settings/channels" && pathname.startsWith("/settings") && !pathname.startsWith("/settings/billing"));
+            <p className="mt-4 px-2.5 text-[10px] uppercase tracking-[0.14em] text-subtle">
+              Manage
+            </p>
+            {manage.map((item) => {
+              const isActive =
+                pathname.startsWith(item.to) ||
+                (item.to === "/settings/channels" &&
+                  pathname.startsWith("/settings") &&
+                  !pathname.startsWith("/settings/billing"));
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={cn(
                     "flex h-10 items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-sm transition-colors duration-[var(--motion-quick)]",
-                    isActive ? "bg-raised text-ink" : "text-muted hover:bg-raised/70 hover:text-ink",
+                    isActive
+                      ? "bg-mark text-mark-fg"
+                      : "text-muted hover:bg-raised/70 hover:text-ink",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.75} />
@@ -157,13 +195,15 @@ export function AppShell() {
           <header className="flex h-14 items-center gap-3 border-b border-line bg-surface px-3 md:px-5">
             <button
               type="button"
-              className="grid h-10 w-10 place-items-center rounded-[var(--radius-sm)] md:hidden"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-sm)] md:hidden"
               onClick={() => setOpen(true)}
               aria-label="Open menu"
+              aria-haspopup="dialog"
+              aria-expanded={open}
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="md:hidden">
+            <div className="shrink-0 md:hidden">
               <LaneWordmark />
             </div>
             {data ? (
@@ -177,6 +217,13 @@ export function AppShell() {
               </span>
             ) : null}
             <div className="ml-auto flex items-center gap-1">
+              <Link
+                to="/help"
+                className="mr-1 inline-flex min-h-11 items-center whitespace-nowrap px-1 text-xs text-muted hover:text-ink sm:mr-3"
+              >
+                <span className="sm:hidden">Help</span>
+                <span className="hidden sm:inline">Help & guides</span>
+              </Link>
               <ThemeToggle />
               {isPending ? (
                 <div className="h-8 w-8 animate-pulse rounded-full bg-ink/10" />
@@ -192,12 +239,20 @@ export function AppShell() {
       </div>
 
       {open ? (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <button type="button" className="absolute inset-0 bg-ink/30" onClick={() => setOpen(false)} aria-label="Close menu" />
-          <div className="absolute inset-y-0 left-0 w-72 bg-surface p-3 shadow-[var(--shadow-panel)]">
+        <Modal
+          label="Navigation"
+          onClose={() => setOpen(false)}
+          className="m-0 mr-auto h-dvh max-h-dvh w-[min(18rem,90vw)] rounded-none border-y-0 border-l-0 p-3"
+        >
+          <div>
             <div className="mb-3 flex items-center justify-between">
               <LaneWordmark />
-              <button type="button" className="grid h-10 w-10 place-items-center" onClick={() => setOpen(false)}>
+              <button
+                type="button"
+                className="grid h-11 w-11 place-items-center"
+                aria-label="Close menu"
+                onClick={() => setOpen(false)}
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -220,7 +275,7 @@ export function AppShell() {
               </p>
             ))}
           </div>
-        </div>
+        </Modal>
       ) : null}
     </div>
   );

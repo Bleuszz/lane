@@ -1,90 +1,81 @@
-#!/usr/bin/env node
-/**
- * Deploy-time database migrator (node-postgres, `pg`).
- *
- * Runs during `npm run build` — on every Vercel deploy — applying pending files
- * in ../migrations to DATABASE_URL. Each file is applied in one transaction and
- * recorded in a `_migrations` table, so it runs once and is safe to re-run.
- *
- * The read is non-recursive, so the opt-in auth schema under migrations/auth/
- * is not applied to an app that never asked for sign-in.
- *
- * No DATABASE_URL (local / preview builds) -> skip; the PGLite fallback applies
- * the same files at startup instead (see src/lib/db.ts).
- */
 import { readdir, readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import pg from "pg";
-import { pendingMigrations } from "./migration-plan.mjs";
-
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  console.log(
-    "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
+import { createHash } from "node:crypto";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { join, dirname } from "node:path";
+import { Pool } from "pg";
+import { postgresOptions } from "../src/lib/postgres-options.ts";
+const root = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+export async function migrationFiles(directory = root) {
+  const names = (await readdir(directory)).filter((n) => /^\d{4}_[a-z0-9_]+\.sql$/.test(n)).sort();
+  if (!names.length) throw Error("MIGRATION_FILES_MISSING");
+  return Promise.all(
+    names.map(async (name) => {
+      const text = await readFile(join(directory, name), "utf8");
+      return {
+        name,
+        text,
+        sha256: createHash("sha256").update(text.replaceAll("\r\n", "\n")).digest("hex"),
+      };
+    }),
   );
-  process.exit(0);
 }
-
-const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
-
-async function main() {
-  let entries;
+export async function migrateDatabase(pool, directory = root) {
+  const files = await migrationFiles(directory),
+    client = await pool.connect();
   try {
-    entries = await readdir(migrationsDir);
-  } catch {
-    console.log("[migrate] no migrations/ directory — nothing to do.");
-    return;
-  }
-  // An app with no schema of its own must not pay for a database connection.
-  if (pendingMigrations(entries, []).length === 0) {
-    console.log("[migrate] no migrations — nothing to do.");
-    return;
-  }
-
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
-  const client = await pool.connect();
-  try {
+    await client.query("begin");
+    await client.query("select pg_advisory_xact_lock(721034)");
     await client.query(
-      "CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+      "create table if not exists _migrations(name text primary key,applied_at timestamptz not null default now(),sha256 text)",
     );
-    const applied = (await client.query("SELECT name FROM _migrations")).rows.map(
-      (r) => r.name,
-    );
-
-    let count = 0;
-    for (const { name } of pendingMigrations(entries, applied)) {
-      const text = await readFile(join(migrationsDir, name), "utf8");
-      try {
-        await client.query("BEGIN");
-        // pg's simple-query protocol runs a whole multi-statement file at once.
-        await client.query(text);
-        await client.query("INSERT INTO _migrations (name) VALUES ($1)", [name]);
-        await client.query("COMMIT");
-      } catch (err) {
-        console.error(`[migrate] error applying ${name}`);
-        try {
-          await client.query("ROLLBACK");
-        } catch {
-          // ROLLBACK fails when the connection died — keep the original error.
+    await client.query("alter table _migrations add column if not exists sha256 text");
+    const rows = (await client.query("select name,sha256 from _migrations")).rows;
+    if (rows.some((r) => !files.some((f) => f.name === r.name)))
+      throw Error("MIGRATION_HISTORY_AHEAD_OF_CODE");
+    let applied = 0,
+      baselined = 0;
+    for (const f of files) {
+      const old = rows.find((r) => r.name === f.name);
+      if (old?.sha256 && old.sha256 !== f.sha256) throw Error("MIGRATION_CHECKSUM_MISMATCH");
+      if (old) {
+        if (!old.sha256) {
+          await client.query("update _migrations set sha256=$1 where name=$2", [f.sha256, f.name]);
+          baselined++;
         }
-        throw err;
+        continue;
       }
-      console.log(`[migrate] applied ${name}`);
-      count += 1;
+      await client.query(f.text);
+      await client.query("insert into _migrations(name,sha256) values($1,$2)", [f.name, f.sha256]);
+      applied++;
     }
-    console.log(count ? `[migrate] done — ${count} migration(s) applied.` : "[migrate] up to date.");
+    await client.query("commit");
+    return { applied, baselined, total: files.length };
+  } catch (e) {
+    await client.query("rollback").catch(() => {});
+    throw e;
   } finally {
     client.release();
-    await pool.end();
   }
 }
-
-main().catch((err) => {
-  console.error("[migrate] failed:", err?.message || err);
-  // pg errors carry the context needed to debug a bad SQL file.
-  for (const key of ["code", "detail", "hint", "position", "where"]) {
-    if (err?.[key] != null) console.error(`[migrate]   ${key}: ${err[key]}`);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  let pool;
+  try {
+    pool = new Pool({
+      ...postgresOptions(process.env.DATABASE_URL, 1),
+      statement_timeout: 60000,
+      query_timeout: 65000,
+    });
+    const result = await migrateDatabase(pool);
+    console.log("[migrate] " + JSON.stringify(result));
+  } catch (e) {
+    console.error(
+      "[migrate] failed: " +
+        (/^(DATABASE_URL|Remote PostgreSQL|MIGRATION_)/.test(e.message)
+          ? e.message
+          : "DATABASE_UNAVAILABLE_OR_MIGRATION_FAILED"),
+    );
+    process.exitCode = 1;
+  } finally {
+    if (pool) await pool.end();
   }
-  process.exit(1);
-});
+}

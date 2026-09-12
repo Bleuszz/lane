@@ -1,3 +1,4 @@
+import { buildInfo } from "./scripts/build-info.mjs";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "vite";
@@ -146,6 +147,7 @@ function authPopupPlugin(): Plugin {
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
 export default defineConfig(({ command, isPreview }) => ({
+  define: { __LANE_BUILD__: JSON.stringify(buildInfo()) },
   server: {
     host: "0.0.0.0",
     port: 8080,
@@ -170,7 +172,8 @@ export default defineConfig(({ command, isPreview }) => ({
     ...(command === "build" || isPreview
       ? [
           nitro({
-            preset: "vercel",
+            preset: process.env.LANE_DEPLOY_TARGET === "node" ? "node-server" : "vercel",
+            compressPublicAssets: true,
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.

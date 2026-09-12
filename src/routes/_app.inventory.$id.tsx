@@ -1,3 +1,5 @@
+import { RecordSale } from "@/components/record-sale";
+import { PublishPreview } from "@/components/publish-preview";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,7 +10,6 @@ import {
   getBootstrap,
   getItemFn,
   getSettingsExtras,
-  markSoldFn,
   publishItems,
   pushUpdate,
   relistListing,
@@ -16,11 +17,11 @@ import {
 } from "@/lib/lane/server/fns";
 import { CHANNELS } from "@/lib/lane/channels";
 import { formatDateTime, formatMoney } from "@/lib/lane/format";
-import { ChannelPicker, ItemForm, draftFromItem } from "@/components/item-form";
+import { ChannelPicker, ItemForm, ListingTargetPicker, draftFromItem } from "@/components/item-form";
 import type { ListingTarget } from "@/lib/lane/listing-fields";
 import { Button, Panel } from "@/components/ui";
 import { ModeChip, StatusBadge } from "@/components/status";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ItemDraft } from "@/lib/lane/types";
 
 export const Route = createFileRoute("/_app/inventory/$id")({ component: ItemPage });
@@ -32,13 +33,20 @@ function ItemPage() {
   const itemQ = useQuery({ queryKey: ["item", id], queryFn: () => getItemFn({ data: { id } }) });
   const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
   const extras = useQuery({ queryKey: ["settings-extras"], queryFn: () => getSettingsExtras() });
+  const [targetOverride, setTargetOverride] = useState<ListingTarget | null>(null);
+  const [review, setReview] = useState(false);
+  const [saleChannelId, setSaleChannelId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ItemDraft | null>(null);
   const [accountIds, setAccountIds] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const loadedItemId = useRef<string | null>(null);
   useEffect(() => {
-    if (itemQ.data) setDraft(draftFromItem(itemQ.data));
-  }, [itemQ.data]);
+    if (itemQ.data && loadedItemId.current !== id) {
+      loadedItemId.current = id;
+      setDraft(draftFromItem(itemQ.data));
+    }
+  }, [itemQ.data, id]);
 
   const save = useMutation({
     mutationFn: () => {
@@ -48,17 +56,29 @@ function ItemPage() {
     onSuccess: () => qc.invalidateQueries(),
   });
 
+  if (itemQ.isError) return <p className="text-sm text-danger">Could not load this item. Return to inventory and try again.</p>;
   if (itemQ.isPending || !draft) return <div className="h-64 animate-pulse rounded-[var(--radius-md)] bg-secondary" />;
   if (itemQ.isError) return <p className="text-sm text-danger">Item not found.</p>;
   const item = itemQ.data;
   const picked = (boot.data?.accounts ?? []).filter((a) => accountIds.includes(a.id));
   const wantsEbay = item.channels.some((c) => c.marketplace === "ebay_uk") || picked.some((a) => a.marketplace === "ebay_uk");
   const wantsVinted = item.channels.some((c) => c.marketplace === "vinted_uk") || picked.some((a) => a.marketplace === "vinted_uk");
-  const listingTarget: ListingTarget = wantsEbay && wantsVinted ? "both" : wantsEbay ? "ebay" : "vinted";
+  const listingTarget: ListingTarget = targetOverride ?? (wantsEbay && wantsVinted ? "both" : wantsEbay ? "ebay" : "vinted");
 
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {saleChannelId !== null && <RecordSale item={item} channelId={saleChannelId || undefined} onClose={() => setSaleChannelId(null)} onRecorded={result => {
+        setSaleChannelId(null);
+        setDraft(current => current ? {...current,quantity:String(result.remainingQuantity)} : null);
+        setMsg(result.recorded ? `Sale recorded. ${result.remainingQuantity} remaining; linked stock updates are queued.` : "This sale was already recorded. Stock has not been reduced again.");
+        void qc.invalidateQueries();
+      }}/>}
+      {review && <PublishPreview draft={draft} accounts={picked} rules={extras.data?.rules ?? []} onClose={() => setReview(false)} onConfirm={async () => {
+        await save.mutateAsync();
+        const result = await publishItems({data:{itemIds:[id],accountIds}});
+        setMsg(`Queued ${result.queued} job(s).`); void qc.invalidateQueries();
+      }}/>}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link to="/inventory" className="text-xs text-muted hover:text-ink">
@@ -71,6 +91,7 @@ function ItemPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={item.quantity < 1 || ["sold","archived"].includes(item.status)} onClick={() => setSaleChannelId("")}>Record a sale</Button>
           <Button variant="secondary" onClick={() => save.mutate()} disabled={save.isPending}>
             Save
           </Button>
@@ -83,22 +104,22 @@ function ItemPage() {
           <Button
             variant="ghost"
             onClick={() =>
-              archiveItemFn({ data: { id } }).then(() => nav({ to: "/inventory" }))
+              archiveItemFn({ data: { id, restore: item.status === "archived" } }).then(() => { void qc.invalidateQueries(); }).catch(e => setMsg(e instanceof Error ? e.message : "Could not update archive status."))
             }
           >
-            Archive
+            {item.status === "archived" ? "Restore" : "Archive"}
           </Button>
           <Button
             variant="danger"
             onClick={() => {
               if (
                 !window.confirm(
-                  "Delete this listing from Lane? Live marketplace listings are not ended. Delist first if you want them taken down.",
+                  "Permanently delete this unlisted draft and its photos? Items with jobs or sales history are kept; archive completed items instead.",
                 )
               ) {
                 return;
               }
-              void deleteItemsFn({ data: { itemIds: [id] } }).then(() => nav({ to: "/inventory" }));
+              void deleteItemsFn({ data: { itemIds: [id] } }).then(() => nav({ to: "/inventory" })).catch(e => setMsg(e instanceof Error ? e.message : "Could not delete this draft."));
             }}
           >
             Delete
@@ -112,6 +133,7 @@ function ItemPage() {
         </Panel>
       ) : null}
 
+      <ListingTargetPicker value={listingTarget} onChange={setTargetOverride}/>
       <ItemForm
         draft={draft}
         onChange={setDraft}
@@ -160,16 +182,8 @@ function ItemPage() {
                       <Button size="sm" variant="ghost" onClick={() => relistListing({ data: { channelListingId: c.id } }).then(() => qc.invalidateQueries())}>
                         Relist
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          markSoldFn({ data: { itemId: id, marketplace: c.marketplace, via: c.mode === "oauth" ? "webhook" : "extension_poll" } }).then(() => {
-                            setMsg("Sale recorded. Other live channels queued for delist if qty is now 0.");
-                            void qc.invalidateQueries();
-                          })
-                        }
-                      >
-                        Mark sold here
+                      <Button size="sm" disabled={item.quantity < 1} onClick={() => setSaleChannelId(c.id)}>
+                        Record sale here
                       </Button>
                     </>
                   ) : null}
@@ -180,7 +194,7 @@ function ItemPage() {
         </div>
       </section>
 
-      {item.status !== "sold" ? (
+      {!["sold","archived"].includes(item.status) ? (
         <section>
           <h2 className="text-sm font-medium">Publish to</h2>
           <div className="mt-3">
@@ -192,15 +206,10 @@ function ItemPage() {
           </div>
           <Button
             className="mt-3"
-            disabled={accountIds.length === 0}
-            onClick={() =>
-              save.mutateAsync().then(() => publishItems({ data: { itemIds: [id], accountIds } })).then((r) => {
-                setMsg(`Queued ${r.queued} job(s).`);
-                void qc.invalidateQueries();
-              })
-            }
+            disabled={save.isPending}
+            onClick={() => setReview(true)}
           >
-            Queue publish
+            {accountIds.length ? "Review and publish" : "Preview listing"}
           </Button>
         </section>
       ) : null}

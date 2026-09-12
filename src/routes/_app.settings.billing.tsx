@@ -1,131 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getBootstrap, setPlanFn, startStripeCheckout, startStripePortal } from "@/lib/lane/server/fns";
-import { AI_PACK_GBP, PLAN_DEFS } from "@/lib/lane/plans";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getBootstrap, startStripeCheckout, startStripePortal } from "@/lib/lane/server/fns";
+import { PLAN_DEFS } from "@/lib/lane/plans";
 import { formatMoney } from "@/lib/lane/format";
 import { Button, Panel } from "@/components/ui";
 import type { PlanId } from "@/lib/lane/types";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_app/settings/billing")({ component: BillingPage });
-
 function BillingPage() {
-  const qc = useQueryClient();
   const boot = useQuery({ queryKey: ["bootstrap"], queryFn: () => getBootstrap() });
+  const [error, setError] = useState("");
+  const checkout = useMutation({ mutationFn: (plan: PlanId) => startStripeCheckout({ data: { plan, aiPack: false } }), onSuccess: (r) => window.location.assign(r.url), onError: (e: Error) => setError(e.message) });
+  const portal = useMutation({ mutationFn: () => startStripePortal(), onSuccess: (r) => window.location.assign(r.url), onError: (e: Error) => setError(e.message) });
   const settings = boot.data?.settings;
-  const setup = boot.data?.stripeSetup;
-  const stripeOn = Boolean(setup?.configured ?? boot.data?.stripeConfigured);
-  const flag = useMemo(() => new URLSearchParams(window.location.search).get("checkout"), []);
-  const [err, setErr] = useState<string | null>(null);
-
-  const checkout = useMutation({
-    mutationFn: (opts: { plan: PlanId; aiPack: boolean }) => startStripeCheckout({ data: opts }),
-    onSuccess: (r) => {
-      window.location.assign(r.url);
-    },
-    onError: (e: Error) => setErr(e.message),
-  });
-  const portal = useMutation({
-    mutationFn: () => startStripePortal(),
-    onSuccess: (r) => window.location.assign(r.url),
-    onError: (e: Error) => setErr(e.message),
-  });
-
-  if (!settings) return <div className="h-32 animate-pulse rounded-[var(--radius-md)] bg-secondary" />;
-
-  const ticks: [string, boolean][] = setup
-    ? [
-        ["STRIPE_SECRET_KEY", setup.secret],
-        ["STRIPE_WEBHOOK_SECRET", setup.webhook],
-        ["STRIPE_PRICE_STARTER", setup.prices.starter],
-        ["STRIPE_PRICE_SELLER", setup.prices.seller],
-        ["STRIPE_PRICE_PRO", setup.prices.pro],
-        ["STRIPE_PRICE_AI_PACK", setup.prices.aiPack],
-      ]
-    : [];
-
-  return (
-    <div className="space-y-5">
-      <p className="text-sm text-muted">
-        {stripeOn
-          ? "Checkout goes to Stripe. Webhooks update the plan. 3-day refund if you have made fewer than 20 live publishes."
-          : "Card billing is not live on this server yet. The switches below only change action caps. Set the keys in the checklist, then Subscribe becomes a real Stripe Checkout."}
-      </p>
-      {flag === "success" ? <p className="text-sm text-mark">Payment received. Plan updates when the webhook lands.</p> : null}
-      {flag === "cancel" ? <p className="text-sm text-muted">Checkout cancelled.</p> : null}
-      {err ? <p className="text-sm text-danger">{err}</p> : null}
-      <p className="text-sm">
-        Current: <span className="font-medium">{PLAN_DEFS[settings.plan].name}</span>
-        {" · "}
-        {settings.actionsRemaining} actions left this month
-        {settings.aiPack ? " · AI pack on" : ""}
-        {" · "}
-        {settings.billingStatus}
-      </p>
-      {stripeOn && settings.stripeCustomerId ? (
-        <Button variant="secondary" disabled={portal.isPending} onClick={() => portal.mutate()}>
-          Manage billing
-        </Button>
-      ) : null}
-      <div className="grid gap-3 md:grid-cols-3">
-        {Object.values(PLAN_DEFS).map((p) => (
-          <Panel key={p.id} className="p-4">
-            <p className="text-sm font-medium">{p.name}</p>
-            <p className="mt-1 font-mono text-xl tabular">{formatMoney(p.priceGbp)}/mo</p>
-            <ul className="mt-2 space-y-1 text-xs text-muted">
-              {p.notes.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-            <Button
-              size="sm"
-              className="mt-3"
-              variant={settings.plan === p.id ? "secondary" : "primary"}
-              disabled={checkout.isPending}
-              onClick={() => {
-                if (stripeOn) checkout.mutate({ plan: p.id as PlanId, aiPack: settings.aiPack });
-                else setPlanFn({ data: { plan: p.id as PlanId, aiPack: settings.aiPack } }).then(() => qc.invalidateQueries());
-              }}
-            >
-              {settings.plan === p.id ? "Current" : stripeOn ? `Subscribe ${formatMoney(p.priceGbp)}` : "Switch"}
-            </Button>
-          </Panel>
-        ))}
-      </div>
-      <Panel className="p-4">
-        <p className="text-sm font-medium">AI pack · {formatMoney(AI_PACK_GBP)}/mo</p>
-        <p className="mt-1 text-sm text-muted">Listing generation from notes. Never auto-publishes.</p>
-        <Button
-          size="sm"
-          className="mt-3"
-          variant={settings.aiPack ? "secondary" : "primary"}
-          disabled={checkout.isPending}
-          onClick={() => {
-            if (stripeOn) checkout.mutate({ plan: settings.plan, aiPack: !settings.aiPack });
-            else setPlanFn({ data: { plan: settings.plan, aiPack: !settings.aiPack } }).then(() => qc.invalidateQueries());
-          }}
-        >
-          {settings.aiPack ? "AI pack on" : stripeOn ? "Add AI pack at checkout" : "Add AI pack"}
-        </Button>
-      </Panel>
-      <Panel className="p-4">
-        <p className="text-sm font-medium">Live billing setup</p>
-        <p className="mt-1 text-sm text-muted">
-          Secrets never leave the server. This only shows whether each env var is present. Full steps: instructions.txt §7c.
-        </p>
-        <ul className="mt-3 space-y-1 text-sm">
-          {ticks.map(([name, ok]) => (
-            <li key={name} className="flex items-center justify-between gap-3">
-              <code className="font-mono text-[11px]">{name}</code>
-              <span className={ok ? "text-mark" : "text-muted"}>{ok ? "Set" : "Missing"}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-[11px] text-subtle">
-          Webhook URL: /api/stripe/webhook · events: checkout.session.completed, customer.subscription.updated,
-          customer.subscription.deleted, invoice.payment_failed. Test card 4000 0000 0000 0002.
-        </p>
-      </Panel>
-    </div>
-  );
+  if (boot.isError) return <p role="alert">Could not load your plan. Please refresh.</p>;
+  if (!settings) return <p role="status" className="text-muted">Loading your plan…</p>;
+  const stripeOn = boot.data?.stripeConfigured;
+  return <div className="mx-auto max-w-5xl space-y-8">
+    <div><p className="eyebrow">Your workspace</p><h1 className="page-title">A plan for your pace.</h1><p className="mt-2 text-muted">Every supported marketplace, on every plan. AI is not enabled for production.</p></div>
+    {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+    {!stripeOn && <p className="rounded-lg bg-warn-bg px-4 py-3 text-sm text-warn">Launch pricing is shown below. Subscriptions are not available in this environment yet.</p>}
+    <Panel className="flex flex-wrap items-center justify-between gap-5 p-6"><div><p className="text-sm text-muted">Current plan</p><h2 className="mt-1 text-xl font-semibold">{PLAN_DEFS[settings.plan].name}</h2><p className="mt-2 text-sm text-muted">{settings.billingStatus === "trialing" ? `${settings.trialActive ? "No-card trial" : "Trial ended"} · ${settings.trialEndsAt ? new Date(settings.trialEndsAt).toLocaleDateString("en-GB") : ""} · ` : ""}{settings.actionsRemaining} listing actions left · {settings.billingStatus}</p></div>{settings.stripeCustomerId && <Button variant="secondary" disabled={portal.isPending} onClick={() => portal.mutate()}>Manage subscription</Button>}</Panel>
+    <div className="grid gap-4 md:grid-cols-3">{Object.values(PLAN_DEFS).map((p) => <Panel key={p.id} className={`flex flex-col p-6 ${p.id === "seller" ? "ring-1 ring-mark" : ""}`}><p className="text-sm font-semibold">{p.name}{p.id === "seller" && <span className="ml-2 text-xs font-normal text-mark">AI planned</span>}</p><p className="my-5 text-4xl tracking-tight">{formatMoney(p.priceGbp)}<span className="text-sm text-muted"> / month</span></p><ul className="mb-6 flex-1 space-y-3 text-sm text-muted">{p.notes.map((n) => <li key={n}>{n}</li>)}</ul><Button disabled={!stripeOn || checkout.isPending || settings.plan === p.id || Boolean(settings.stripeCustomerId)} variant={p.id === "seller" ? "primary" : "secondary"} onClick={() => checkout.mutate(p.id)}>{settings.plan === p.id ? "Your current plan" : settings.stripeCustomerId ? "Change in billing portal" : stripeOn ? `Choose ${p.name}` : "Not open yet"}</Button></Panel>)}</div>
+    <Panel className="space-y-3 p-6"><h2 className="text-lg font-semibold">AI tools — not live</h2><p className="text-sm text-muted">No production provider has been selected. Trial and Starter have zero AI credits. Seller and Pro allowances are provisional; optional development previews use a separate review history and never change live listings.</p><a className="text-mark underline" href="/ai">AI Studio and credit usage</a></Panel>
+  </div>;
 }

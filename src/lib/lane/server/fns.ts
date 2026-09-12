@@ -1,3 +1,10 @@
+import { archiveInventoryItem, deleteInventoryDrafts } from "./inventory-lifecycle";
+import { manualSaleSchema, type ManualSaleInput } from "../manual-sale";
+import { recordManualSale } from "./manual-sales";
+import { assertPublishReviews, publishReviewHash, withPublishItems } from "./publish-review";
+import { insertItem } from "./items";
+import { createHash } from "node:crypto";
+import { resolveSourceCategory, sourcePhotos, listingSourceSnapshot } from "../import-source";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
@@ -30,10 +37,8 @@ import {
   mapTemplate,
 } from "./map";
 import {
-  applySale,
   enqueueJob,
   liveEbayToken,
-  processJob,
   tickOauthJobs,
 } from "./process";
 import { ebayConfigured, randomToken } from "./secret";
@@ -41,6 +46,10 @@ import { conditionFromLabel } from "@/lib/lane/condition";
 import { ebayListInventory } from "./ebay";
 import { liveVintedToken, vintedCurrentUser, vintedListWardrobe, vintedSocial } from "./vinted";
 import { stripeConfigured, stripeForm, priceIdFor, stripeSetup } from "./stripe";
+
+import { queueJobRetry } from "./operations";
+import { recordActivation } from "./events";
+import { genderFromCategory } from "../listing-fields";
 import { getRequest } from "@tanstack/react-start/server";
 
 const marketplaceSchema = z.string().refine(isMarketplaceId, "Unknown marketplace");
@@ -51,13 +60,13 @@ function emptyDraft(): ItemDraft {
     description: "",
     brand: "",
     categoryCanonical: "",
-    condition: "good",
+    condition: "unknown",
     sizeUk: "",
     sizeEu: "",
     sizeUs: "",
     colour: "",
     material: "",
-    gender: "men",
+    gender: "",
     era: "",
     costPriceGbp: "",
     basePriceGbp: "",
@@ -75,6 +84,7 @@ function emptyDraft(): ItemDraft {
 }
 
 const draftSchema = z.object({
+  channelFields: z.record(marketplaceSchema, z.object({ aspects: z.record(z.string().max(80), z.array(z.string().max(256)).max(30)), categoryId: z.string().max(100).optional() })).optional(),
   title: z.string(),
   description: z.string(),
   brand: z.string(),
@@ -129,36 +139,6 @@ async function writePhotos(
   }
 }
 
-async function insertItem(sql: SqlClient, userId: string, draft: ItemDraft): Promise<string> {
-  const id = makeId("itm");
-  const price = Number(draft.basePriceGbp);
-  if (!draft.title.trim()) throw new Error("Title is required");
-  if (!Number.isFinite(price) || price <= 0) throw new Error("Price must be a number in GBP");
-  const qty = Math.max(1, Math.floor(Number(draft.quantity) || 1));
-  const cost = draft.costPriceGbp.trim() === "" ? null : Number(draft.costPriceGbp);
-  await sql`
-    insert into items (
-      id, user_id, sku, title, description, brand, category_canonical, condition,
-      size_uk, size_eu, size_us, colour, material, gender, era,
-      cost_price_gbp, base_price_gbp, quantity, weight_g, length_cm, width_cm, height_cm,
-      postage_profile_id, notes, status
-    ) values (
-      ${id}, ${userId}, ${draft.sku.trim() || null}, ${draft.title.trim()}, ${draft.description},
-      ${draft.brand.trim() || null}, ${draft.categoryCanonical || null}, ${draft.condition},
-      ${draft.sizeUk || null}, ${draft.sizeEu || null}, ${draft.sizeUs || null},
-      ${draft.colour || null}, ${draft.material || null}, ${draft.gender || null}, ${draft.era || null},
-      ${cost != null && Number.isFinite(cost) ? cost : null}, ${price}, ${qty},
-      ${draft.weightG ? Number(draft.weightG) : null},
-      ${draft.lengthCm ? Number(draft.lengthCm) : null},
-      ${draft.widthCm ? Number(draft.widthCm) : null},
-      ${draft.heightCm ? Number(draft.heightCm) : null},
-      ${draft.postageProfileId || null}, ${draft.notes || null}, ${"draft"}
-    )
-  `;
-  await writeTags(sql, userId, id, draft.tags.split(","));
-  await writePhotos(sql, userId, id, draft.photos);
-  return id;
-}
 
 async function loadInbox(sql: SqlClient, userId: string) {
   const accounts = await loadAccounts(sql, userId);
@@ -182,9 +162,9 @@ async function loadInbox(sql: SqlClient, userId: string) {
   };
 }
 
-async function inventoryRows(sql: SqlClient, userId: string): Promise<InventoryRow[]> {
+async function inventoryRows(sql: SqlClient, userId: string, includeArchived = false): Promise<InventoryRow[]> {
   const items = await sql<Record<string, unknown>>`
-    select * from items where user_id = ${userId} and status <> 'archived' order by created_at desc
+    select * from items where user_id = ${userId} and (${includeArchived} or status <> 'archived') order by created_at desc
   `;
   const photos = await sql<{ item_id: string; url: string }>`
     select item_id, url from item_photos where user_id = ${userId} and is_primary = true
@@ -257,7 +237,7 @@ export const getInventory = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<InventoryRow[]> => {
     const sql = await getSql();
     await ensureUser(sql, context.userId);
-    return inventoryRows(sql, context.userId);
+    return inventoryRows(sql, context.userId, true);
   });
 
 export const getItemFn = createServerFn({ method: "POST" })
@@ -268,6 +248,23 @@ export const getItemFn = createServerFn({ method: "POST" })
     const item = await loadItem(sql, context.userId, data.id);
     if (!item) throw new Error("Item not found");
     return item;
+  });
+
+export const getOrderSyncStatus = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const accounts = await sql<{label:string;environment:string;last_success_at:Date|string|null;last_error:string|null;page_offset:number;cursor_at:Date|string}>`
+      select a.label,s.environment,s.last_success_at,s.last_error,s.page_offset,s.cursor_at from ebay_order_sync s
+      join marketplace_accounts a on a.id=s.account_id and a.user_id=s.user_id
+      where s.user_id=${context.userId} order by a.label limit 20`;
+    const reviews = await sql<{line_id:string;order_id:string;listing_id:string;reason:string|null;label:string}>`
+      select e.line_id,e.order_id,e.listing_id,e.reason,a.label from ebay_order_events e
+      join marketplace_accounts a on a.id=e.account_id and a.user_id=e.user_id
+      where e.user_id=${context.userId} and e.outcome in ('needs_review','before_tracking')
+      order by e.observed_at desc limit 20`;
+    return {enabled:process.env.LANE_EBAY_ORDER_POLLING === "true",accounts:accounts.map(a=>({...a,
+      last_success_at:a.last_success_at ? new Date(a.last_success_at).toISOString() : null,cursor_at:new Date(a.cursor_at).toISOString()})),reviews};
   });
 
 export const getJobs = createServerFn({ method: "GET" })
@@ -395,6 +392,7 @@ export const syncRemoteCatalog = createServerFn({ method: "POST" })
       let upserted = 0;
       for (const row of live) {
         if (!row.listingId && !row.sku) continue;
+        if (row.quantity == null || row.priceGbp == null) throw new Error("An eBay item has no GBP price or stock quantity. Check the source listing before importing it.");
         const remoteId = row.listingId ?? row.sku;
         const existing = await sql<{ id: string }>`
           select id from remote_listings where account_id = ${account.id} and remote_id = ${remoteId} and user_id = ${context.userId}
@@ -416,6 +414,12 @@ export const syncRemoteCatalog = createServerFn({ method: "POST" })
             )
           `;
         }
+        await sql`update remote_listings set description = ${row.description}, photo_urls = ${JSON.stringify(row.photoUrls)}::jsonb,
+          brand = ${row.brand}, size_label = ${row.sizeLabel}, colour = ${row.colour}, material = ${row.material},
+          source_category_id = ${row.categoryId}, category_name = ${row.categoryName},
+          condition_label = ${row.condition === "NEW" ? "New with tags" : row.condition === "NEW_OTHER" ? "New without tags" : null},
+          source_attributes = ${JSON.stringify({sku: row.sku, offerId: row.offerId, aspects: row.aspects, condition: row.condition, conditionDescription: row.conditionDescription, quantity: row.quantity})}::jsonb
+          where user_id = ${context.userId} and account_id = ${account.id} and remote_id = ${remoteId}`;
         upserted += 1;
       }
       return { source: "ebay" as const, upserted, waiting: false as const };
@@ -450,6 +454,10 @@ export const syncRemoteCatalog = createServerFn({ method: "POST" })
             )
           `;
         }
+        await sql`update remote_listings set photo_urls = ${JSON.stringify(row.photoUrls)}::jsonb,
+          colour = ${row.colour}, material = ${row.material}, source_category_id = ${row.categoryId},
+          source_category_path = ${row.categoryPath}, source_attributes = ${JSON.stringify(row.attributes)}::jsonb
+          where user_id = ${context.userId} and account_id = ${account.id} and remote_id = ${row.remoteId}`;
         upserted += 1;
       }
       return { source: "vinted" as const, upserted, waiting: false as const };
@@ -546,7 +554,14 @@ async function previewRemoteRows(sql: SqlClient, userId: string, accountId: stri
       title,
       description: r.description ? String(r.description) : null,
       priceGbp: price,
+      quantity: r.quantity == null ? null : Number(r.quantity),
       photoUrl: r.photo_url ? String(r.photo_url) : null,
+      photoUrls: Array.isArray(r.photo_urls) ? r.photo_urls.filter((u: unknown): u is string => typeof u === "string") : [],
+      colour: r.colour ? String(r.colour) : "",
+      material: r.material ? String(r.material) : "",
+      categoryId: r.source_category_id ? String(r.source_category_id) : null,
+      categoryPath: r.source_category_path ? String(r.source_category_path) : null,
+      attributesJson: JSON.stringify(r.source_attributes ?? {}),
       brand: r.brand ? String(r.brand) : null,
       sizeLabel: r.size_label ? String(r.size_label) : null,
       categoryName: r.category_name ? String(r.category_name) : null,
@@ -575,38 +590,47 @@ export const importRemote = createServerFn({ method: "POST" })
     let created = 0;
     let linked = 0;
     for (const row of selected) {
-      let itemId = row.matchItemId;
+      await sql.transaction(async (sql) => {
+      const sourceKey = createHash("sha256").update(JSON.stringify([context.userId, account.id, row.remoteId])).digest("hex").slice(0, 24);
+      let itemId: string | null = null;
       if (!itemId) {
         const draft: ItemDraft = {
           ...emptyDraft(),
           title: row.title,
-          description: row.description ?? row.title,
+          description: row.description ?? "",
           brand: row.brand ?? "",
-          categoryCanonical: "",
+          categoryCanonical: resolveSourceCategory(row, CATEGORIES, account.marketplace),
+          gender: genderFromCategory(resolveSourceCategory(row, CATEGORIES, account.marketplace)),
           condition: conditionFromLabel(row.conditionLabel),
           sizeUk: row.sizeLabel ?? "",
-          colour: "",
+          colour: row.colour,
+          material: row.material,
           basePriceGbp: String(row.priceGbp),
-          quantity: "1",
-          photos: row.photoUrl ? [{ url: row.photoUrl, phash: row.phash ?? undefined }] : [],
+          quantity: String(row.quantity ?? 1),
+          photos: sourcePhotos(row),
         };
-        itemId = await insertItem(sql, context.userId, draft);
+        itemId = await insertItem(sql, context.userId, draft, `itm_${sourceKey}`);
         created += 1;
       } else {
         linked += 1;
       }
-      const listingId = makeId("chl");
+      const listingId = `chl_${sourceKey}`;
+      const sourceAttributes = JSON.parse(row.attributesJson) as Record<string, unknown>;
       await sql`
         insert into channel_listings (
           id, item_id, user_id, marketplace, marketplace_account_id, remote_id, url,
-          mapped_category, channel_price_gbp, remote_status, last_synced_at, quantity_on_channel
+          mapped_category, channel_price_gbp, remote_status, last_synced_at, quantity_on_channel, source_data, ebay_offer_id, ebay_sku
         ) values (
           ${listingId}, ${itemId}, ${context.userId}, ${account.marketplace}, ${account.id},
-          ${row.remoteId}, ${row.url}, ${row.categoryName}, ${row.priceGbp}, ${"live"}, now(), ${1}
-        )
+          ${row.remoteId}, ${row.url}, ${row.categoryName}, ${row.priceGbp}, ${"live"}, now(), ${row.quantity ?? 1}, ${JSON.stringify(listingSourceSnapshot({ ...row, attributes: sourceAttributes }))}::jsonb,
+          ${account.marketplace === "ebay_uk" && typeof sourceAttributes.offerId === "string" ? sourceAttributes.offerId : null},
+          ${account.marketplace === "ebay_uk" && typeof sourceAttributes.sku === "string" ? sourceAttributes.sku : null}
+        ) on conflict (id) do nothing
       `;
       await sql`update items set status = 'live', updated_at = now() where id = ${itemId} and user_id = ${context.userId} and status <> 'sold'`;
+      });
     }
+    if (selected.length) await recordActivation(sql, context.userId, "first_import", account.marketplace);
     return { created, linked, imported: selected.length };
   });
 
@@ -633,6 +657,7 @@ export const updateItemFn = createServerFn({ method: "POST" })
     if (!Number.isFinite(price) || price <= 0) throw new Error("Price must be a number in GBP");
     const qty = Math.max(0, Math.floor(Number(draft.quantity) || 0));
     const cost = draft.costPriceGbp.trim() === "" ? null : Number(draft.costPriceGbp);
+    await sql.transaction(async (sql) => {
     await sql`
       update items set
         sku = ${draft.sku.trim() || null},
@@ -657,11 +682,13 @@ export const updateItemFn = createServerFn({ method: "POST" })
         height_cm = ${draft.heightCm ? Number(draft.heightCm) : null},
         postage_profile_id = ${draft.postageProfileId || null},
         notes = ${draft.notes || null},
+        channel_fields = ${JSON.stringify(draft.channelFields ?? {})}::jsonb,
         updated_at = now()
       where id = ${data.id} and user_id = ${context.userId}
     `;
     await writeTags(sql, context.userId, data.id, draft.tags.split(","));
     await writePhotos(sql, context.userId, data.id, draft.photos);
+    });
     return { ok: true as const };
   });
 
@@ -674,6 +701,7 @@ export const cloneItemFn = createServerFn({ method: "POST" })
     if (!item) throw new Error("Item not found");
     const draft: ItemDraft = {
       title: `${item.title} (copy)`,
+      channelFields: item.channelFields,
       description: item.description,
       brand: item.brand ?? "",
       categoryCanonical: item.categoryCanonical ?? "",
@@ -704,92 +732,102 @@ export const cloneItemFn = createServerFn({ method: "POST" })
 
 export const archiveItemFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { id: string }) => d)
-  .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    await sql`update items set status = 'archived', updated_at = now() where id = ${data.id} and user_id = ${context.userId}`;
-    return { ok: true as const };
-  });
+  .validator((data: {id:string;restore?:boolean}) => z.object({id:z.string().min(1).max(200),restore:z.boolean().optional()}).parse(data))
+  .handler(async ({context,data}) => archiveInventoryItem(await getSql(),context.userId,data.id,data.restore));
 
 export const deleteItemsFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { itemIds: string[] }) => d)
+  .validator((data:{itemIds:string[]}) => z.object({itemIds:z.array(z.string().min(1).max(200)).min(1).max(200)}).parse(data))
+  .handler(async ({context,data}) => deleteInventoryDrafts(await getSql(),context.userId,data.itemIds));
+
+const publishSelectionSchema = z.object({ itemIds: z.array(z.string().min(1).max(200)).min(1).max(200), accountIds: z.array(z.string().min(1).max(200)).min(1).max(20) });
+
+export const preparePublishReview = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: unknown) => publishSelectionSchema.parse(d))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const ids = data.itemIds.filter(Boolean).slice(0, 200);
-    let deleted = 0;
-    for (const id of ids) {
-      const owned = await sql<{ id: string }>`select id from items where id = ${id} and user_id = ${context.userId}`;
-      if (!owned[0]) continue;
-      await sql`delete from item_photos where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from item_tags where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from channel_listings where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from jobs where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from sales where item_id = ${id} and user_id = ${context.userId}`;
-      await sql`delete from items where id = ${id} and user_id = ${context.userId}`;
-      deleted += 1;
+    const accounts = (await loadAccounts(sql,context.userId)).filter(a=>data.accountIds.includes(a.id));
+    if (accounts.length !== new Set(data.accountIds).size) throw new Error("A selected account is unavailable.");
+    const rules = (await sql<Record<string,unknown>>`select * from pricing_rules where user_id=${context.userId}`).map(mapRule);
+    const items = [];
+    for (const id of [...new Set(data.itemIds)]) {
+      const item = await loadItem(sql,context.userId,id);
+      if (!item || ["sold","archived"].includes(item.status)) throw new Error("A selected item is unavailable, sold or archived. Update your selection.");
+      items.push({item,hash:publishReviewHash(item,accounts,rules)});
     }
-    return { deleted };
+    return {items,accounts,rules};
   });
 
 export const publishItems = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { itemIds: string[]; accountIds: string[] }) => d)
+  .validator((d: unknown) => publishSelectionSchema.extend({ reviewHashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)).optional() }).parse(d))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const accounts = await loadAccounts(sql, context.userId);
-    const picked = accounts.filter((a) => data.accountIds.includes(a.id));
-    if (picked.length === 0) throw new Error("Select at least one connected account.");
-    const rules = (await sql<Record<string, unknown>>`select * from pricing_rules where user_id = ${context.userId}`).map(mapRule);
-    let queued = 0;
-    for (const itemId of data.itemIds) {
-      const item = await loadItem(sql, context.userId, itemId);
-      if (!item || item.status === "sold" || item.status === "archived") continue;
-      for (const account of picked) {
-        const existing = item.channels.find(
-          (c) =>
-            c.marketplaceAccountId === account.id &&
-            (c.remoteStatus === "live" || c.remoteStatus === "queued" || c.remoteStatus === "waiting_for_browser"),
-        );
-        if (existing?.remoteStatus === "live") continue;
-        let listingId = existing?.id;
-        const price = applyPricingRule(
-          item.basePriceGbp,
-          rules.find((r) => r.marketplace === account.marketplace),
-        );
-        const qty = CHANNELS[account.marketplace]?.singleQty ? 1 : Math.max(1, item.quantity);
-        const waiting = CHANNELS[account.marketplace].mode === "extension" ? "waiting_for_browser" : "queued";
-        if (!listingId) {
-          listingId = makeId("chl");
-          await sql`
-            insert into channel_listings (
-              id, item_id, user_id, marketplace, marketplace_account_id, channel_price_gbp,
-              remote_status, quantity_on_channel
-            ) values (
-              ${listingId}, ${item.id}, ${context.userId}, ${account.marketplace}, ${account.id},
-              ${price}, ${waiting}, ${qty}
-            )
-          `;
-        } else {
-          await sql`
-            update channel_listings set remote_status = ${waiting},
-              channel_price_gbp = ${price}, last_error = null, updated_at = now()
-            where id = ${listingId} and user_id = ${context.userId}
-          `;
+    const settings = await ensureUser(sql, context.userId);
+    if (!settings.canPublish) throw new Error("Your publishing allowance is unavailable. Check Billing; your saved inventory remains available.");
+    const queued = await withPublishItems(sql, context.userId, data.itemIds, loadItem, async (tx, items) => {
+      const sql = tx;
+      await sql`select id from marketplace_accounts where user_id=${context.userId} and id=any(${data.accountIds}::text[]) order by id for share`;
+      await sql`select id from pricing_rules where user_id=${context.userId} order by id for share`;
+      const accounts = await loadAccounts(sql, context.userId);
+      const picked = accounts.filter((a) => data.accountIds.includes(a.id));
+      if (picked.length !== new Set(data.accountIds).size) throw new Error("A selected account is unavailable.");
+      if (picked.some(a => !["vinted_uk", "ebay_uk"].includes(a.marketplace))) throw new Error("That marketplace is planned, not yet available.");
+      if (picked.some(a => a.status !== "green")) throw new Error("Reconnect the selected account before publishing.");
+      const rules = (await sql<Record<string, unknown>>`select * from pricing_rules where user_id = ${context.userId}`).map(mapRule);
+      assertPublishReviews(items,picked,rules,data.reviewHashes);
+      let queued = 0;
+      for (const item of items) {
+        const itemId = item.id;
+        for (const account of picked) {
+          const existing = item.channels.find(
+            (c) =>
+              c.marketplaceAccountId === account.id,
+          );
+          if (existing && ["live", "queued", "waiting_for_browser"].includes(existing.remoteStatus)) continue;
+          if (existing?.lastError) throw new Error("Resolve or retry the existing job in Activity before publishing this item again.");
+          let listingId = existing?.id;
+          const price = applyPricingRule(
+            item.basePriceGbp,
+            rules.find((r) => r.marketplace === account.marketplace),
+          );
+          const qty = CHANNELS[account.marketplace]?.singleQty ? 1 : Math.max(1, item.quantity);
+          const waiting = CHANNELS[account.marketplace].mode === "extension" ? "waiting_for_browser" : "queued";
+          if (!listingId) {
+            listingId = `chl_${createHash("sha256").update(JSON.stringify([context.userId, item.id, account.id])).digest("hex").slice(0, 24)}`;
+            await sql`
+              insert into channel_listings (
+                id, item_id, user_id, marketplace, marketplace_account_id, channel_price_gbp,
+                remote_status, quantity_on_channel
+              ) values (
+                ${listingId}, ${item.id}, ${context.userId}, ${account.marketplace}, ${account.id},
+                ${price}, ${waiting}, ${qty}
+              ) on conflict (id) do nothing
+            `;
+          } else {
+            await sql`
+              update channel_listings set remote_status = ${waiting},
+                channel_price_gbp = ${price}, last_error = null, updated_at = now()
+              where id = ${listingId} and user_id = ${context.userId}
+            `;
+          }
+          await enqueueJob(sql, {
+            userId: context.userId,
+            type: "publish",
+            marketplace: account.marketplace,
+            accountId: account.id,
+            itemId: item.id,
+            channelListingId: listingId,
+          });
+          queued += 1;
         }
-        await enqueueJob(sql, {
-          userId: context.userId,
-          type: "publish",
-          marketplace: account.marketplace,
-          accountId: account.id,
-          itemId: item.id,
-          channelListingId: listingId,
-        });
-        queued += 1;
+        await sql`update items set status = 'queued', updated_at = now() where id = ${itemId} and user_id = ${context.userId} and status in ('draft', 'error')`;
       }
-      await sql`update items set status = 'queued', updated_at = now() where id = ${itemId} and user_id = ${context.userId} and status in ('draft', 'error')`;
-    }
+      return queued;
+    });
     await tickOauthJobs(sql, context.userId);
+    if (queued) await recordActivation(sql, context.userId, "publish_requested").catch(() => undefined);
     return { queued };
   });
 
@@ -876,19 +914,12 @@ export const pushUpdate = createServerFn({ method: "POST" })
 
 export const markSoldFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { itemId: string; marketplace: MarketplaceId; via?: "webhook" | "extension_poll" | "manual" }) => {
-    marketplaceSchema.parse(d.marketplace);
-    return d;
-  })
+  .validator((data: ManualSaleInput) => manualSaleSchema.parse(data))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    await applySale(sql, context.userId, {
-      itemId: data.itemId,
-      marketplace: data.marketplace,
-      via: data.via ?? "manual",
-    });
+    const result = await recordManualSale(sql, context.userId, data);
     await tickOauthJobs(sql, context.userId);
-    return { ok: true as const };
+    return result;
   });
 
 export const retryJob = createServerFn({ method: "POST" })
@@ -896,21 +927,8 @@ export const retryJob = createServerFn({ method: "POST" })
   .validator((d: { jobId: string }) => d)
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const rows = await sql<Record<string, unknown>>`
-      select j.*, a.mode from jobs j
-      left join marketplace_accounts a on a.id = j.account_id
-      where j.id = ${data.jobId} and j.user_id = ${context.userId}
-    `;
-    const job = rows[0];
-    if (!job) throw new Error("Job not found");
-    const next = String(job.mode) === "extension" ? "waiting_for_browser" : "queued";
-    await sql`
-      update jobs set status = ${next}, error_message = null, error_body = null, finished_at = null, updated_at = now()
-      where id = ${data.jobId} and user_id = ${context.userId}
-    `;
-    if (String(job.mode) === "oauth") {
-      await processJob(sql, context.userId, data.jobId, "worker");
-    }
+    await queueJobRetry(sql, context.userId, data.jobId);
+    await tickOauthJobs(sql, context.userId);
     return { ok: true as const };
   });
 
@@ -1002,7 +1020,7 @@ export const upsertPricingRule = createServerFn({ method: "POST" })
 
 export const setPlanFn = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { plan: PlanId; aiPack: boolean }) => d)
+  .validator((d: { plan: PlanId; aiPack: boolean }) => z.object({ plan: z.enum(["starter", "seller", "pro"]), aiPack: z.boolean() }).parse(d))
   .handler(async ({ context, data }) => {
     if (stripeConfigured()) {
       throw new Error("Card billing is on. Use Checkout or Manage billing — this switcher is preview-only.");
@@ -1028,6 +1046,7 @@ function requestOrigin(): string {
 export const startVintedConnect = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
+    if (process.env.LANE_LEGACY_CLOUD_SESSIONS !== "true") throw new Error("Use Lane Desktop 0.3 or later. Legacy cloud session capture is disabled.");
     const sql = await getSql();
     await ensureUser(sql, context.userId);
     const id = makeId("vtc");
@@ -1061,13 +1080,14 @@ export const getVintedConnectStatus = createServerFn({ method: "POST" })
 
 export const startStripeCheckout = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { plan: PlanId; aiPack: boolean }) => d)
+  .validator((d: { plan: PlanId; aiPack: boolean }) => z.object({ plan: z.enum(["starter", "seller", "pro"]), aiPack: z.boolean() }).parse(d))
   .handler(async ({ context, data }) => {
     if (!stripeConfigured()) {
       throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_* (see instructions.txt).");
     }
     const sql = await getSql();
     const settings = await ensureUser(sql, context.userId);
+    if (settings.stripeCustomerId) throw new Error("Use Manage subscription to change an existing subscription.");
     const price = priceIdFor(data.plan);
     if (!price) throw new Error(`No Stripe price id for plan ${data.plan}.`);
     const origin = requestOrigin();
@@ -1078,16 +1098,12 @@ export const startStripeCheckout = createServerFn({ method: "POST" })
       "client_reference_id": context.userId,
       "metadata[userId]": context.userId,
       "metadata[plan]": data.plan,
-      "metadata[aiPack]": data.aiPack ? "1" : "0",
+      "metadata[aiPack]": "0",
       "line_items[0][price]": price,
       "line_items[0][quantity]": 1,
       "subscription_data[metadata][userId]": context.userId,
       "subscription_data[metadata][plan]": data.plan,
     };
-    if (data.aiPack && process.env.STRIPE_PRICE_AI_PACK) {
-      params["line_items[1][price]"] = process.env.STRIPE_PRICE_AI_PACK;
-      params["line_items[1][quantity]"] = 1;
-    }
     if (settings.stripeCustomerId) params.customer = settings.stripeCustomerId;
     const session = await stripeForm("checkout/sessions", params);
     const url = String(session.url ?? "");
@@ -1231,62 +1247,9 @@ function splitCsvLine(line: string): string[] {
 
 export const generateListingCopy = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { voice: AiVoice; notes: string; brand?: string; categoryCanonical?: string }) => d)
-  .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    const settings = await ensureUser(sql, context.userId);
-    void sql;
-    if (!settings.aiPack) {
-      return { ok: false as const, error: "AI pack is off. Turn it on in Billing (£5/mo)." };
-    }
-    const apiKey = process.env.XAI_API_KEY;
-    if (!apiKey) return { ok: false as const, error: "AI is not available in this environment." };
-    const cats = CATEGORIES.map((c) => c.id).join(", ");
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "grok-4.5",
-        max_tokens: 700,
-        temperature: 0.4,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You write UK reseller listing copy. Reply with JSON only: {title, description, brand, categoryCanonical, condition, colour, material}. condition is one of new_with_tags, new_without_tags, very_good, good, satisfactory. categoryCanonical must be one of: " +
-              cats +
-              ". Voice: " +
-              data.voice +
-              ". Never invent a marketplace category id. GBP implied. No hashtags. No emoji.",
-          },
-          {
-            role: "user",
-            content: `Notes from seller:\n${data.notes}\nBrand hint: ${data.brand ?? ""}\nCategory hint: ${data.categoryCanonical ?? ""}`,
-          },
-        ],
-      }),
-    });
-    if (!res.ok) return { ok: false as const, error: `xAI API error ${res.status}` };
-    const body = (await res.json()) as { choices: { message: { content: string } }[] };
-    const raw = body.choices[0]?.message.content ?? "";
-    const jsonText = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-    try {
-      const parsed = z
-        .object({
-          title: z.string(),
-          description: z.string(),
-          brand: z.string(),
-          categoryCanonical: z.string(),
-          condition: z.enum(CONDITIONS),
-          colour: z.string(),
-          material: z.string(),
-        })
-        .parse(JSON.parse(jsonText));
-      return { ok: true as const, draft: parsed };
-    } catch {
-      return { ok: false as const, error: "AI returned copy we could not parse. Try again." };
-    }
-  });
+  .validator((d: { voice: AiVoice; notes: string; brand?: string; categoryCanonical?: string }) => z.object({
+    voice: z.enum(["short", "detailed", "vintage", "streetwear"]),
+    notes: z.string().trim().min(1, "Add the facts you want included first.").max(10000),
+    brand: z.string().max(100).optional(), categoryCanonical: z.string().max(100).optional(),
+  }).parse(d))
+  .handler(async (): Promise<{ok:true;draft:{title:string;description:string}} | {ok:false;error:string}> => ({ok:false,error:"Production AI is disabled. Save the listing and open AI Studio for the development-only mock workbench."}));

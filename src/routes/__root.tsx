@@ -8,6 +8,9 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { applyTheme, readTheme } from "@/lib/theme";
 import appCss from "../styles.css?url";
 
+import { Measurement } from "@/components/measurement";
+import { PublicNotFound } from "@/components/public-layout";
+
 const APP_NAME = "Lane";
 
 const fetchSessionUser = createServerFn({ method: "GET" }).handler(async () => {
@@ -23,10 +26,11 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "theme-color", content: "#0d0d0d" },
+      { name: "theme-color", content: "#f6f4ee" },
       {
         name: "description",
-        content: "UK reseller crosslisting. One inventory, every channel. Sign in on the marketplace’s own page.",
+        content:
+          "Lane is a workspace for UK resellers. One Lane account across web and desktop, with Vinted and eBay session connections in beta.",
       },
     ],
     links: [
@@ -37,12 +41,14 @@ export const Route = createRootRoute({
     ],
   }),
   component: RootDocument,
+  notFoundComponent: PublicNotFound,
 });
 
 function ThemedToaster() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   useEffect(() => {
-    const sync = () => setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+    const sync = () =>
+      setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
     sync();
     const obs = new MutationObserver(sync);
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -64,12 +70,12 @@ function RootDocument() {
     applyTheme(readTheme());
   }, []);
   return (
-    <html lang="en-GB" data-theme="dark" suppressHydrationWarning>
+    <html lang="en-GB" data-theme="light" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("lane-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}`,
+            __html: `globalThis.__zod_globalConfig={jitless:true};try{var t=localStorage.getItem("lane-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}`,
           }}
         />
       </head>
@@ -79,6 +85,7 @@ function RootDocument() {
           <QueryClientProvider client={queryClient}>
             <Outlet />
             <ThemedToaster />
+            <Measurement />
           </QueryClientProvider>
         </AuthProvider>
         <Scripts />

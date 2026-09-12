@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cloneElement, isValidElement, useId } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
@@ -86,10 +87,13 @@ export function Field({
   children: ReactNode;
   hint?: string;
 }) {
+  const generated = useId();
+  const input = isValidElement<{ id?: string }>(children) ? children : null;
+  const id = input?.props.id ?? generated;
   return (
     <div>
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={id}>{label}</Label>
+      {input ? cloneElement(input, { id }) : children}
       {hint ? <p className="mt-1 text-xs text-subtle">{hint}</p> : null}
     </div>
   );

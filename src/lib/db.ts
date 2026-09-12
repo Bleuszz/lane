@@ -1,14 +1,17 @@
+import { databaseError } from "./database-error";
+import { postgresOptions } from "./postgres-options";
+import { safeLog } from "./safe-log";
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import { deploymentPolicy } from "./auth/deployment";
+deploymentPolicy(process.env);
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+const rawDatabaseUrl = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+const databaseUrl = rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -27,14 +30,9 @@ export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
  *   const rows2 = await sql.query("select * from todos where id = $1", [id]);
  */
 export interface Sql {
-  <T = Record<string, unknown>>(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ): Promise<T[]>;
-  query<T = Record<string, unknown>>(
-    text: string,
-    params?: unknown[],
-  ): Promise<T[]>;
+  transaction<T>(run: (sql: Sql) => Promise<T>): Promise<T>;
+  <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]>;
+  query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]>;
 }
 
 /**
@@ -70,7 +68,7 @@ const identity = (v: string) => v;
 type Run = <T>(text: string, params: unknown[]) => Promise<T[]>;
 
 /** Wrap a query runner in the tagged-template + `.query()` `Sql` surface. */
-function toSql(run: Run): Sql {
+function toSql(run: Run, transaction?: Sql["transaction"]): Sql {
   const sql = (async <T = Record<string, unknown>>(
     strings: TemplateStringsArray,
     ...values: unknown[]
@@ -78,10 +76,32 @@ function toSql(run: Run): Sql {
     // Rebuild with $1, $2, … placeholders so values stay parameterized.
     let text = strings[0];
     for (let i = 0; i < values.length; i += 1) text += `$${i + 1}${strings[i + 1]}`;
-    return run<T>(text, values);
+    try {
+      return await run<T>(text, values);
+    } catch (error) {
+      if (databaseUrl) {
+        safeLog("DATABASE_QUERY_FAILED");
+        throw databaseError(error);
+      }
+      throw error;
+    }
   }) as unknown as Sql;
-  sql.query = <T = Record<string, unknown>>(text: string, params: unknown[] = []) =>
-    run<T>(text, params);
+  sql.query = async <T = Record<string, unknown>>(text: string, params: unknown[] = []) => {
+    try {
+      return await run<T>(text, params);
+    } catch (error) {
+      if (databaseUrl) {
+        safeLog("DATABASE_QUERY_FAILED");
+        throw databaseError(error);
+      }
+      throw error;
+    }
+  };
+  sql.transaction =
+    transaction ??
+    (async () => {
+      throw new Error("Nested transactions are not supported.");
+    });
   return sql;
 }
 
@@ -93,11 +113,36 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
-    return toSql(async <T>(text: string, params: unknown[]) => {
-      const res = await pool.query(text, params);
-      return res.rows as T[];
-    });
+    const pool = new Pool(postgresOptions(databaseUrl, 5));
+    pool.on("error", () => safeLog("DATABASE_POOL_ERROR"));
+    return toSql(
+      async <T>(text: string, params: unknown[]) => {
+        const res = await pool.query(text, params);
+        return res.rows as T[];
+      },
+      async (run) => {
+        const client = await pool.connect().catch((error) => {
+          safeLog("DATABASE_CONNECT_FAILED");
+          throw databaseError(error);
+        });
+        try {
+          await client.query("begin");
+          const result = await run(
+            toSql(
+              async <T>(text: string, params: unknown[]) =>
+                (await client.query(text, params)).rows as T[],
+            ),
+          );
+          await client.query("commit");
+          return result;
+        } catch (error) {
+          await client.query("rollback").catch(() => safeLog("DATABASE_ROLLBACK_FAILED"));
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+    );
   })().catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
     throw err;
@@ -142,9 +187,7 @@ async function createPgliteSql(): Promise<Sql> {
       import: "default",
       eager: true,
     }) as Record<string, string>;
-    const doneRows = await pg.query<{ name: string }>(
-      "select name from _migrations",
-    );
+    const doneRows = await pg.query<{ name: string }>("select name from _migrations");
     const done = doneRows.rows.map((r) => r.name);
     for (const { name, path } of pendingMigrations(Object.keys(migrations), done)) {
       // Apply + record atomically (parity with scripts/migrate.mjs) so a failed
@@ -161,10 +204,20 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
 
-  return toSql(async <T>(text: string, params: unknown[]) => {
-    const result = await pg.query<T>(text, params);
-    return result.rows;
-  });
+  return toSql(
+    async <T>(text: string, params: unknown[]) => {
+      const result = await pg.query<T>(text, params);
+      return result.rows;
+    },
+    (run) =>
+      pg.transaction((tx) =>
+        run(
+          toSql(
+            async <T>(text: string, params: unknown[]) => (await tx.query<T>(text, params)).rows,
+          ),
+        ),
+      ),
+  );
 }
 
 let sqlPromise: Promise<Sql> | null = null;

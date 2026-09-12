@@ -1,3 +1,4 @@
+import { ActivationChecklist } from "@/components/activation-checklist";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBootstrap, getInventory, getSales, getVintedSocial, relistListing, retryJob } from "@/lib/lane/server/fns";
@@ -56,7 +57,7 @@ function InboxPage() {
               ? `Vinted is connected as ${vinted.remoteUsername ?? "your shop"}.`
               : inDesktop
                 ? "Connect Vinted: sign in on their site. The window closes when Lane has the session."
-                : "Connect Vinted in the Windows app so Lane can capture the session and close the window."}
+                : "Connect your Vinted shop to start importing. Account setup guides you through Lane Bridge or the Windows app."}
           </p>
         </div>
         <Link to="/settings/channels">
@@ -64,7 +65,8 @@ function InboxPage() {
         </Link>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <ActivationChecklist data={data}/>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           ["Live", data.liveCount],
           ["Draft", data.draftCount],
@@ -82,7 +84,7 @@ function InboxPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-medium">Sales opportunities</h2>
-            <p className="mt-1 text-sm text-muted">Older live listings sink in search. Relist to push them back up.</p>
+            <p className="mt-1 text-sm text-muted">Review older listings and decide whether their photos, details or price need a refresh.</p>
           </div>
           {staleIds.length > 0 ? (
             <Button size="sm" disabled={relistAll.isPending} onClick={() => relistAll.mutate(staleIds)}>
@@ -97,7 +99,7 @@ function InboxPage() {
           <>
             <div className="mt-4 rounded-[var(--radius-sm)] border border-line bg-raised px-3 py-2 text-sm text-muted">
               You have <span className="font-medium text-ink">{stale.length} items</span> sitting idle. Relist them to
-              unlock <span className="font-medium text-ink">{formatMoney(staleValue)}</span> in potential sales.
+              review <span className="font-medium text-ink">{formatMoney(staleValue)}</span> in potential sales.
             </div>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {stale.map((item) => {

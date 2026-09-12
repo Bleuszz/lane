@@ -1,3 +1,4 @@
+import { ebayPhotoError } from "./photos.ts";
 import type { ItemDraft } from "@/lib/lane/types";
 
 export type ListingTarget = "vinted" | "ebay" | "both";
@@ -6,17 +7,17 @@ export const LISTING_TARGETS: { id: ListingTarget; title: string; body: string }
   {
     id: "vinted",
     title: "Vinted only",
-    body: "What Vinted’s own upload asks for: photos, title, category, brand, size, condition, colour, parcel size, price.",
+    body: "Prepare a listing for your Vinted wardrobe.",
   },
   {
     id: "ebay",
     title: "eBay only",
-    body: "What eBay Inventory needs: https photos, title (80 chars), SKU, category, condition, quantity, price, package weight.",
+    body: "Start with your item, then complete the details eBay needs.",
   },
   {
     id: "both",
     title: "Vinted + eBay",
-    body: "One Lane row. Form shows the union of both marketplaces’ required fields.",
+    body: "Prepare one item for both shops, with a final review before publishing.",
   },
 ];
 
@@ -107,6 +108,7 @@ export function fieldsFor(target: ListingTarget) {
 export function validateListing(draft: ItemDraft, target: ListingTarget): string[] {
   const f = fieldsFor(target);
   const errors: string[] = [];
+  if (draft.condition === "unknown") errors.push("Confirm the item condition before publishing.");
   if (draft.photos.length === 0) errors.push("Add at least one photo.");
   if (!draft.title.trim()) errors.push("Title is required.");
   if (f.ebay && draft.title.trim().length > 80) errors.push("eBay titles max 80 characters.");
@@ -125,8 +127,8 @@ export function validateListing(draft: ItemDraft, target: ListingTarget): string
   if (f.vinted && !draft.colour.trim()) errors.push("Vinted needs a colour.");
   if (f.vinted && !draft.postageProfileId) errors.push("Pick a Vinted parcel size.");
   if (f.ebay) {
-    const https = draft.photos.some((p) => /^https?:\/\//i.test(p.url));
-    if (!https) errors.push("eBay needs at least one publicly reachable http(s) photo URL (file uploads stay on this device).");
+    const photoError = ebayPhotoError(draft.photos.map(p => p.url));
+    if (photoError) errors.push(photoError);
     const qty = Number(draft.quantity);
     if (!Number.isFinite(qty) || qty < 1) errors.push("eBay needs quantity of at least 1.");
   }

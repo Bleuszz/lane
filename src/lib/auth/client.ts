@@ -1,7 +1,8 @@
 import { genericOAuthClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { runPreSignInSignOut, runSignOut } from "../../../scripts/sign-out-plan.mjs";
+import { runSignOut } from "../../../scripts/sign-out-plan.mjs";
 import { GROK_PROVIDERS } from "./providers";
+import { waitForAuthPopup } from "./popup-wait";
 
 /**
  * Better Auth client for this React SPA (browser-side).
@@ -20,6 +21,8 @@ import { GROK_PROVIDERS } from "./providers";
 export const authClient = createAuthClient({
   plugins: [genericOAuthClient()],
   fetchOptions: {
+    timeout: 15000,
+    retry: 0,
     onRequest(ctx) {
       const token = getBearerToken();
       if (token) ctx.headers.set("Authorization", `Bearer ${token}`);
@@ -73,14 +76,10 @@ function setBearerToken(token: string | null): void {
  * popup there and a normal redirect everywhere else.
  */
 function inLivePreview(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.location.hostname.endsWith(".grok-sandbox.com")
-  );
+  return typeof window !== "undefined" && window.location.hostname.endsWith(".grok-sandbox.com");
 }
 
 /** Message the popup posts back to the opener once sign-in completes. */
-type PopupMessage = { source: "grok-auth-popup"; token: string | null; error?: string };
 
 /**
  * Start sign-in with one upstream provider (`providerId` from `GROK_PROVIDERS`),
@@ -93,8 +92,8 @@ type PopupMessage = { source: "grok-auth-popup"; token: string | null; error?: s
  *   session; no top-level navigation of the iframe to the broker.
  * - **Deployed** (and local non-iframe): a normal full-page redirect into the broker.
  *
- * Either way it clears any existing local session FIRST so switching providers
- * actually switches identity.
+ * Existing sessions are not automatically signed out during OAuth initiation;
+ * that raced popup completion. Account switching uses the explicit Sign out action.
  */
 export async function signIn(
   providerId: string,
@@ -108,21 +107,9 @@ export async function signIn(
   // browsers when the opener is a cross-origin live-preview iframe.
   const popup = inLivePreview() ? openSignInPopup(providerId) : null;
 
-  // Clear any prior session so switching providers actually switches identity.
-  // Bounded because the popup is already open — a request that never settles
-  // would leave it hanging — but bounded PER ENVIRONMENT: only the server can
-  // end a deployed session, so cutting it short at the preview's 1.5s would
-  // start OAuth with the old session still live.
-  await runPreSignInSignOut({
-    livePreview: inLivePreview(),
-    hasBearer: Boolean(getBearerToken()),
-    requestSignOut: () => authClient.signOut(),
-    clearToken: () => setBearerToken(null),
-  });
-
   if (inLivePreview()) {
     if (!popup) throw new Error("Pop-up blocked — allow pop-ups for sign-in");
-    const token = await waitForPopupToken(popup);
+    const token = await waitForAuthPopup(popup);
     if (!token) throw new Error("Sign-in was cancelled or failed");
     setBearerToken(token);
     // Refresh the client session store with the bearer attached (onRequest).
@@ -136,20 +123,37 @@ export async function signIn(
     if (typeof window !== "undefined") {
       const dest = new URL(callbackURL, window.location.origin);
       const here = window.location;
-      if (dest.origin !== here.origin || dest.pathname !== here.pathname || dest.search !== here.search) {
+      if (
+        dest.origin !== here.origin ||
+        dest.pathname !== here.pathname ||
+        dest.search !== here.search
+      ) {
         window.location.href = callbackURL;
       }
     }
     return;
   }
 
-  const { data, error } = await authClient.signIn.oauth2({
-    providerId,
-    callbackURL,
-    errorCallbackURL,
-  });
-  if (error) throw new Error(error.message ?? "Sign-in failed");
-  if (data?.url) window.location.href = data.url;
+  const result =
+    providerId === "google"
+      ? await authClient.signIn.social({
+          provider: "google",
+          callbackURL,
+          errorCallbackURL,
+          disableRedirect: true,
+        })
+      : await authClient.signIn.oauth2({
+          providerId,
+          callbackURL,
+          errorCallbackURL,
+          disableRedirect: true,
+        });
+  if (result.error) throw new Error(result.error.message || "Sign-in failed. Retry or use email.");
+  if (!result.data?.url)
+    throw new Error(
+      "The provider did not return a sign-in URL. Ask the Lane administrator to check its configuration.",
+    );
+  window.location.assign(result.data.url);
 }
 
 /**
@@ -173,39 +177,6 @@ function openSignInPopup(providerId: string): Window | null {
  * Wait for the popup's completion page to postMessage the session bearer (or
  * for the user to dismiss the popup).
  */
-function waitForPopupToken(popup: Window): Promise<string | null> {
-  return new Promise((resolve) => {
-    const origin = window.location.origin;
-    let settled = false;
-    let closeTimer: number | undefined;
-    const settle = (token: string | null) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(token);
-    };
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== origin) return;
-      const data = event.data as PopupMessage | undefined;
-      if (!data || data.source !== "grok-auth-popup") return;
-      settle(data.token ?? null);
-    };
-    // Fallback when the user dismisses the popup. Grace period lets the
-    // completion page's postMessage win over a racing `popup.closed`.
-    const pollTimer = window.setInterval(() => {
-      if (!popup.closed) return;
-      window.clearInterval(pollTimer);
-      closeTimer = window.setTimeout(() => settle(null), 400);
-    }, 300);
-    function cleanup() {
-      window.clearInterval(pollTimer);
-      if (closeTimer !== undefined) window.clearTimeout(closeTimer);
-      window.removeEventListener("message", onMessage);
-    }
-    window.addEventListener("message", onMessage);
-  });
-}
-
 /**
  * Sign out of THIS app's local session, clear the preview token, then redirect.
  *
@@ -225,6 +196,17 @@ export async function signOut(redirectTo = "/"): Promise<void> {
     // Better Auth resolves with `{ error }` instead of rejecting, so surface a
     // failed response as a rejection for the sequence to act on.
     requestSignOut: async () => {
+      if (!inLivePreview()) {
+        // The client plugin's session-store notification can race route unmounts.
+        // Confirm the server cookie invalidation, then let runSignOut navigate once.
+        const response = await fetch('/api/auth/sign-out', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' }, body: '{}',
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) throw new Error('Sign-out failed. Please retry.');
+        return;
+      }
       const { error } = await authClient.signOut();
       if (error) throw new Error(error.message ?? "Sign-out failed");
     },

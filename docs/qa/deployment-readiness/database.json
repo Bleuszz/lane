@@ -1,0 +1,9 @@
+{
+  "connected": true,
+  "migrationsApplied": 22,
+  "missingMigrations": [],
+  "extraMigrations": [],
+  "checksumMismatches": 0,
+  "missingTables": [],
+  "tls": false
+}

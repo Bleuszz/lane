@@ -1,96 +1,118 @@
-import { createFileRoute, Link, Navigate, useRouteContext } from "@tanstack/react-router";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { LEGAL_FOOTER } from "@/lib/lane/copy";
-import { PLAN_DEFS } from "@/lib/lane/plans";
-import { formatMoney } from "@/lib/lane/format";
-import { desktopApi } from "@/lib/lane/desktop";
-import { LaneWordmark } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui";
-
-export const Route = createFileRoute("/")({ component: Home });
-
+import { createFileRoute } from "@tanstack/react-router";
+import { PublicLayout, StartLink, FaqSection } from "@/components/public-layout";
+import { publicHead } from "@/lib/lane/public-site";
+export const Route = createFileRoute("/")({ head: () => publicHead("/"), component: Home });
 function Home() {
-  const { sessionUser } = useRouteContext({ from: "__root__" });
-  const { user } = useCurrentUserState();
-  if (user || sessionUser) return <Navigate to="/inbox" />;
-  const inDesktop = Boolean(desktopApi());
-
   return (
-    <main className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-        <LaneWordmark />
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {!inDesktop ? (
-            <Link to="/download" className="hidden text-sm text-muted hover:text-ink sm:inline">
-              Download Windows
-            </Link>
-          ) : null}
-          <Link to="/login" className="text-sm text-muted hover:text-ink">
-            Sign in
-          </Link>
+    <PublicLayout>
+      <section className="public-section home-hero">
+        <div>
+          <p className="eyebrow">FOR UK RESELLERS · WINDOWS BETA</p>
+          <h1>
+            Less repeating.
+            <br />
+            <em>More reselling.</em>
+          </h1>
+          <p className="public-lead">
+            A crosslisting workspace for your Vinted and eBay workflow. One Lane account to organise
+            your setup and connect your own marketplace sessions.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <StartLink />
+            <a href="/how-it-works" className="public-button secondary">
+              See how Lane works
+            </a>
+          </div>
+          <p className="mt-5 text-sm text-muted">
+            No card · 0 trial AI credits · Paid checkout not open
+          </p>
         </div>
-      </header>
-      <section className="mx-auto max-w-5xl px-5 pb-16 pt-16 md:pt-24">
-        <p className="text-xs uppercase tracking-[0.16em] text-muted">UK · GBP · one inventory</p>
-        <h1 className="mt-4 max-w-xl text-4xl font-medium leading-[1.08] tracking-[-0.04em] md:text-6xl">
-          List once. Stay in sync.
-        </h1>
-        <p className="mt-5 max-w-lg text-[16px] leading-relaxed text-muted">
-          You keep one inventory. Lane lists it on Vinted, eBay and the rest. You sign in on those sites — Lane never
-          takes the password. When something sells, the others come down. The Windows app is this website in a shell:
-          same account, same plan, same shops.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link to="/login">
-            <Button size="lg">Start 7-day free trial</Button>
-          </Link>
-          {!inDesktop ? (
-            <Link to="/download" className="inline-flex">
-              <Button size="lg" variant="secondary">
-                Download for Windows
-              </Button>
-            </Link>
-          ) : null}
-        </div>
-        <p className="mt-4 max-w-lg text-sm text-subtle">
-          {inDesktop
-            ? "You're in the Windows app. Sign in with the same Lane account. Connect opens Vinted and closes itself when the session is captured."
-            : "Unzip, double-click Lane.exe, paste your Lane URL, then sign in. Connect opens the real marketplace. When you are signed in, the window closes on its own. Starter is " +
-              formatMoney(PLAN_DEFS.starter.priceGbp) +
-              " a month after the trial if you stay."}
-        </p>
-
-        <div className="mt-16 grid gap-3 md:grid-cols-3">
-          {Object.values(PLAN_DEFS).map((p) => (
-            <div key={p.id} className="rounded-[var(--radius-lg)] border border-line bg-surface p-5">
-              <p className="text-sm font-medium">{p.name}</p>
-              <p className="mt-2 font-mono text-2xl tabular tracking-tight">
-                {formatMoney(p.priceGbp)}
-                <span className="text-sm text-muted">/mo</span>
-              </p>
-              <p className="mt-3 text-sm text-muted">{p.notes.join(". ")}</p>
-            </div>
+        <aside className="hero-note">
+          <p className="eyebrow">BUILT AROUND YOUR WORK</p>
+          <span className="hero-number" aria-hidden="true">
+            01 / 02
+          </span>
+          <h2 className="font-serif text-3xl">
+            One account.
+            <br />
+            Two places to work.
+          </h2>
+          <p className="mt-5 leading-7 text-muted">
+            Your account on the web. Your marketplace sessions on your computer.
+          </p>
+          <p className="mt-6 border-t border-line pt-5 text-sm leading-6">
+            Vinted + eBay connections and discovery work in the owner pilot. Full import and
+            publishing are still being verified.
+          </p>
+          <a className="mt-5 inline-block underline" href="/features">
+            What the beta can do →
+          </a>
+        </aside>
+      </section>
+      <section className="public-section !pt-0">
+        <figure className="product-proof">
+          <img
+            src="/lane-account-preview.png"
+            width="1280"
+            height="900"
+            loading="lazy"
+            decoding="async"
+            alt="Lane account screen showing trial status, plan and desktop device management"
+          />
+          <figcaption>
+            Actual Lane account screen · local test account, not customer statistics.
+          </figcaption>
+        </figure>
+      </section>
+      <section className="public-section border-t border-line">
+        <p className="eyebrow">A CONSIDERED WORKSPACE</p>
+        <h2 className="mt-4 max-w-2xl font-serif text-4xl md:text-5xl">
+          Know what’s connected.
+          <br />
+          Know what comes next.
+        </h2>
+        <div className="mt-10 grid gap-9 md:grid-cols-3">
+          {[
+            [
+              "A shared identity",
+              "Use the same Lane account on the web and desktop. Your trial and approved devices stay together.",
+              "/how-it-works",
+              "Understand the workflow",
+            ],
+            [
+              "Your sign-in stays yours",
+              "Sign into marketplaces directly. Local browser sessions stay separate from your cloud account.",
+              "/security",
+              "Read about session security",
+            ],
+            [
+              "Clear limits, by design",
+              "Unknown listing details stay unknown. Review what the beta supports before relying on a workflow.",
+              "/features",
+              "Explore the beta features",
+            ],
+          ].map(([t, b, href, label]) => (
+            <article key={t}>
+              <h3 className="font-serif text-2xl">{t}</h3>
+              <p className="mt-4 leading-7 text-muted">{b}</p>
+              <a href={href} className="mt-5 inline-block underline">
+                {label} →
+              </a>
+            </article>
           ))}
         </div>
-        <footer className="mt-16 max-w-2xl text-[11px] leading-relaxed text-subtle">
-          <p>{LEGAL_FOOTER}</p>
-          <p className="mt-3">
-            <Link to="/download" className="hover:text-ink">
-              Download Windows
-            </Link>
-            {" · "}
-            <Link to="/legal/privacy" className="hover:text-ink">
-              Privacy
-            </Link>
-            {" · "}
-            <Link to="/legal/terms" className="hover:text-ink">
-              Terms
-            </Link>
-          </p>
-        </footer>
       </section>
-    </main>
+      <section className="public-section border-t border-line flex flex-wrap items-center justify-between gap-8">
+        <div>
+          <p className="eyebrow">ROOM TO TRY IT</p>
+          <h2 className="mt-4 font-serif text-4xl">Seven days. No card.</h2>
+          <p className="mt-4 text-muted">Explore the beta before any paid plan is available.</p>
+        </div>
+        <a href="/pricing" className="public-button secondary">
+          See pricing & trial details →
+        </a>
+      </section>
+      <FaqSection />
+    </PublicLayout>
   );
 }

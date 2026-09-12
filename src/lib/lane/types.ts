@@ -10,6 +10,7 @@ export const ITEM_STATUSES = [
 export type ItemStatus = (typeof ITEM_STATUSES)[number];
 
 export const CONDITIONS = [
+  "unknown",
   "new_with_tags",
   "new_without_tags",
   "very_good",
@@ -19,6 +20,7 @@ export const CONDITIONS = [
 export type Condition = (typeof CONDITIONS)[number];
 
 export const CONDITION_LABELS: Record<Condition, string> = {
+  unknown: "Choose condition",
   new_with_tags: "New with tags",
   new_without_tags: "New without tags",
   very_good: "Very good",
@@ -27,6 +29,7 @@ export const CONDITION_LABELS: Record<Condition, string> = {
 };
 
 export const EBAY_CONDITION_MAP: Record<Condition, { id: string; name: string }> = {
+  unknown: { id: "", name: "Not confirmed" },
   new_with_tags: { id: "1000", name: "New" },
   new_without_tags: { id: "1500", name: "New other" },
   very_good: { id: "4000", name: "Very Good" },
@@ -131,6 +134,7 @@ export type PhotoView = {
 };
 
 export type ItemView = {
+  channelFields?: Partial<Record<MarketplaceId, { aspects: Record<string, string[]>; categoryId?: string }>>;
   id: string;
   sku: string | null;
   title: string;
@@ -218,6 +222,7 @@ export type JobView = {
   requestId: string;
   attempt: number;
   maxAttempts: number;
+  retryAfter: string | null;
   errorMessage: string | null;
   errorBody: string | null;
   createdAt: string;
@@ -237,6 +242,9 @@ export type SaleView = {
   detectedVia: string;
   createdAt: string;
   costPriceGbp: number | null;
+  costTotalGbp: number | null;
+  amountsBasis: "entered" | "estimated" | "provider";
+  reference: string | null;
 };
 
 export type ShippingProfileView = {
@@ -267,8 +275,17 @@ export type TemplateView = {
 };
 
 export type UserSettingsView = {
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  trialActionsUsed: number;
+  trialActionsLimit: number;
+  trialActive: boolean;
+  canPublish: boolean;
   plan: PlanId;
   aiPack: boolean;
+  aiAutofillEnabled: boolean;
+  aiCreditsUsed: number;
+  aiCreditsLimit: number;
   onboardingStep: number;
   onboardingComplete: boolean;
   extensionEnabled: boolean;
@@ -311,6 +328,7 @@ export type BootstrapPayload = {
 };
 
 export type ItemDraft = {
+  channelFields?: Partial<Record<MarketplaceId, { aspects: Record<string, string[]>; categoryId?: string }>>;
   title: string;
   description: string;
   brand: string;

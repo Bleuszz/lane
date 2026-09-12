@@ -17,6 +17,7 @@
  * `client.ts` (`signIn` → `openSignInPopup`).
  */
 import { auth, SESSION_TOKEN_COOKIE } from "./server";
+import { authConfiguration } from "./configuration";
 
 /** Message shape the popup posts to the opener (must match `client.ts`). */
 type PopupMessage = {
@@ -58,28 +59,38 @@ export async function handleAuthPopupRequest(request: Request): Promise<Response
       headers: { "content-type": "text/plain; charset=utf-8" },
     });
   }
+  if (
+    !authConfiguration(process.env, url.origin).providers.some(
+      (p) => p.providerId === providerId && p.available,
+    )
+  )
+    return completionResponse({
+      source: "grok-auth-popup",
+      token: null,
+      error: "provider_not_configured",
+    });
 
   // Stay first-party for the callback so the session cookie lands in THIS popup.
   const back = `${url.origin}/auth/popup?done=1`;
   try {
-    const apiRes = await auth.api.signInWithOAuth2({
-      body: {
-        providerId,
-        callbackURL: back,
-        errorCallbackURL: `${back}&error=1`,
-      },
-      // Forward the preview host so Better Auth derives the correct baseURL /
-      // redirect_uri for the dynamic `*.grok-sandbox.com` origin.
-      headers: request.headers,
-      asResponse: true,
-    });
-
+    const options = { headers: request.headers, asResponse: true as const };
+    const callbacks = { callbackURL: back, errorCallbackURL: `${back}&error=1` };
+    const attempt =
+      providerId === "google"
+        ? auth.api.signInSocial({ ...options, body: { ...callbacks, provider: "google" } })
+        : auth.api.signInWithOAuth2({ ...options, body: { ...callbacks, providerId } });
+    let timer: ReturnType<typeof setTimeout>;
+    const apiRes = await Promise.race([
+      attempt,
+      new Promise<Response>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Sign-in timed out")), 15000);
+      }),
+    ]).finally(() => clearTimeout(timer));
     if (!apiRes.ok) {
-      const detail = await apiRes.text().catch(() => "");
       return completionResponse({
         source: "grok-auth-popup",
         token: null,
-        error: detail || `oauth_init_failed_${apiRes.status}`,
+        error: "oauth_init_failed",
       });
     }
 
@@ -102,12 +113,11 @@ export async function handleAuthPopupRequest(request: Request): Promise<Response
       headers.append("set-cookie", cookie);
     }
     return new Response(null, { status: 302, headers });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "oauth_init_threw";
+  } catch {
     return completionResponse({
       source: "grok-auth-popup",
       token: null,
-      error: message,
+      error: "oauth_init_failed_or_timed_out",
     });
   }
 }
@@ -150,6 +160,7 @@ function completionHtml(message: PopupMessage): string {
   try {
     if (window.opener) window.opener.postMessage(msg, window.location.origin);
   } catch (e) {}
+  document.querySelector("main p").textContent = msg.token ? "Sign-in completed. Return to Lane." : "Sign-in did not complete. Return to Lane and retry or use email.";
   try { window.close(); } catch (e) {}
 })();
 </script>

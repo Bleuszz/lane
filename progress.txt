@@ -1,0 +1,704 @@
+LANE DOWNLOAD PLATFORM PREPARATION — 12 SEPTEMBER 2026 — CURRENT CHECKPOINT
+Branch: codex/lane-smart-crosslisting; baseline a616302; existing Windows connector code unchanged.
+DOWNLOAD PAGE: Windows current beta featured; macOS Coming soon next; Linux Coming soon after macOS.
+WINDOWS PUBLIC DOWNLOAD: BLOCKED on verified installer publication/URL/date/SHA256; metadata remains null.
+GitHub release list checked: no published releases. No fake active download link or release date added.
+Active Windows download branch remains ready for a verified release URL; install/version/security guidance retained.
+MACOS / LINUX: roadmap only; no binaries, signing, new CI infrastructure or notification forms created.
+PRODUCT PLAN: Windows -> macOS -> Linux; OS packaging, secure storage, sessions/auth, updates,
+signing/notarisation, permissions and build-pipeline validation recorded; Windows launch must not wait.
+CHECKS: typecheck PASS; existing download-gating test PASS; production Node build PASS.
+BUILD NOTE: initial Windows DLL lock resolved by stopping only the identified old Lane web preview;
+rebuilt successfully and restored preview on port 8093. Desktop processes/session data were untouched.
+RESPONSIVE QA: HTTP 200/no horizontal overflow at 1440/768/390/320px; both future cards have no actions;
+unreleased Windows button disabled. Desktop/mobile screenshots visually inspected, LOCAL PRODUCTION BUILD.
+QA ARTIFACTS: artifacts/download-platform-qa/ (local ignored screenshots/results); not live staging.
+SPENT: £0. COMPUTE: 23% weekly used / 77% remaining; reset 19 Sep 2026 09:34 BST; short meter unavailable.
+NEXT: verified Windows release distribution, existing deployment gates; Vinted full details remains first app follow-up.
+
+LANE £30 LAUNCH ACQUISITION PLAN — 12 SEPTEMBER 2026 — PRIOR CHECKPOINT
+Repository: https://github.com/Bleuszz/lane; branch codex/lane-smart-crosslisting.
+Baseline: 77db991; marketing documentation/checker only, no application or connector changes.
+MARKETING PLAN: COMPLETE — seven linked playbooks, current primary vendor/policy evidence and explicit unknowns.
+STRATEGY: opt-in UK clothing reseller pilots + permitted demonstrations; Search is a conditional learning test.
+BUDGET: £30 base; £5 / £10 / £15 all-in envelopes, £24 total media + £6 fees/tax/buffer reserve.
+SPENT: £0. REMAINING: £30. ADS / POSTS / OUTREACH / PURCHASES: NONE.
+PAID EXECUTION: HOLD — owner approval, public deployment/release, accurate import activation and attribution gates.
+MODEL: low/mid/high expected paid-source signups 0.24 / 1.20 / 4.80; assumptions, not measured forecasts.
+ANALYTICS GAP: existing consented daily aggregate counts do not attribute campaign users or join activation funnels.
+TESTS: node scripts/check-marketing-plan.mjs PASS — seven docs, local links, ad lengths, 30 ideas,
+31 calendar days (0–30), £30 allocation, scenario/CAC arithmetic and ICP score sums.
+README: corrected stale introductory live-feature/API claims; current status and marketing links added.
+KNOWN NEXT PRODUCT TASK: Vinted full listing-detail extraction; discovery still not full import.
+LIVE DEPLOYED: NO new deployment claimed. Website/deployment readiness from checkpoint below unchanged.
+NEXT: owner-approved provider deployment -> released Desktop + accurate import/return proof ->
+consented measurable ten-user pilot -> separately approved capped Search test only if gates pass.
+COMPUTE: latest check 22% weekly used / 78% remaining; weekly reset 19 Sep 2026 09:34 BST.
+SHORT WINDOW: unavailable (tool secondary meter null); do not treat as zero usage.
+
+LANE FINAL DEPLOYMENT HARDENING — 12 SEPTEMBER 2026 — PRIOR CHECKPOINT
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting; continued from d9e854f, no connector changes.
+DEPLOYMENT READINESS: READY FOR FREE STAGING; actual provisioning remains external.
+CODE READY: YES — complete check:deploy PASS on clean committed code e1b0774.
+STACK: Render Free Node 24.14.0, Frankfurt + Neon Free PostgreSQL 16 Frankfurt; DNS later.
+RENDER CONFIG: PASS locally against official JSON schema; provider validation pending.
+NEON CONFIG: PASS preparation; verified-TLS/pool contract tested, actual cloud connection untested.
+DATABASE MIGRATIONS: PASS all 22 on fresh PostgreSQL 16; concurrent/repeat/checksum/rollback tests.
+PRODUCTION BUILD: PASS, fresh tracked-source copy + clean npm ci, Node 24.14.0; no cached .env/DB/build.
+FRESH BOOT: PASS with no optional keys. Loopback PostgreSQL only; cloud TLS remains a live gate.
+AUTH: PASS real signup/logout/login, secure cookies, CSRF, safe errors and login rate limits.
+TRIAL: PASS 168 hours, original dates persist after login/restart/pairing; expiry retains inventory.
+DEVICE PAIRING: PASS browser approval, same owner, exchange, heartbeat, server restart, refresh/revoke.
+  Packaged Desktop on hosted Render remains a live test; no marketplace session logic changed.
+SEO: PASS public metadata/canonicals/schema/links/404/headers; PUBLIC_INDEXING=false; sitemap readable.
+LOGGING: safe categories/request IDs; no arbitrary SQL/errors/credentials in app logger.
+ANALYTICS: OPTIONAL, OFF. GOOGLE/EMAIL: OPTIONAL, NOT CONFIGURED. BILLING: DISABLED.
+AI/SCHEDULER/IMAGE NORMALIZATION: skeletons preserved, flags OFF and unfinished controls gated.
+LIVE DEPLOYED: NO. BLOCKED — EXTERNAL OWNER AUTH ONLY for Render/Neon provisioning.
+OWNER ACTION: future provider login/GitHub approval/private secret entry, not requested now.
+KNOWN NEXT PRODUCT TASK: Vinted full listing-detail extraction; Title unknown is not full import.
+COMPUTE: latest check 20% weekly used / 80% remaining; reset 19 Sep 2026 09:34 BST.
+  Separate short rolling-window usage/reset unavailable, not zero. No reset redeemed.
+SPENT: £0. No purchases, external AI calls or marketplace writes.
+TESTS: 69 focused tests PASS; typecheck + production build + fresh PostgreSQL/browser proof PASS.
+  Account axe: zero violations; home overflow checks PASS at 320/390/768/1440px. Screenshots inspected.
+  Sensitive-log scan PASS. Test app/container cleaned; existing local preview is an earlier build.
+EVIDENCE: docs/qa/deployment-readiness (10 synthetic LOCAL screenshots + result summaries).
+  Raw local logs: artifacts/deploy-check/1789222441257-1cdcd1. Result dated 12 Sep 14:17 UTC.
+  No new Lighthouse or LIVE STAGING screenshot is claimed. screenshots:live is prepared.
+SOURCE CHECKPOINT: e1b0774 pushed and remote verified; final evidence-only checkpoint is in git log.
+NEXT WHEN OWNER RETURNS (estimated owner interaction 5–10 minutes, build time additional):
+  1. Owner signs into Neon/Render, approves repository access and privately transfers DATABASE_URL.
+  2. Apply free Blueprint; generated auth secret/origin + automatic checked startup migrations.
+  3. Codex verifies hosted HTTPS/auth/trial/DB/device/revoke and captures genuine live screenshots.
+  4. Return to Vinted full item-detail extraction only after website deployment/live gates.
+COMMERCIAL LAUNCH LIMITS: recovery email, operator/contact/legal review and verified installer
+  still need their release gates; these do not block restricted free staging tests.
+Authoritative docs: DEPLOYMENT_ARCHITECTURE, ENVIRONMENT, MIGRATIONS, DEPLOYMENT_HANDOFF,
+  DESKTOP_STAGING_TEST, LIVE_ACCEPTANCE, BACKUP_AND_RECOVERY, STAGING_RELEASE_NOTES.
+
+PREVIOUS CHECKPOINT (historical evidence follows):
+LANE SAFE SCHEDULER + IMAGE FOUNDATION — 12 SEPTEMBER 2026
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting (continued from 132a748; no restart/new branch).
+SCHEDULER: READY AS A LOCALLY VERIFIED FOUNDATION. Not live marketplace automation.
+BULK ACTIONS: DISABLED. Both current session connectors have MANUAL_ONLY write policy.
+IMAGE NORMALIZATION: LOCALLY PROVEN with synthetic JPEG/PNG fixtures and preserved originals.
+REAL MARKETPLACE WRITES: UNCHANGED. Zero writes made by this phase or its tests.
+FEATURE FLAGS: OFF — SCHEDULER_ENABLED, BULK_AUTOMATION_ENABLED, IMAGE_NORMALIZATION_ENABLED.
+  Render/.env.example and the restored normal local production process all keep these off.
+  Isolated browser QA temporarily enabled manual reminders/image preparation only; no owner data used.
+QUEUE: separate durable SQL jobs/batches, owner/account/item boundaries, explicit approvals,
+  stable request keys, duplicate-intent checks, snapshot validation and recent/uncertain-result guards.
+TIMING: persisted interval windows, active/quiet hours, IANA timezone/DST, weekdays, rolling caps,
+  pauses between completed actions, planned-time list, conservative estimates, future cancellation.
+SAFETY: global/market/account/batch pause, reviewed resume, Retry-After holds, safe retries only,
+  failure thresholds, account warnings/challenges stop, offline-device wait, job expiry, lease recovery.
+  Uncertain writes never replay, including after cancellation. Different remote target blocks action.
+  Additive SQL guard also stops new retained legacy write claims when paused; running leases finish.
+  Existing eBay/Vinted Desktop/authentication/session connector source is unchanged.
+DRY RUN: canonical fields/images/pricing/conflicts/caps/allowance/timing checks and per-item warnings.
+  Session/destination checks not yet proven remain warnings; any future executor must validate them.
+  Manual reminders become REQUIRES_USER_ACTION; they never pretend a marketplace action succeeded.
+IMAGES: exact ORIGINAL copy, CLEAN_EXPORT orientation/sRGB/metadata cleanup, resize/thumbnail,
+  bounded custom corrections/format/explicit crop/transparency fill. No AI/background replacement.
+  Separate owned derivatives, source hash, history, comparison, accept/reject/delete; source untouched.
+LIMITS: no automatic dispatcher/device write transport installed; capability changes require proof.
+  Accepted image exports are not auto-attached/published. CLEAN_EXPORT automatic-publish integration
+  explicitly blocks until reviewed derivative payload handling is implemented. Remote URLs are not
+  server-fetched; locally saved originals required. 12 photos/batch, 2 MB input/output, 20 MP,
+  50 non-deleted results/owner. Postgres byte storage is a bounded pilot choice, not scale-ready storage.
+UI: authenticated /automation and /image-tools with clear disabled/manual-only state. No new public claims.
+WEB ROUTE FIX: direct signed-out private entry exposed a blank client-redirect/hydration path.
+  Added pre-render route auth redirect using the existing verified root session; real anonymous
+  redirect and subsequent signup/authenticated navigation pass. Endpoint ownership checks unchanged.
+DATABASE: all 21 migrations applied/verified against the isolated local durable PostgreSQL fixture.
+  0021_scheduler_normalization.sql additive only. No missing schema; no destructive migration.
+TESTS: 21 actual PostgreSQL/image tests PASS; 31 focused worker/operation/auth/Desktop regressions PASS.
+  Typecheck PASS; fresh Node production build PASS. Windows initially locked loaded Sharp DLL;
+  stopped only the local QA server before rebuilding successfully. No Desktop/profile changes.
+  Browser proof PASS: signup, settings, dry run, approval, manual due state, pause/resume,
+  image preparation/compare/accept/reject/delete and original byte preservation. Zero external requests.
+  Axe zero violations on tested pages; no overflow at 320/390/768/1440px. Visual QA inspected.
+  Normal production flags-OFF browser check PASS; anonymous redirect PASS; homepage/health HTTP 200.
+  Public browser bundles checked for server SQL/provider-key strings: no matches.
+EVIDENCE: docs/SCHEDULER_ARCHITECTURE.md, docs/qa/SCHEDULER_README.md and synthetic screenshots.
+  Detailed logs and browser results in ignored artifacts/scheduler-*; LOCAL, not deployed evidence.
+PUBLIC DEPLOYED: NO. Existing free Render + Neon deployment roadmap remains next.
+LOCAL PROD BUILD: RUNNING at https://localhost:8443, self-signed isolated test TLS; flags OFF.
+AI: mock-only architecture unchanged; AI flags OFF, no real provider/API usage.
+COMPUTE: 14% weekly used / 86% remaining; resets 19 September 2026, 09:34 BST.
+  Short rolling-window usage/reset unavailable from tool; not zero. No reset consumed.
+SPENT: £0. No infrastructure, provider account, image API, domain or ads purchased.
+BLOCKERS: accessible Render/Neon provider authorization remains required for actual free staging.
+  Owner previously created/signed into accounts; tool/dashboard access has not been proven.
+  Domain deferred. No new owner Desktop interaction needed for this foundation.
+EXACT NEXT ACTIONS:
+  1. Stop scheduler/image feature expansion; return to existing website deployment handoff.
+  2. Once provider access is usable, provision free app/database and deploy current branch using
+     docs/DEPLOYMENT_HANDOFF.md; keep billing/AI/automation flags OFF; no purchase authorized.
+  3. Verify HTTPS staging signup/login/trial, same-account device approval/revocation and durability.
+  4. Resume Desktop with FULL VINTED DETAIL EXTRACTION first: Title unknown remains unresolved.
+  5. Live scheduler writes, dispatcher and derivative publication need separate capability/owner proof.
+
+Previous checkpoints follow; this addendum supersedes migration and compute counts.
+================================================================================
+
+LANE AI SKELETON CHECKPOINT — 12 SEPTEMBER 2026 — CURRENT ADDENDUM
+Repository/branch unchanged: Bleuszz/lane, codex/lane-smart-crosslisting.
+AI ARCHITECTURE: LOCALLY VERIFIED SKELETON. NOT PRODUCTION-READY AI.
+AI TEXT PROVIDER: MOCK ONLY. No final provider/model selected.
+AI IMAGE PROVIDER: MOCK ONLY. Labelled placeholder; no generated imagery.
+REAL API CALLS: DISABLED. Retired xAI handlers no longer dispatch network calls.
+AI API SPEND: £0. No keys, provider accounts, credits or infrastructure purchased.
+FEATURE FLAGS: OFF in .env.example, Render Blueprint and restored local production process.
+  Mock tests explicitly enabled only in isolated local fixture; no owner account upgraded.
+LISTING INTELLIGENCE: /ai review workbench; source/saved/user context, confidence/evidence,
+  accept/reject, known-value confirmation, stale-value rejection. Unknown stays unknown.
+  Accepted mock text is review history only, never written into sellable inventory.
+IMAGE STUDIO: operation catalogue/settings, per-batch cost preview, separate original/derivative,
+  review/delete/return-to-original. Derivative deletion never deletes source. Fidelity notices.
+CREDITS: server-side atomic batch reservation, per-job consumption/refund, duplicate protection,
+  independent month wallets, lease recovery, cancellation and explicit retry. Trial/Starter 0;
+  provisional Seller 500 / Pro 1500; server-configurable prices/allowances, no migration to reprice.
+COST LEDGER: provider/model/operation/tier/usage/estimate/actual/credits stored privately.
+  Mock usage and API cost zero. Internal provider cost not included in normal-user DTOs.
+DATABASE: 0020_ai_workbench.sql applied to local durable PostgreSQL. 20 migrations now.
+  Legacy ledger retained for history; prior used totals carried forward once.
+TESTS: 17 real PostgreSQL AI tests PASS; 11 focused auth/trial/device/inventory regressions PASS;
+  typecheck and production build PASS. Browser mock flow PASS for signup/trial-zero gate,
+  individual review, image preview, failure refund, original preservation and no external requests.
+  Axe: no violations on tested workbench; overflow checks 320/390/768 PASS.
+  Normal local production AI-disabled UI verified after restoring flags OFF.
+  Browser bundles checked: no provider-key names or retired xAI endpoint.
+UI FIX: narrow shared account header now truncates/hides long display name appropriately.
+  Marketplace Desktop connector code untouched.
+EVIDENCE: docs/AI_ARCHITECTURE.md, docs/qa/AI_README.md, ignored artifacts/ai-*.
+COMPUTE: 10% weekly used / 90% remaining; reset 19 September 09:34 BST.
+  Short rolling-window meter and reset unavailable. No usage reset consumed.
+SPENT TOTAL THIS PHASE: £0.
+NEXT: STOP AI IMPLEMENTATION. Return to free Render/Neon website deployment handoff.
+  Provider dashboard access remains BLOCKED — OWNER LOGIN REQUIRED; no public staging URL yet.
+  Domain still deferred. Packaged Desktop shared-account staging acceptance, verified download,
+  email and operator/legal/support details remain launch gates.
+KNOWN DESKTOP FOLLOW-UP: full Vinted item-detail extraction; Title unknown is not fixed by AI.
+
+Previous website checkpoint follows; this addendum supersedes its migration/usage counts.
+================================================================================
+
+LANE WEBSITE CHECKPOINT — 12 SEPTEMBER 2026 — AUTHORITATIVE CURRENT STATUS
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting. Implementation checkpoint d0f711e; final QA checkpoint follows.
+
+PUBLIC DEPLOYED: NO — BLOCKED — OWNER LOGIN REQUIRED. No public URL or hosted DB yet.
+LOCAL PROD BUILD: PASS — actual Node/Nitro output, https://localhost:8443 isolated test TLS.
+  This is LOCAL PRODUCTION BUILD evidence, not LIVE STAGING. Persistent local PostgreSQL 16.
+WEBSITE: LOCALLY PROVEN — home/features/pricing/how-it-works/download/auth/account/devices/help/
+  privacy/terms/security/contact/cookies, clear trial CTAs, shared navigation, genuine HTTP 404,
+  success states and truthful beta limitations. Desktop connectors unchanged.
+SEO: LOCALLY PROVEN — unique metadata, canonical origins, OG/Twitter share image, public sitemap,
+  robots/private exclusions, Organization/WebSite/SoftwareApplication schema, internal links.
+  Staging is noindex; Search Console/custom domain remain later. No fake reviews or unsupported claims.
+ANALYTICS: IMPLEMENTED, OFF BY DEFAULT — optional consented first-party daily event counts.
+  No account IDs, listing data or tokens in payloads; DNT/GPC honoured, credentials/referrers omitted.
+  Server allowlist, bounded body and intake cap tested. No paid vendor. Not user-level attribution.
+AUTH: LOCALLY PROVEN — real email/password signup/login/logout, secure cookies and CSRF rejection.
+  Fixed sign-out navigation race. Google and real email delivery not configured/tested.
+DATABASE: LOCAL PASS — 19 migrations and required tables verified against durable Docker volume.
+  Cloud database NOT PROVISIONED. Remote verification requires TLS; secrets ignored by Git.
+TRIAL: LOCAL PASS — 168-hour server trial, zero AI credits, re-login does not reset dates;
+  expiry retains inventory, no automatic charge. Paid checkout closed.
+DESKTOP SHARED ACCOUNT: LOCAL PROTOCOL PASS — same Better Auth user, approval, one-use exchange,
+  revocation. Packaged Desktop + real staging browser approval/restart/revocation NOT YET PROVEN.
+RENDER: PREPARED — free Frankfurt Node service, Blueprint, current branch auto-deploy, health,
+  migrations, generated auth secret; validated Render URL supplies account origin automatically.
+NEON: SELECTED FREE FRANKFURT — owner account exists; dashboard access not verified by this task.
+  No new infrastructure or purchases. Provider login previously could not be accessed via UI.
+GOOGLE: OPTIONAL / NOT CONFIGURED — verified Better Auth callback /api/auth/callback/google;
+  exact OAuth and secret placement in docs/DEPLOYMENT_HANDOFF.md. Never put secrets in chat.
+DOWNLOAD: PAGE READY / RELEASE PENDING — version/date/SHA256 presentation ready; publish only
+  after packaged staging-pairing acceptance. No stale installer advertised as verified.
+SUPPORT / LEGAL: SQL support receipt + concurrent per-account rate limit LOCALLY PROVEN.
+  Intake disabled pending operator monitoring, verified public contact, retention and legal review.
+  Password-reset email infrastructure exists but sender configuration/delivery proof required.
+SCREENSHOTS: LOCAL PRODUCTION BUILD — phone-readable gallery docs/qa/README.md; synthetic account.
+LIGHTHOUSE: LOCAL homepage mobile 90 / desktop 98 performance; accessibility, best practices and
+  SEO 100 both. Mobile LCP 3.00s, desktop 0.91s; TBT 0ms, CLS 0. INP not measured. No live CWV claim.
+TESTS: typecheck/build PASS; 37 focused tests PASS; public QA 13 pages / 16 destinations PASS;
+  no automated axe violations on checked public/account pages; no overflow at 320/390/768px;
+  actual browser+SQL auth/trial/device/support proof PASS; production startup smoke PASS.
+  Chunked oversized analytics payload rejected 413, malformed JSON 400, allowed event 204.
+  Full methods, limits and reproducible commands: docs/WEBSITE_QA.md.
+KNOWN DESKTOP FOLLOW-UP: FIRST TASK AFTER WEBSITE — FULL VINTED ITEM DETAIL EXTRACTION.
+  Authentication and owner listing discovery work; many rows show Title unknown. Full import
+  (title/description/price/photos/order/brand/size/condition/colour/category/material) remains unproven.
+COMPUTE: Latest account meter 7% weekly used / 93% remaining. Weekly resets 19 September 2026
+  at 09:34 BST (08:34 UTC). Short rolling-window meter/reset unavailable, not zero. No reset used.
+SPENT: £0. Expected staging infrastructure £0 within free quotas; no card/paid upgrades authorised.
+
+BLOCKERS / EXACT NEXT ACTIONS
+1. Owner returns to PC: leave signed-in Render + Neon dashboards visible in Chrome/Edge and
+   identify browser. Owner handles Google/MFA and any GitHub repo grant; no secrets in chat.
+   Estimated interaction 3–5 minutes with sessions ready, 5–10 if repository authorisation needed.
+2. Codex provisions one free Neon project and one free Render service, privately sets DATABASE_URL,
+   deploys branch, runs read-only staging smoke then real account/trial/device acceptance.
+3. Prove packaged Desktop against staging; release verified Windows asset/checksum.
+4. Confirm operator/legal/contact/retention, configure email and optional Google, test delivery.
+   General public launch waits for those gates; domain remains deferred and not a staging blocker.
+5. Return to Vinted detail extraction only after website/shared-account foundation is proven live.
+
+Prior checkpoint history follows; current statuses above supersede older usage/readiness claims.
+================================================================================
+
+LANE PHASE 2 — ACTIVE CHECKPOINT 12 SEPTEMBER 2026
+ACCESS UPDATE: Owner created/signed into Render and Neon using Google. This task has no
+  Render/Neon API tools, CLI session or provider environment credentials. Browser session
+  access is NOT yet verified: Chrome and Edge report minimized, and each recovery attempt
+  returned "failed to activate captured window". Do not infer provider login failed.
+  Owner action pending: bring signed-in Render dashboard forward in Chrome/Edge and name
+  the browser (or say if login was inside Codex's browser panel). No credentials in chat.
+NEW CHECK: scripts/staging-smoke.mjs performs read-only HTTPS/public-page/auth/anonymous
+  session/canonical/noindex/cache checks on a generated staging origin. Allows only bounded
+  same-origin/same-route redirects for TanStack search normalisation. Verified against the
+  built Node server with phase2-build-proof.mjs on 12 September (PASS). Hosted proof pending.
+COMPUTE UPDATE: Weekly window now reports 1% used / 99% remaining; 0 reset credits.
+  Previous 62% checkpoint below belongs to the earlier usage window. Spending remains £0.
+NEXT: access existing signed-in dashboards, verify Free plans, provision Neon/Render,
+  configure secrets privately, run smoke against generated HTTPS origin then real account
+  and packaged Desktop pairing/revocation tests. Domain remains deferred. Connectors untouched.
+
+Repository/branch unchanged: Bleuszz/lane, codex/lane-smart-crosslisting.
+OWNER UPDATE: eBay and Vinted authentication/session flow and Vinted listing discovery work.
+DESKTOP DEVELOPMENT: PAUSED. Do not change these working connectors in website phase.
+FIRST DESKTOP FOLLOW-UP: FULL VINTED ITEM DETAIL EXTRACTION. Many discovered rows show
+  Title unknown. Verify title, description, price, all photos/order, brand, size, condition,
+  colour, category, material and other attributes against real owner listings. Discovery
+  is NOT full import; wardrobe completeness also remains unproven.
+
+WEBSITE: LOCALLY PROVEN — revised responsive public homepage, honest Vinted/eBay beta copy,
+  provisional £9/£19/£29 plans and £0 seven-day trial, signup/login, account dashboard,
+  devices, legal/privacy/cookies/contact/security drafts. Genuine test-account screenshot.
+AUTH / DATABASE: LOCALLY PROVEN against isolated PostgreSQL 16 with persistent Docker volume.
+  Real Chrome form signup/login/logout, 168-hour trial, unchanged dates after re-login,
+  Secure/HttpOnly cookies and rejected foreign-origin sign-out pass. No PGlite for hosted use.
+SHARED ACCOUNT: LOCALLY PROVEN web approval/exchange uses exact same Better Auth user ID;
+  exchange single-use, device revocation blocks refresh. Actual packaged Desktop ↔ staging
+  browser approval, restart and revocation still require deployed account access.
+HOSTING: SELECTED Render Free Frankfurt + Neon Free Frankfurt for staging (not production SLA).
+  Cloudflare DNS later. Current expected infrastructure £0/month within quotas. No spending.
+  Existing Node/Nitro build preserved; no Workers rewrite. Render idle cold starts documented.
+DEPLOYMENT: BLOCKED on Render/Neon account access; no hosted service/database or public URL yet.
+  render.yaml/start-server validates secure config, migrates and starts built server.
+  Built-server checks pass canonical metadata, noindex staging, private/no-store, origin rejection.
+DOMAIN: OWNER DEFERRED PURCHASE. Free staging URL first. Recommended uselane.co.uk later;
+  8 provisional RDAP-absent choices/pricing/registrar comparison in docs/PHASE2_HOSTING_DOMAINS.md.
+GOOGLE: NOT CONFIGURED; optional, hidden when unavailable. Owner OAuth client + exact callback
+  and provider secrets required. No credentials in chat or Git.
+EMAIL: CONDITIONAL RESET FLOW IMPLEMENTED; Resend sender/API configuration + delivery test pending.
+  Forgot-password honestly reports unavailable until configured. Verification/welcome/security
+  email policy and delivery remain follow-ups before general public signup.
+DOWNLOAD: PUBLIC VERIFIED RELEASE PENDING. Do not advertise an old installer. GitHub Releases,
+  version/date/SHA256/unsigned notice chosen after packaged staging-pairing acceptance.
+LEGAL / SUPPORT: Draft only. Operator legal identity, verified support address, retention/deletion
+  process and owner/legal review required before general public launch.
+TESTS: production Node build; typecheck; 10 focused auth/deployment/pairing/trial tests; actual
+  browser + PostgreSQL account/pairing test; built Node startup/headers/canonical/origin proof.
+  Evidence kept in ignored artifacts/phase2-*; secrets in ignored .env.phase2.local only.
+LOCAL PREVIEW: http://localhost:8080 (not public staging). Local fixture DB container/volume:
+  lane-phase2-postgres on loopback 15439. Independent of other Docker projects and marketplace data.
+BUDGET: £0 spent. COMPUTE: 62% weekly used / 38% remaining at checkpoint.
+NEXT ACTIONS: owner sign into Render + Neon free accounts; provision configured staging and
+  durable cloud DB, migrate/test deployed account flows, pair actual Desktop, verify release.
+  Domain stays deferred until owner buys it. No live billing or additional marketplace work.
+
+HISTORICAL DESKTOP CHECKPOINT BELOW — superseded by the active Phase 2 status above.
+LANE VINTED REPAIR — CHECKPOINT 11 SEPTEMBER 2026
+Branch: codex/lane-smart-crosslisting. Baseline b80e3f7; f34d7b1 present.
+Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
+DESKTOP APP: IN PROGRESS — focused Vinted diagnostic repair; build/launch handled by agent.
+Source fingerprint generated from clean HEAD; unpacked Lane.exe, no installer this phase.
+EBAY SESSION / READ: LOCALLY PROVEN by owner; saved diagnostics show 24/24 links,
+  stable identity, same visible/background Session, successful close and discovery.
+  eBay flow unchanged; synthetic regression passes. Owner cold restart not yet recorded.
+VINTED SESSION: IN PROGRESS — real saved session now resolves identity and passes
+  independent hidden inbox validation. Confirmed SPA full-load hang plus pre-hydration
+  menu click. Vinted-only dom-ready/mainFrame execution and bounded menu retry repair.
+VINTED WARDROBE IMPORT: IN PROGRESS — matching live owned profile, 20 discovered links;
+  pink target 9912534056 found/read. Second target absent from current set; completeness
+  unknown. Detail reader has one photo and partial attributes, unknowns kept unknown.
+  Do not call full import or fresh interactive connection fixed yet.
+EBAY WRITE CAPABILITY: UNSUPPORTED in session mode; no marketplace writes made.
+DOWNLOAD PAGE / EXTENSION / DEPLOYMENT / DATABASE: unchanged in focused connector repair.
+TESTS: 19 targeted state/security/diagnostics pass; actual Electron Vinted delayed
+  hydration + never-finished-load fixture passes; unchanged eBay session-flow and reader
+  fixtures pass; Windows encrypted storage cross-process fixture passes.
+BUDGET: £0 spent. COMPUTE: 58% weekly used, 42% remaining at this checkpoint.
+BLOCKERS: owner fresh Vinted Connect test, UI auto-close/background refresh and real app
+  restart acceptance. No login credentials, manual cookie extraction or eBay API needed.
+NEXT: package clean committed source, verify ASAR/fingerprint, launch exact EXE and inspect
+  visible UI. Then one owner Vinted test; diagnose any remaining gate from new evidence.
+Full source/function comparison and live limitations: docs/VINTED_CONTROL_COMPARISON.md.
+Do not use old VBS/installed shortcuts; preserve all existing Lane profiles/session data.
+
+HISTORICAL CHECKPOINT BELOW — superseded by the active status above.
+LANE SESSION DIAGNOSTIC — CHECKPOINT 11 SEPTEMBER 2026
+Branch: codex/lane-smart-crosslisting; started at ddc3076.
+Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
+
+EBAY TRANSPORT: OWNER'S AUTHENTICATED ELECTRON SESSION ONLY.
+The developer application was rejected. No EBAY_CLIENT_ID, EBAY_CLIENT_SECRET,
+RuName, approval wait or reapplication is part of this seven-day phase.
+Official connector code is retained solely for possible future use.
+
+DESKTOP APP: IN PROGRESS — diagnostic development source, not a new installer.
+Launch: desktop/Launch Lane Session Diagnostic.vbs. Quit installed Lane first.
+Expect VERSION 0.3.1 · SESSION DIAGNOSTIC. Uses existing local Lane user-data directory.
+New installer deferred until owner live-session/read acceptance.
+
+EBAY SESSION: IN PROGRESS — saved cookies reached actual Seller Hub in a hidden window.
+- Observed 34 eBay cookies: 8 HTTP-only, 5 session cookies. Values never printed.
+- Actual page displayed 24 active listings and 26 global item anchors. Owned unique
+  links/identity remain unverified; neither number is hard-coded in the extractor.
+- Observed lazy .gh-identity account flyout, no rendered profile link and count outside
+  the old h1-only lookup. Identified identity/parser and extraction gates.
+- Later saved-cookie replay returned Sign in. Stopped replaying the snapshot; need fresh
+  owner login followed by immediate same-process validation. No storage rewrite assumed.
+EBAY READ CAPABILITY: IN PROGRESS — stable profile identity required; greeting removed.
+- Bounded account-flyout hover, heading/row/link readers, next-link pagination/scrolling.
+- Nonzero count with no links is EXTRACTION_FAILED; partial count fails sync explicitly.
+- Probe records exact visible/background Session identity, cookie metadata and gate results.
+EBAY WRITE CAPABILITY: UNSUPPORTED in session mode. No marketplace writes.
+
+VINTED SESSION: BLOCKED on fresh owner evidence — 24 saved cookies restored, 7 HTTP-only;
+  hidden navigation timed out. Navigation failure separated from identity/parser gates.
+VINTED WARDROBE IMPORT: BLOCKED on live owner validation; own/foreign wardrobe fixture passes.
+DOWNLOAD PAGE / BROWSER EXTENSION / DEPLOYMENT / DATABASE: no work in this focused repair.
+Option A (memory partition + DPAPI cookies) retained. Option B persistent Chromium storage
+not selected or live-tested; compare only if same-process success/cold-restart failure gives
+evidence of missing origin storage. See docs/SESSION_DIAGNOSTIC.md for limits/threat model.
+
+CHECKS: 19 targeted Node checks pass. Actual Electron fixture verifies lazy account flyout,
+stable profile identity, pagination, same-session object identity, cookie survival after
+window close, invisible refresh, expiry/disconnect. Reader fixtures and Desktop smoke pass.
+Typecheck passes. No new installer, web build or broad full-suite rerun for this milestone.
+These are fixture/local implementation checks, NOT real marketplace acceptance.
+
+BUDGET: GBP0 spent; GBP30 advertising reserve untouched.
+COMPUTE: last shared weekly meter 55% used / 45% remaining (started this repair at 54%).
+No reset credits. No speculative infrastructure or additional marketplace work.
+REMINDER: 3 PM reminder remains deleted; do not recreate.
+
+BLOCKERS / EXACT NEXT ACTIONS
+1. ONE fresh owner diagnostic test, eBay then Vinted; exact user-action fields in
+   docs/SESSION_DIAGNOSTIC.md. Keep a stuck login window open and run Session probe.
+2. Diagnose returned live session/identity/validation/extraction gate evidence.
+3. After same-process read success, separately prove cold restart, expiry and Disconnect.
+4. After owner acceptance, build the next installer. No API credential detours.
+No connector is declared fixed. Other product work remains paused for this repair.
+
+HISTORICAL PACKAGED CHECKPOINT (superseded by the diagnostic status above):
+LANE AUTH/SESSION REBUILD — CHECKPOINT 11 SEPTEMBER 2026
+Repository: https://github.com/Bleuszz/lane/tree/codex/lane-smart-crosslisting
+Draft PR: https://github.com/Bleuszz/lane/pull/5
+Existing branch retained. Vinted UK/eBay UK only. No purchases or marketplace writes.
+The 3 PM reminder was DELETED at Nate's request. Do not recreate it.
+
+DESKTOP APP: IN PROGRESS — version 0.3.1 built; real owner acceptance pending.
+- Explicit authentication/session state machine; Connected requires session material,
+  account identity, separate protected-page validation and encrypted persistence.
+- Login is interactive; validation/refresh/read use invisible isolated browser windows.
+- Auth window/child popups close after validation. Duplicate attempts are serialized.
+- Timeout/cancel, expiry/reconnect, account mismatch and disconnect race handling.
+- Windows DPAPI encryption stays local, per-profile partitions; startup revalidates.
+- UI displays identity, last sync, current-page listing count or unknown, actionable errors.
+- NSIS Windows x64 installer: desktop/dist/installer/Lane-Setup-0.3.1.exe
+  111381504 bytes; unsigned. Adjacent SHA256 file generated. Archive allowlist checked.
+  Interactive upgrade/install/uninstall still needs owner QA; no installed app replaced.
+
+LANE ACCOUNT AUTH: IN PROGRESS
+- Provider/origin configuration preflight, native Google option, bounded popup/client
+  requests, cancellation and clear error/retry. Unconfigured providers are disabled.
+- Fixed stale login redirect after sign-out and replaced legacy onboarding instructions.
+- LOCALLY PROVEN: synthetic email signup/login, invalid-password error, session query,
+  sign-out, unavailable-provider rejection. No live Google OAuth credentials configured.
+- Browser-to-device pairing remains separate from web cookies; prior local protocol proof.
+
+DOWNLOAD PAGE: IN PROGRESS — 0.3.1 metadata/release notes; public installer URL gated.
+BROWSER EXTENSION: IN PROGRESS — existing optional source retained; not required here.
+VINTED SESSION: BLOCKED on owner sign-in/validation; valid anonymous login entry proven.
+VINTED WARDROBE IMPORT: BLOCKED on owner evidence; dynamic header wardrobe discovery built.
+EBAY SESSION: IN PROGRESS — current Seller Hub selectors observed with existing session;
+  later read required sign-in. No reliable real connection/restart claim.
+EBAY READ CAPABILITY: IN PROGRESS; real import/read UNKNOWN. Greeting identity fallback
+  is not a proven stable seller ID. First rendered page only, max 200 links/two details.
+EBAY WRITE CAPABILITY: UNSUPPORTED in session transport; official connector preserved.
+- Read observations remain partial/local; cloud canonical import not yet connected.
+- Stale links are cleared when current listing state is unknown. Missing fields stay null.
+- Quantity/sold state/orders and full supplied-item/photo preservation remain unproven.
+DEPLOYMENT: BLOCKED on real local session/read gate then provider access/configuration.
+- Prepared Render free Node + Neon free Postgres; render.yaml not applied. No new services.
+DATABASE: IN PROGRESS — device pairing migration 0018 and owner-scoped revocation exist.
+- Local isolated PGlite tests pass; durable staging auth/inventory remains unproven.
+- Leased task claim/result and idempotent canonical ingestion are next after real read proof.
+
+TESTS / CHECKS
+- npm run test:desktop: 23/23 PASS, including 18 new auth/session regression checks.
+- npm test: 319 total, 301 PASS, 18 inherited template failures (same baseline categories:
+  absent ignored .grok skills/env assets, template auth defaults and share-card assertions).
+- Typecheck, auth invariant, changed web-file ESLint and Node production build: PASS.
+- Actual Electron transport with synthetic pages/cookies: validation before Connected,
+  automatic close, invisible refresh, expiry and disconnect: PASS (not marketplace proof).
+- Separate-process Windows encrypted fixture recovery: PASS.
+- Real anonymous Vinted entry redirects to login, no false authenticated state: PASS.
+- Desktop startup, escaped local review, unknown/secret-field handling, no overflow: PASS.
+- NSIS build, archive allowlist, SHA256 and unsigned signature inspection: PASS.
+- Live Google, owner Vinted/eBay full flow, real cookie restart, staging: NOT PROVEN.
+
+BUDGET: GBP0 spent. GBP30 advertising reserve untouched. No reset credits used.
+COMPUTE: shared weekly meter 53% used / 47% remaining; rebuild began at 47% used.
+
+BLOCKERS / OWNER ACTION
+Exact ACTION/SERVICE/WHY/STEPS/COST/KYC/RESULT fields are in docs/AUTH_SESSION_REBUILD.md.
+1. Install 0.3.1, complete marketplace sign-in personally, report precise Lane status/errors.
+   Leave website address blank. No cookies/passwords/tokens needed in reports.
+2. Google OAuth account/configuration and exact host origin needed for real social success.
+   Credentials go only in host secret settings, not chat. Email auth is locally tested.
+3. After local read proof, provider access and durable staging database/auth configuration.
+These block only their dependent real proofs; no reminder will be recreated.
+
+EXACT NEXT ACTIONS
+1. Diagnose real owner 0.3.1 connection results; verify stable identity/wardrobe selectors.
+2. Verify both supplied Vinted IDs, full fields/photos/order and eBay owned listing reads.
+3. Wire proven observations into owner-scoped leased tasks/idempotent canonical inventory.
+4. Repeat real restart/expiry/reconnect/revocation; then deploy prepared free staging.
+5. Configure Google, repeat auth/pairing/import/persistence checks against staging.
+6. Only after read/staging success obtain a precise owner-approved eBay write test.
+Details: docs/AUTH_SESSION_REBUILD.md, desktop/RELEASE.md, docs/DESKTOP_SESSION_PHASE.md.
+
+Prior implementation/evidence (retained; not proof of the new session-first phase):
+
+LANE — IMPLEMENTATION CHECKPOINT
+Updated: 2026-09-11 00:58 UTC (01:58 BST)
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting
+
+STATUS
+Substantial local implementation complete; not deployed or production verified.
+Only Vinted UK and eBay UK are in the live implementation scope.
+Other marketplaces remain architecture/roadmap entries.
+No spending, purchases, paid AI calls, real publish/delist actions or deployment.
+
+IMPLEMENTED
+- Redesigned landing page, app palette, help centre, billing and accessible forms.
+- Destination review screen with selected photos, fields, pricing rules and blockers.
+- Mobile inventory cards, compact header, modal navigation/focus restoration and
+  scroll-safe preview. Bulk actions require explicit selection; shortcuts ignore controls.
+- Saved drafts can be previewed before connecting an account; actual publish stays gated.
+- Bulk publish reviews every saved item and requires explicit final batch confirmation.
+  Changed content/prices/destinations invalidate approval; queue writes are transactional.
+- Queued content actions reference immutable owner-scoped listing snapshots. Retries
+  retain text, photos, fields and price; live stock can only reduce queued quantity.
+- Database-generated partial-sale jobs use quantity-only eBay updates, preserving content.
+- New sales retain separate durable follow-ups even during active content/stock jobs.
+  Duplicate sale delivery still cannot decrement stock twice; channel leases serialize jobs.
+- Temporary eBay connection/read failures and HTTP 408/429/500/502/503/504 receive
+  bounded exponential retry with jitter, provider Retry-After and a five-attempt ceiling.
+  Activity exposes cooldown; invalid data/auth/unknown errors remain reviewable.
+- Stock and account availability are rechecked before each eBay photo/content/quantity
+  write. A reduction stops stale work; retry loads current stock with approved content.
+  Successful completion preserves a concurrent account pause and records updated quantity.
+- eBay photo delivery uploads local JPEG/PNG copies through its Media API on an
+  authorized job. Cached receipts preserve order, survive partial failures and expire;
+  originals and queued snapshots stay unchanged. No separate storage service added.
+- Local Photo studio: rotate, framing, lighting/contrast, 1200px JPEG copy; original retained.
+- Source normalization preserves photos, category identity, UK size ranges, colours,
+  brand and unknown condition/material; neutral per-marketplace field overrides.
+- Permanent delete is restricted to unlisted drafts with no jobs/sales/remote history.
+  Batch deletion is transactional; photos/tags/unreferenced snapshots are removed
+  only for eligible drafts. History is retained through archive and restore.
+- Archive/restore block live/unresolved channels and pending/error/reconciliation work.
+  Archived inventory is accessible; zero-stock items restore as sold, not available.
+- New owner-qualified parent constraints block raced/foreign child writes. Legacy
+  constraints are NOT VALID pending audit; no existing orphan data was purged.
+- Atomic item/photo/tag creation; transactional source imports and item edits.
+- Durable job intent deduplication, atomic claims/leases, guarded retries, eBay
+  offer reconciliation, sale-event deduplication and transactional delist outbox.
+- Manual sale form selects the exact linked shop, quantity, total item amount,
+  optional entered fees and a stable order-line/reference. Duplicate submissions
+  cannot reduce stock again; conflicting details stop for review. Vinted stays one unit.
+- Manual sale costs are captured per unit at sale time. Unknown fees/net stay unknown;
+  the Sold page distinguishes entered/estimated amounts and limits margin to complete
+  entries, excluding postage/refunds/tax. It does not verify payment receipt.
+- Seven-day no-card trial: 25 publish/relist actions, zero AI credits.
+- Optional AI extraction with evidence/allowed-value checks, manual override protection,
+  credit ledger, usage estimates, refunds and monthly provider-cost guards.
+- First-crosslist checklist and first-occurrence activation events.
+- Per-seller eBay policy/location selection, verified against that account on save.
+- Dedicated-secret worker endpoint, bounded batches; no scheduler activated.
+- Paused/unverified accounts cannot claim jobs.
+- Proposed GBP9/19/29 plans; checkout gated until pricing/billing is verified.
+- Signed billing webhooks: durable deduplication, serialized current-subscription reads,
+  paid-invoice access checks, owner binding, retryable rollback and unknown-price denial.
+- Builds no longer automatically migrate a database. Windows scripts are portable.
+
+VERIFICATION
+- TypeScript and production build: pass again after photo delivery changes.
+- Lifecycle tests cover protected/mixed/foreign selections, deletion rollback,
+  history preservation, archive/restore gates, and database enforcement against
+  foreign/deleted parents. Browser archive/filter/restore preserved both test photos.
+- Manual-sale tests cover real concurrent replay, total amounts/cost snapshots,
+  unknown fees, ownership, insufficient stock, duplicate reference conflicts and
+  atomic rollback of sale/stock/outbox if metadata persistence fails.
+- Browser: unlinked sale entry explains its gate, modal closes/restores focus, and
+  Sold shows unknown cost/margin with no fabricated payment receipt. Linked form
+  submission is covered by server tests; connected browser submission remains a gate.
+- Actual process/retry tests confirm lost publish acknowledgement recovery after
+  cooldown, no early HTTP call, one remote listing, one action/hourly reservation,
+  permanent-error review and bounded exhaustion. Transport classification tests pass.
+- Stock-race tests execute the real sale transaction during a mocked photo upload,
+  verify zero stale listing writes, retry with reduced stock, retained sale follow-ups,
+  pause preservation, and sold/archived/foreign/expired-lease guards.
+- Photo tests verify multipart bytes, whole-selection preflight, receipt reuse/expiry,
+  owner/account/environment isolation, lost leases, incomplete replies and no silent
+  omissions. Mocked listing updates wait for all photos; already-live retries skip uploads.
+- Browser: rejected HTTP photo URLs with clear feedback; originals remained loaded,
+  no page overflow and no-account publish remained disabled. No upload was attempted.
+- Mobile/billing/batch-change ESLint: zero errors/warnings.
+- Batch tests verify full review coverage, changed data/prices, ownership and rollback.
+- Snapshot tests cover real enqueue/claim/bridge dispatch, immutable retries, current
+  stock caps, owner isolation and sold-item blocking. Mocked stock-only eBay tests pass.
+- Browser: real local prepare-review route preserved photos/pricing, blocked offline
+  account approval and incomplete fields, and left final confirmation disabled.
+- Billing tests cover rotating signatures, replay, delayed/unpaid events, unknown prices,
+  cross-user binding, wrong mode and provider/database failure rollback (mocked Stripe).
+- Focused core tests: 46 pass within the full suite, including actual PGlite persistence,
+  concurrency, rollback, limits, photo preservation and mocked eBay failures.
+- Existing auth/app-data tests: 55 pass.
+- Full portable suite: 297 tests, 279 pass, 18 fail. The same 18 inherited template
+  failures concern missing .grok skills/config/auth fixtures, Grok metadata and
+  Windows symlink permissions. They are not hidden or skipped.
+- Production build: passed after final implementation changes.
+- Scoped ESLint: zero errors, four non-blocking React refresh/dependency warnings.
+- Local worker HTTP smoke check: 503 when unconfigured, as intended.
+- Browser: landing and first-run dashboard inspected; synthetic draft save/reload
+  works; Photo studio exported a 1200x1200 JPEG and preserved both images on reload.
+- Narrow-screen QA at 362x698: cards, selection, modal focus/restore, draft preview,
+  no-account publish block and Photo studio checked. No page horizontal overflow.
+- Two owner-provided Vinted pages inspected (six and seven photos). Synthetic
+  source-shaped mapping tests pass. No authenticated real import/publish verified.
+
+USER-ONLY GATES (NO ANSWER NEEDED WHILE ASLEEP)
+1. Existing eBay developer application credentials/RuName and seller authorization
+   are needed to test current taxonomy, seller policies/location and real receipts.
+   Enter credentials in a secret store, not a GitHub issue or chat.
+2. A logged-in Vinted session paired with the updated local bridge is needed for
+   authenticated wardrobe import. Public listing inspection is not that test.
+3. Staging host/database selection, access and explicit deployment go-ahead.
+   No infrastructure or accounts have been purchased/created to bypass this.
+4. Real marketplace actions remain paused until the owner confirms the test item
+   and intended action. Eight more diverse owned items are needed for the ten-item benchmark.
+5. AI/billing secrets are optional for later paid-feature verification, not local work.
+   Stripe test-mode event delivery/portal setup and replacement-subscription reconciliation
+   remain release gates. No Stripe network calls or payment actions were made.
+
+NEXT ACTIONS
+- Verify remaining release gates against real authorized connector state. Avoid
+  expanding features before the first real crosslisting/ten-item benchmark.
+- Audit legacy orphan rows before validating migration 0016 constraints; do not
+  delete or repair history automatically. Unused snapshot retention beyond explicit
+  eligible-draft deletion remains a separate staging decision.
+- Verify the linked manual-sale form end to end using an authorized staging item;
+  migration 0015 adds sale metadata and must precede that route.
+- Verify account/application-wide rate-limit handling before load tests. Current retry
+  cooldown is job-scoped; it is not a global API-quota coordinator.
+- Apply migration 0014 only during an approved staging migration. Reconcile legacy
+  pending jobs/current channel stock; older suppressed sale follow-ups are not recreated.
+- Verify policy/location selectors against the authorized eBay account when available.
+- Verify the complete approved batch path with authorized connected destinations.
+  Local offline-account/missing-field review is verified; no batch was published.
+- Verify snapshot-backed eBay publishing/retries and sale stock updates in sandbox.
+  Legacy content jobs without snapshots stop for review; do not blindly replay them.
+- Verify Media API multipart uploads and expiry with authorized sandbox credentials.
+  Local/mocked photo delivery is implemented; real image acceptance is not verified.
+- Verify typed taxonomy/condition mappings and authenticated Vinted detail preservation.
+  Live data is needed for the connector checks.
+- Configure the worker trigger only after staging approval; verify real sold-event ingestion.
+- Verify billing events and portal behavior in Stripe test mode
+  when authorized credentials are available. Local webhook replay/isolation tests now pass.
+- Follow docs/IMPLEMENTATION_STATUS.md and docs/STAGING.md for remaining release gates.
+
+COMPUTE
+Account-wide weekly usage: 43% consumed, 57% remaining at latest check.
+Separate five-hour window: unavailable (not assumed unused).
+Reset: 17 September 2026 18:56:45 BST. No reset credits available or redeemed.
+Reserve the remaining allowance for real connector diagnosis, staging and pilot
+fixes; the earlier 60-point preference is a planning target, not a hard stop. Recheck at meaningful checkpoints; avoid repeated broad research.
+
+PUSHED CHECKPOINTS
+4c293f3: core redesign, source preservation, reliability and AI/trial controls.
+07ac8ab: seller settings, protected worker, account guards and final handoff.
+f280508: signed billing reconciliation and durable replay protection.
+43d6a65: mobile product cards, modal focus/scroll behavior and explicit bulk selection.
+702c4d7: per-item batch review and transactional queue writes.
+054afef: immutable queued listing snapshots and quantity-only partial-sale updates.
+38a42ce: eBay photo delivery, retry cache, file validation and regression tests.
+9f53b92: stock rechecks, preserved account pauses and event-scoped sale outbox.
+ccbc35d: bounded automatic eBay retry, cooldown visibility and full-process tests.
+d1a7d9c: manual sale entry, immutable cost metadata and honest unknown totals.
+2aded34: transactional draft deletion, history-safe archive/restore and parent guards.
+Draft PR: https://github.com/Bleuszz/lane/pull/5
+No PR has been merged. No production launch is claimed.
+
+RELEASE DEPENDENCY AUDIT — 11 SEPTEMBER 00:42 UTC
+GitHub draft PR head matched pushed implementation 2aded34; no CI checks were
+reported by GitHub. Local test results above remain the evidence, not hosted CI.
+Only .env.example exists in this checkout. Current process environment has no
+eBay app credentials/RuName, DATABASE_URL, worker secret, auth secret, Stripe key
+or xAI key. This describes this local configuration, not other accounts or hosts.
+Unconfigured local worker returns HTTP 503 before claiming work. No scheduler
+was activated. No unchanged test suite was rerun for this documentation audit.
+Next session starts with owner access and the read-only import, then authorized
+sandbox verification. Staging remains a separate explicitly approved action.
+
+LATEST IMPLEMENTATION — EBAY ORDER DETECTION
+The prior worker did not retrieve eBay orders. Optional polling is now implemented
+behind LANE_EBAY_ORDER_POLLING=false, with migration 0017, account leases, durable
+pagination/cursor, transactional sale/stock/outbox writes and stable line references.
+Historical/pre-link orders, uncertain matches/payment/cancellation, unsupported
+variations/currency and stock conflicts require review; no automatic stock restore.
+Activity exposes configuration, last page, errors and review observations. Fees/net
+remain unknown. Help now correctly describes device-photo publishing.
+Four new order tests pass; all 46 core tests pass in the full 297-test run (279 pass,
+18 inherited failures). Additional overlap/cancellation assertions and worker-auth
+checks pass. Browser: disabled Activity state and Help verified at 362px, no overflow.
+TypeScript, scoped lint and production build pass. No live order read or marketplace
+write, paid inference, deployment, scheduler activation or spending occurred.
+Next: authorized sandbox polling and baseline-stock reconciliation, including actual
+response shapes and remote follow-ups, before enabling this flag. See STAGING.md.
+Usage latest: 43% weekly used / 57% remaining; no reset used.
+
+AUTONOMOUS HANDOFF — WAITING FOR OWNER ACCESS
+Implementation d6945cd is pushed and the worktree was clean at verification.
+The release access gate remains unchanged across the last three continuations:
+00:42 dependency audit, the d6945cd polling checkpoint, and this configuration
+recheck. Current process has no eBay app credentials/RuName, database URL or
+worker secret; only .env.example exists. The polling feature remains disabled.
+No unchanged tests were rerun in this final access audit.
+
+When Nate returns:
+1. Configure existing eBay sandbox keys/RuName through local/provider secrets and
+   authorize the seller. Pair the current Lane bridge from a logged-in Vinted
+   session. These unlock authenticated import and real response verification.
+2. Confirm the exact sandbox test actions, then verify import/photos/mapping,
+   publish/retry/stock behavior and order polling against those authorized items.
+3. Which existing host and durable database should staging use? Deployment and
+   migrations need an explicit instruction after that target is identified.
+4. Supply eight more varied owned items for the ten-item comparison benchmark.
+
+No new service, spend, deployment or real marketplace action will be used to
+bypass these gates. The product remains a local beta; production readiness is
+unproven. Current checks: 297 tests / 279 pass / 18 inherited failures; all 46
+core pass, plus final type/lint/build and the documented browser checks.
+Account allowance: 43% used / 57% remaining. This is an access/authorization
+block, not an allowance limit. Resume from docs/STAGING.md when access is ready.

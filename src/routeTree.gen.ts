@@ -11,15 +11,39 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DownloadRouteImport } from './routes/download'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SecurityRouteImport } from './routes/security'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
+import { Route as AppAiRouteImport } from './routes/_app.ai'
+import { Route as AppAutomationRouteImport } from './routes/_app.automation'
+import { Route as AppDevicesRouteImport } from './routes/_app.devices'
+import { Route as AppImageToolsRouteImport } from './routes/_app.image-tools'
 import { Route as AppImportRouteImport } from './routes/_app.import'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppNewRouteImport } from './routes/_app.new'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSoldRouteImport } from './routes/_app.sold'
+import { Route as ApiHealthRouteImport } from './routes/api.health'
+import { Route as ApiMeasurementRouteImport } from './routes/api.measurement'
+import { Route as ApiWorkerRouteImport } from './routes/api/worker'
+import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as AppInventoryIndexRouteImport } from './routes/_app.inventory.index'
 import { Route as AppInventoryIdRouteImport } from './routes/_app.inventory.$id'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app.settings.index'
@@ -30,6 +54,7 @@ import { Route as AppSettingsShippingRouteImport } from './routes/_app.settings.
 import { Route as AppSettingsTemplatesRouteImport } from './routes/_app.settings.templates'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiBridgeSplatRouteImport } from './routes/api/bridge/$'
+import { Route as ApiDesktopSplatRouteImport } from './routes/api.desktop.$'
 import { Route as ApiEbayCallbackRouteImport } from './routes/api/ebay/callback'
 import { Route as ApiEbayStartRouteImport } from './routes/api/ebay/start'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
@@ -45,6 +70,36 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -55,9 +110,69 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppActivityRoute = AppActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAiRoute = AppAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAutomationRoute = AppAutomationRouteImport.update({
+  id: '/automation',
+  path: '/automation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDevicesRoute = AppDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImageToolsRoute = AppImageToolsRouteImport.update({
+  id: '/image-tools',
+  path: '/image-tools',
   getParentRoute: () => AppRoute,
 } as any)
 const AppImportRoute = AppImportRouteImport.update({
@@ -89,6 +204,36 @@ const AppSoldRoute = AppSoldRouteImport.update({
   id: '/sold',
   path: '/sold',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeasurementRoute = ApiMeasurementRouteImport.update({
+  id: '/api/measurement',
+  path: '/api/measurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerRoute = ApiWorkerRouteImport.update({
+  id: '/api/worker',
+  path: '/api/worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalCookiesRoute = LegalCookiesRouteImport.update({
+  id: '/legal/cookies',
+  path: '/legal/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/legal/terms',
+  path: '/legal/terms',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppInventoryIndexRoute = AppInventoryIndexRouteImport.update({
   id: '/',
@@ -140,6 +285,11 @@ const ApiBridgeSplatRoute = ApiBridgeSplatRouteImport.update({
   path: '/api/bridge/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDesktopSplatRoute = ApiDesktopSplatRouteImport.update({
+  id: '/api/desktop/$',
+  path: '/api/desktop/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiEbayCallbackRoute = ApiEbayCallbackRouteImport.update({
   id: '/api/ebay/callback',
   path: '/api/ebay/callback',
@@ -168,15 +318,39 @@ const ApiVintedConnectSplatRoute = ApiVintedConnectSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/security': typeof SecurityRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
+  '/ai': typeof AppAiRoute
+  '/automation': typeof AppAutomationRoute
+  '/devices': typeof AppDevicesRoute
+  '/image-tools': typeof AppImageToolsRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
   '/inventory': typeof AppInventoryRouteWithChildren
   '/new': typeof AppNewRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/sold': typeof AppSoldRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/measurement': typeof ApiMeasurementRoute
+  '/api/worker': typeof ApiWorkerRoute
+  '/legal/cookies': typeof LegalCookiesRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/channels': typeof AppSettingsChannelsRoute
@@ -185,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/settings/templates': typeof AppSettingsTemplatesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bridge/$': typeof ApiBridgeSplatRoute
+  '/api/desktop/$': typeof ApiDesktopSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -195,13 +370,37 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/security': typeof SecurityRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
+  '/ai': typeof AppAiRoute
+  '/automation': typeof AppAutomationRoute
+  '/devices': typeof AppDevicesRoute
+  '/image-tools': typeof AppImageToolsRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
   '/new': typeof AppNewRoute
   '/sold': typeof AppSoldRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/measurement': typeof ApiMeasurementRoute
+  '/api/worker': typeof ApiWorkerRoute
+  '/legal/cookies': typeof LegalCookiesRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/inventory/$id': typeof AppInventoryIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/channels': typeof AppSettingsChannelsRoute
@@ -210,6 +409,7 @@ export interface FileRoutesByTo {
   '/settings/templates': typeof AppSettingsTemplatesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bridge/$': typeof ApiBridgeSplatRoute
+  '/api/desktop/$': typeof ApiDesktopSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -222,15 +422,39 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/contact': typeof ContactRoute
+  '/download': typeof DownloadRoute
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/security': typeof SecurityRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/_app/account': typeof AppAccountRoute
   '/_app/activity': typeof AppActivityRoute
+  '/_app/ai': typeof AppAiRoute
+  '/_app/automation': typeof AppAutomationRoute
+  '/_app/devices': typeof AppDevicesRoute
+  '/_app/image-tools': typeof AppImageToolsRoute
   '/_app/import': typeof AppImportRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/inventory': typeof AppInventoryRouteWithChildren
   '/_app/new': typeof AppNewRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/sold': typeof AppSoldRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/measurement': typeof ApiMeasurementRoute
+  '/api/worker': typeof ApiWorkerRoute
+  '/legal/cookies': typeof LegalCookiesRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/_app/inventory/$id': typeof AppInventoryIdRoute
   '/_app/settings/billing': typeof AppSettingsBillingRoute
   '/_app/settings/channels': typeof AppSettingsChannelsRoute
@@ -239,6 +463,7 @@ export interface FileRoutesById {
   '/_app/settings/templates': typeof AppSettingsTemplatesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bridge/$': typeof ApiBridgeSplatRoute
+  '/api/desktop/$': typeof ApiDesktopSplatRoute
   '/api/ebay/callback': typeof ApiEbayCallbackRoute
   '/api/ebay/start': typeof ApiEbayStartRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
@@ -251,15 +476,39 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/contact'
+    | '/download'
+    | '/features'
+    | '/forgot-password'
+    | '/help'
+    | '/how-it-works'
     | '/login'
     | '/onboarding'
+    | '/pricing'
+    | '/privacy'
+    | '/robots.txt'
+    | '/security'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/terms'
+    | '/account'
     | '/activity'
+    | '/ai'
+    | '/automation'
+    | '/devices'
+    | '/image-tools'
     | '/import'
     | '/inbox'
     | '/inventory'
     | '/new'
     | '/settings'
     | '/sold'
+    | '/api/health'
+    | '/api/measurement'
+    | '/api/worker'
+    | '/legal/cookies'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/inventory/$id'
     | '/settings/billing'
     | '/settings/channels'
@@ -268,6 +517,7 @@ export interface FileRouteTypes {
     | '/settings/templates'
     | '/api/auth/$'
     | '/api/bridge/$'
+    | '/api/desktop/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
     | '/api/stripe/webhook'
@@ -278,13 +528,37 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/contact'
+    | '/download'
+    | '/features'
+    | '/forgot-password'
+    | '/help'
+    | '/how-it-works'
     | '/login'
     | '/onboarding'
+    | '/pricing'
+    | '/privacy'
+    | '/robots.txt'
+    | '/security'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/terms'
+    | '/account'
     | '/activity'
+    | '/ai'
+    | '/automation'
+    | '/devices'
+    | '/image-tools'
     | '/import'
     | '/inbox'
     | '/new'
     | '/sold'
+    | '/api/health'
+    | '/api/measurement'
+    | '/api/worker'
+    | '/legal/cookies'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/inventory/$id'
     | '/settings/billing'
     | '/settings/channels'
@@ -293,6 +567,7 @@ export interface FileRouteTypes {
     | '/settings/templates'
     | '/api/auth/$'
     | '/api/bridge/$'
+    | '/api/desktop/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
     | '/api/stripe/webhook'
@@ -304,15 +579,39 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/contact'
+    | '/download'
+    | '/features'
+    | '/forgot-password'
+    | '/help'
+    | '/how-it-works'
     | '/login'
     | '/onboarding'
+    | '/pricing'
+    | '/privacy'
+    | '/robots.txt'
+    | '/security'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/terms'
+    | '/_app/account'
     | '/_app/activity'
+    | '/_app/ai'
+    | '/_app/automation'
+    | '/_app/devices'
+    | '/_app/image-tools'
     | '/_app/import'
     | '/_app/inbox'
     | '/_app/inventory'
     | '/_app/new'
     | '/_app/settings'
     | '/_app/sold'
+    | '/api/health'
+    | '/api/measurement'
+    | '/api/worker'
+    | '/legal/cookies'
+    | '/legal/privacy'
+    | '/legal/terms'
     | '/_app/inventory/$id'
     | '/_app/settings/billing'
     | '/_app/settings/channels'
@@ -321,6 +620,7 @@ export interface FileRouteTypes {
     | '/_app/settings/templates'
     | '/api/auth/$'
     | '/api/bridge/$'
+    | '/api/desktop/$'
     | '/api/ebay/callback'
     | '/api/ebay/start'
     | '/api/stripe/webhook'
@@ -333,10 +633,30 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  ContactRoute: typeof ContactRoute
+  DownloadRoute: typeof DownloadRoute
+  FeaturesRoute: typeof FeaturesRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  HelpRoute: typeof HelpRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SecurityRoute: typeof SecurityRoute
+  SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
+  ApiHealthRoute: typeof ApiHealthRoute
+  ApiMeasurementRoute: typeof ApiMeasurementRoute
+  ApiWorkerRoute: typeof ApiWorkerRoute
+  LegalCookiesRoute: typeof LegalCookiesRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalTermsRoute: typeof LegalTermsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiBridgeSplatRoute: typeof ApiBridgeSplatRoute
+  ApiDesktopSplatRoute: typeof ApiDesktopSplatRoute
   ApiEbayCallbackRoute: typeof ApiEbayCallbackRoute
   ApiEbayStartRoute: typeof ApiEbayStartRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
@@ -360,6 +680,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -374,11 +736,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/account': {
+      id: '/_app/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/activity': {
       id: '/_app/activity'
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof AppActivityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ai': {
+      id: '/_app/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AppAiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/automation': {
+      id: '/_app/automation'
+      path: '/automation'
+      fullPath: '/automation'
+      preLoaderRoute: typeof AppAutomationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/devices': {
+      id: '/_app/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof AppDevicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/image-tools': {
+      id: '/_app/image-tools'
+      path: '/image-tools'
+      fullPath: '/image-tools'
+      preLoaderRoute: typeof AppImageToolsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/import': {
@@ -422,6 +868,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/sold'
       preLoaderRoute: typeof AppSoldRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/measurement': {
+      id: '/api/measurement'
+      path: '/api/measurement'
+      fullPath: '/api/measurement'
+      preLoaderRoute: typeof ApiMeasurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker': {
+      id: '/api/worker'
+      path: '/api/worker'
+      fullPath: '/api/worker'
+      preLoaderRoute: typeof ApiWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/cookies': {
+      id: '/legal/cookies'
+      path: '/legal/cookies'
+      fullPath: '/legal/cookies'
+      preLoaderRoute: typeof LegalCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/legal/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/inventory/': {
       id: '/_app/inventory/'
@@ -491,6 +979,13 @@ declare module '@tanstack/react-router' {
       path: '/api/bridge/$'
       fullPath: '/api/bridge/$'
       preLoaderRoute: typeof ApiBridgeSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/desktop/$': {
+      id: '/api/desktop/$'
+      path: '/api/desktop/$'
+      fullPath: '/api/desktop/$'
+      preLoaderRoute: typeof ApiDesktopSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ebay/callback': {
@@ -568,7 +1063,12 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAccountRoute: typeof AppAccountRoute
   AppActivityRoute: typeof AppActivityRoute
+  AppAiRoute: typeof AppAiRoute
+  AppAutomationRoute: typeof AppAutomationRoute
+  AppDevicesRoute: typeof AppDevicesRoute
+  AppImageToolsRoute: typeof AppImageToolsRoute
   AppImportRoute: typeof AppImportRoute
   AppInboxRoute: typeof AppInboxRoute
   AppInventoryRoute: typeof AppInventoryRouteWithChildren
@@ -578,7 +1078,12 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAccountRoute: AppAccountRoute,
   AppActivityRoute: AppActivityRoute,
+  AppAiRoute: AppAiRoute,
+  AppAutomationRoute: AppAutomationRoute,
+  AppDevicesRoute: AppDevicesRoute,
+  AppImageToolsRoute: AppImageToolsRoute,
   AppImportRoute: AppImportRoute,
   AppInboxRoute: AppInboxRoute,
   AppInventoryRoute: AppInventoryRouteWithChildren,
@@ -592,10 +1097,30 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  ContactRoute: ContactRoute,
+  DownloadRoute: DownloadRoute,
+  FeaturesRoute: FeaturesRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  HelpRoute: HelpRoute,
+  HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SecurityRoute: SecurityRoute,
+  SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
+  ApiHealthRoute: ApiHealthRoute,
+  ApiMeasurementRoute: ApiMeasurementRoute,
+  ApiWorkerRoute: ApiWorkerRoute,
+  LegalCookiesRoute: LegalCookiesRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalTermsRoute: LegalTermsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiBridgeSplatRoute: ApiBridgeSplatRoute,
+  ApiDesktopSplatRoute: ApiDesktopSplatRoute,
   ApiEbayCallbackRoute: ApiEbayCallbackRoute,
   ApiEbayStartRoute: ApiEbayStartRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,

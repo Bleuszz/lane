@@ -1,19 +1,14 @@
 # Lane
 
-UK-first crosslister. One canonical inventory record; channel listings hang off it. A confirmed sale with quantity 0 delists the rest.
+UK-first reseller workspace with a shared web account and Windows Desktop. **Current status, 12 September 2026:** eBay/Vinted session authentication and owned-listing discovery are owner-proven. Full Vinted item details (including rows showing “Title unknown”) remain the first desktop follow-up. Full import, reliable publishing and automatic delisting must not be advertised as completed.
 
-**This is not a Crosslist clone and it never stores marketplace passwords.**
+Free staging deployment is locally prepared and tested; no public deployment is claimed. Billing, AI and bulk automation remain disabled. Active marketplace transport is the owner's local browser session; existing official API code is retained for possible future use.
 
-- eBay UK — official REST OAuth (`sell.inventory`)
-- Vinted UK — Windows in-app browser captures the session (Crosslist-style: sign in, window closes). Lane Bridge is the fallback.
-- Import up to 200 live listings
-- Universal form → queued publish
-- Mark sold → autodelist other live channels
-- Job log with request ids and retry
-- Honest `waiting_for_browser` / `extension_offline` when Chrome is asleep
-- Dark UI (Cursor / Grok-like). Light mode is a toggle, not inverted beige.
+- [Authoritative progress](progress.txt)
+- [Deployment handoff](docs/DEPLOYMENT_HANDOFF.md) and [local verification evidence](docs/qa/deployment-readiness/README.md)
+- [£30 launch acquisition playbook](docs/LAUNCH_MARKETING_PLAN.md), [budget/model](docs/MARKETING_BUDGET.md) and [measurement contract](docs/GROWTH_METRICS.md)
 
-The Windows app **is this website** in Chromium. Sign in with the same account so the plan and shops match.
+Marketing documents are preparation only: no spend, ads, outreach or public posts have been executed. The repository map and older setup material below describe historical/future paths too; follow current progress and deployment handoff for this phase.
 
 ## Repo map
 

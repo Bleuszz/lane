@@ -13,6 +13,16 @@ export type CanonicalCategory = {
  */
 export const CATEGORIES: CanonicalCategory[] = [
   {
+    id: "womenswear.knitwear.vneck", label: "Women's V-neck jumpers", path: "Womenswear / Knitwear / V-neck jumpers",
+    ebayUk: { id: "63866", name: "Women's Jumpers & Cardigans", confirmed: false },
+    vintedUk: { catalogId: "190", name: "V-neck jumpers", path: "Women / Clothing / Jumpers & sweaters / Jumpers / V-neck jumpers" },
+  },
+  {
+    id: "womenswear.knitwear.knitted", label: "Women's knitted jumpers", path: "Womenswear / Knitwear / Knitted jumpers",
+    ebayUk: { id: "63866", name: "Women's Jumpers & Cardigans", confirmed: false },
+    vintedUk: { catalogId: "529", name: "Knitted jumpers", path: "Women / Clothing / Jumpers & sweaters / Jumpers / Knitted jumpers" },
+  },
+  {
     id: "menswear.tops.tshirts",
     label: "Men's T-shirts",
     path: "Menswear / Tops / T-shirts",

@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "commit": "e1b07742a8d34a0e63048e5bf2a30cdac2c60631",
+  "dirty": false,
+  "label": "LOCAL PRODUCTION BUILD",
+  "freshPostgres": true,
+  "cleanInstall": true,
+  "at": "2026-09-12T14:17:46.166Z"
+}
