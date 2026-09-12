@@ -1,4 +1,24 @@
-LANE FINAL DEPLOYMENT HARDENING — 12 SEPTEMBER 2026 — CURRENT STATUS
+LANE £30 LAUNCH ACQUISITION PLAN — 12 SEPTEMBER 2026 — CURRENT CHECKPOINT
+Repository: https://github.com/Bleuszz/lane; branch codex/lane-smart-crosslisting.
+Baseline: 77db991; marketing documentation/checker only, no application or connector changes.
+MARKETING PLAN: COMPLETE — seven linked playbooks, current primary vendor/policy evidence and explicit unknowns.
+STRATEGY: opt-in UK clothing reseller pilots + permitted demonstrations; Search is a conditional learning test.
+BUDGET: £30 base; £5 / £10 / £15 all-in envelopes, £24 total media + £6 fees/tax/buffer reserve.
+SPENT: £0. REMAINING: £30. ADS / POSTS / OUTREACH / PURCHASES: NONE.
+PAID EXECUTION: HOLD — owner approval, public deployment/release, accurate import activation and attribution gates.
+MODEL: low/mid/high expected paid-source signups 0.24 / 1.20 / 4.80; assumptions, not measured forecasts.
+ANALYTICS GAP: existing consented daily aggregate counts do not attribute campaign users or join activation funnels.
+TESTS: node scripts/check-marketing-plan.mjs PASS — seven docs, local links, ad lengths, 30 ideas,
+31 calendar days (0–30), £30 allocation, scenario/CAC arithmetic and ICP score sums.
+README: corrected stale introductory live-feature/API claims; current status and marketing links added.
+KNOWN NEXT PRODUCT TASK: Vinted full listing-detail extraction; discovery still not full import.
+LIVE DEPLOYED: NO new deployment claimed. Website/deployment readiness from checkpoint below unchanged.
+NEXT: owner-approved provider deployment -> released Desktop + accurate import/return proof ->
+consented measurable ten-user pilot -> separately approved capped Search test only if gates pass.
+COMPUTE: latest check 22% weekly used / 78% remaining; weekly reset 19 Sep 2026 09:34 BST.
+SHORT WINDOW: unavailable (tool secondary meter null); do not treat as zero usage.
+
+LANE FINAL DEPLOYMENT HARDENING — 12 SEPTEMBER 2026 — PRIOR CHECKPOINT
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting; continued from d9e854f, no connector changes.
 DEPLOYMENT READINESS: READY FOR FREE STAGING; actual provisioning remains external.
