@@ -1,3 +1,69 @@
+LANE SAFE SCHEDULER + IMAGE FOUNDATION — 12 SEPTEMBER 2026 — CURRENT ADDENDUM
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting (continued from 132a748; no restart/new branch).
+SCHEDULER: READY AS A LOCALLY VERIFIED FOUNDATION. Not live marketplace automation.
+BULK ACTIONS: DISABLED. Both current session connectors have MANUAL_ONLY write policy.
+IMAGE NORMALIZATION: LOCALLY PROVEN with synthetic JPEG/PNG fixtures and preserved originals.
+REAL MARKETPLACE WRITES: UNCHANGED. Zero writes made by this phase or its tests.
+FEATURE FLAGS: OFF — SCHEDULER_ENABLED, BULK_AUTOMATION_ENABLED, IMAGE_NORMALIZATION_ENABLED.
+  Render/.env.example and the restored normal local production process all keep these off.
+  Isolated browser QA temporarily enabled manual reminders/image preparation only; no owner data used.
+QUEUE: separate durable SQL jobs/batches, owner/account/item boundaries, explicit approvals,
+  stable request keys, duplicate-intent checks, snapshot validation and recent/uncertain-result guards.
+TIMING: persisted interval windows, active/quiet hours, IANA timezone/DST, weekdays, rolling caps,
+  pauses between completed actions, planned-time list, conservative estimates, future cancellation.
+SAFETY: global/market/account/batch pause, reviewed resume, Retry-After holds, safe retries only,
+  failure thresholds, account warnings/challenges stop, offline-device wait, job expiry, lease recovery.
+  Uncertain writes never replay, including after cancellation. Different remote target blocks action.
+  Additive SQL guard also stops new retained legacy write claims when paused; running leases finish.
+  Existing eBay/Vinted Desktop/authentication/session connector source is unchanged.
+DRY RUN: canonical fields/images/pricing/conflicts/caps/allowance/timing checks and per-item warnings.
+  Session/destination checks not yet proven remain warnings; any future executor must validate them.
+  Manual reminders become REQUIRES_USER_ACTION; they never pretend a marketplace action succeeded.
+IMAGES: exact ORIGINAL copy, CLEAN_EXPORT orientation/sRGB/metadata cleanup, resize/thumbnail,
+  bounded custom corrections/format/explicit crop/transparency fill. No AI/background replacement.
+  Separate owned derivatives, source hash, history, comparison, accept/reject/delete; source untouched.
+LIMITS: no automatic dispatcher/device write transport installed; capability changes require proof.
+  Accepted image exports are not auto-attached/published. CLEAN_EXPORT automatic-publish integration
+  explicitly blocks until reviewed derivative payload handling is implemented. Remote URLs are not
+  server-fetched; locally saved originals required. 12 photos/batch, 2 MB input/output, 20 MP,
+  50 non-deleted results/owner. Postgres byte storage is a bounded pilot choice, not scale-ready storage.
+UI: authenticated /automation and /image-tools with clear disabled/manual-only state. No new public claims.
+WEB ROUTE FIX: direct signed-out private entry exposed a blank client-redirect/hydration path.
+  Added pre-render route auth redirect using the existing verified root session; real anonymous
+  redirect and subsequent signup/authenticated navigation pass. Endpoint ownership checks unchanged.
+DATABASE: all 21 migrations applied/verified against the isolated local durable PostgreSQL fixture.
+  0021_scheduler_normalization.sql additive only. No missing schema; no destructive migration.
+TESTS: 21 actual PostgreSQL/image tests PASS; 31 focused worker/operation/auth/Desktop regressions PASS.
+  Typecheck PASS; fresh Node production build PASS. Windows initially locked loaded Sharp DLL;
+  stopped only the local QA server before rebuilding successfully. No Desktop/profile changes.
+  Browser proof PASS: signup, settings, dry run, approval, manual due state, pause/resume,
+  image preparation/compare/accept/reject/delete and original byte preservation. Zero external requests.
+  Axe zero violations on tested pages; no overflow at 320/390/768/1440px. Visual QA inspected.
+  Normal production flags-OFF browser check PASS; anonymous redirect PASS; homepage/health HTTP 200.
+  Public browser bundles checked for server SQL/provider-key strings: no matches.
+EVIDENCE: docs/SCHEDULER_ARCHITECTURE.md, docs/qa/SCHEDULER_README.md and synthetic screenshots.
+  Detailed logs and browser results in ignored artifacts/scheduler-*; LOCAL, not deployed evidence.
+PUBLIC DEPLOYED: NO. Existing free Render + Neon deployment roadmap remains next.
+LOCAL PROD BUILD: RUNNING at https://localhost:8443, self-signed isolated test TLS; flags OFF.
+AI: mock-only architecture unchanged; AI flags OFF, no real provider/API usage.
+COMPUTE: 14% weekly used / 86% remaining; resets 19 September 2026, 09:34 BST.
+  Short rolling-window usage/reset unavailable from tool; not zero. No reset consumed.
+SPENT: £0. No infrastructure, provider account, image API, domain or ads purchased.
+BLOCKERS: accessible Render/Neon provider authorization remains required for actual free staging.
+  Owner previously created/signed into accounts; tool/dashboard access has not been proven.
+  Domain deferred. No new owner Desktop interaction needed for this foundation.
+EXACT NEXT ACTIONS:
+  1. Stop scheduler/image feature expansion; return to existing website deployment handoff.
+  2. Once provider access is usable, provision free app/database and deploy current branch using
+     docs/DEPLOYMENT_HANDOFF.md; keep billing/AI/automation flags OFF; no purchase authorized.
+  3. Verify HTTPS staging signup/login/trial, same-account device approval/revocation and durability.
+  4. Resume Desktop with FULL VINTED DETAIL EXTRACTION first: Title unknown remains unresolved.
+  5. Live scheduler writes, dispatcher and derivative publication need separate capability/owner proof.
+
+Previous checkpoints follow; this addendum supersedes migration and compute counts.
+================================================================================
+
 LANE AI SKELETON CHECKPOINT — 12 SEPTEMBER 2026 — CURRENT ADDENDUM
 Repository/branch unchanged: Bleuszz/lane, codex/lane-smart-crosslisting.
 AI ARCHITECTURE: LOCALLY VERIFIED SKELETON. NOT PRODUCTION-READY AI.

@@ -107,4 +107,12 @@ Before a destructive schema change, export/verify a database backup privately. T
 
 Public launch still needs verified contact/operator/legal details, reset-email delivery, a verified installer, and actual hosted account/device tests. Custom domain and Google OAuth can follow free staging. First desktop follow-up: full Vinted detail extraction; `Title unknown` is not full import.
 
+Foundation update, 12 September: 21 migrations now include the separate scheduler/image tables.
+Keep `SCHEDULER_ENABLED=false`, `BULK_AUTOMATION_ENABLED=false` and
+`IMAGE_NORMALIZATION_ENABLED=false` (already in the Blueprint). No scheduler service or new
+infrastructure is needed. Sharp's native dependency must be installed/built on the deployment
+host with `npm ci && npm run build:node`; do not upload Windows `.output` to Linux.
+See [scheduler release gates](SCHEDULER_ARCHITECTURE.md). Existing marketplace authentication is
+unchanged and no new write capability is advertised.
+
 Sources checked 12 September 2026: [Render environment variables](https://render.com/docs/environment-variables), [Blueprint reference](https://render.com/docs/blueprint-spec), [branch deployment shortcut](https://render.com/docs/deploy-to-render), [Free service limits](https://render.com/docs/free), [Neon pooling](https://neon.com/docs/connect/connection-pooling).

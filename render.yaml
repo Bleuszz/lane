@@ -41,3 +41,9 @@ services:
         value: "false"
       - key: AI_MOCK_DEVELOPMENT
         value: "false"
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      - key: BULK_AUTOMATION_ENABLED
+        value: "false"
+      - key: IMAGE_NORMALIZATION_ENABLED
+        value: "false"

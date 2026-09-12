@@ -37,6 +37,8 @@ const NAV = [
 ] as const;
 
 const MANAGE = [
+  { to: "/automation", label: "Scheduling & safety", icon: Settings },
+  { to: "/image-tools", label: "Image preparation", icon: Settings },
   { to: "/ai", label: "AI Studio & usage", icon: Activity },
   { to: "/devices", label: "Your devices", icon: Settings },
   { to: "/settings/channels", label: "Accounts", icon: Settings },

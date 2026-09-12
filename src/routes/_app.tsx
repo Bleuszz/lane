@@ -1,10 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { authEnabled } from "@/lib/auth/client";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { AppShell } from "@/components/app-shell";
 import { LaneWordmark } from "@/components/logo";
 
 export const Route = createFileRoute("/_app")({
+  // Resolve signed-out entry before rendering/hydrating the private document.
+  // Endpoint ownership checks remain authoritative for every data operation.
+  beforeLoad: ({ context, location }) => {
+    if (authEnabled && !context.sessionUser)
+      throw redirect({ to: "/login", search: { returnTo: location.href } });
+  },
   component: AppLayout,
 });
 

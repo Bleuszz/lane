@@ -29,7 +29,9 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
 import { Route as AppAiRouteImport } from './routes/_app.ai'
+import { Route as AppAutomationRouteImport } from './routes/_app.automation'
 import { Route as AppDevicesRouteImport } from './routes/_app.devices'
+import { Route as AppImageToolsRouteImport } from './routes/_app.image-tools'
 import { Route as AppImportRouteImport } from './routes/_app.import'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
@@ -158,9 +160,19 @@ const AppAiRoute = AppAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAutomationRoute = AppAutomationRouteImport.update({
+  id: '/automation',
+  path: '/automation',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDevicesRoute = AppDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImageToolsRoute = AppImageToolsRouteImport.update({
+  id: '/image-tools',
+  path: '/image-tools',
   getParentRoute: () => AppRoute,
 } as any)
 const AppImportRoute = AppImportRouteImport.update({
@@ -324,7 +336,9 @@ export interface FileRoutesByFullPath {
   '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
   '/ai': typeof AppAiRoute
+  '/automation': typeof AppAutomationRoute
   '/devices': typeof AppDevicesRoute
+  '/image-tools': typeof AppImageToolsRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
   '/inventory': typeof AppInventoryRouteWithChildren
@@ -374,7 +388,9 @@ export interface FileRoutesByTo {
   '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
   '/ai': typeof AppAiRoute
+  '/automation': typeof AppAutomationRoute
   '/devices': typeof AppDevicesRoute
+  '/image-tools': typeof AppImageToolsRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
   '/new': typeof AppNewRoute
@@ -424,7 +440,9 @@ export interface FileRoutesById {
   '/_app/account': typeof AppAccountRoute
   '/_app/activity': typeof AppActivityRoute
   '/_app/ai': typeof AppAiRoute
+  '/_app/automation': typeof AppAutomationRoute
   '/_app/devices': typeof AppDevicesRoute
+  '/_app/image-tools': typeof AppImageToolsRoute
   '/_app/import': typeof AppImportRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/inventory': typeof AppInventoryRouteWithChildren
@@ -476,7 +494,9 @@ export interface FileRouteTypes {
     | '/account'
     | '/activity'
     | '/ai'
+    | '/automation'
     | '/devices'
+    | '/image-tools'
     | '/import'
     | '/inbox'
     | '/inventory'
@@ -526,7 +546,9 @@ export interface FileRouteTypes {
     | '/account'
     | '/activity'
     | '/ai'
+    | '/automation'
     | '/devices'
+    | '/image-tools'
     | '/import'
     | '/inbox'
     | '/new'
@@ -575,7 +597,9 @@ export interface FileRouteTypes {
     | '/_app/account'
     | '/_app/activity'
     | '/_app/ai'
+    | '/_app/automation'
     | '/_app/devices'
+    | '/_app/image-tools'
     | '/_app/import'
     | '/_app/inbox'
     | '/_app/inventory'
@@ -782,11 +806,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAiRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/automation': {
+      id: '/_app/automation'
+      path: '/automation'
+      fullPath: '/automation'
+      preLoaderRoute: typeof AppAutomationRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/devices': {
       id: '/_app/devices'
       path: '/devices'
       fullPath: '/devices'
       preLoaderRoute: typeof AppDevicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/image-tools': {
+      id: '/_app/image-tools'
+      path: '/image-tools'
+      fullPath: '/image-tools'
+      preLoaderRoute: typeof AppImageToolsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/import': {
@@ -1028,7 +1066,9 @@ interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppActivityRoute: typeof AppActivityRoute
   AppAiRoute: typeof AppAiRoute
+  AppAutomationRoute: typeof AppAutomationRoute
   AppDevicesRoute: typeof AppDevicesRoute
+  AppImageToolsRoute: typeof AppImageToolsRoute
   AppImportRoute: typeof AppImportRoute
   AppInboxRoute: typeof AppInboxRoute
   AppInventoryRoute: typeof AppInventoryRouteWithChildren
@@ -1041,7 +1081,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppActivityRoute: AppActivityRoute,
   AppAiRoute: AppAiRoute,
+  AppAutomationRoute: AppAutomationRoute,
   AppDevicesRoute: AppDevicesRoute,
+  AppImageToolsRoute: AppImageToolsRoute,
   AppImportRoute: AppImportRoute,
   AppInboxRoute: AppInboxRoute,
   AppInventoryRoute: AppInventoryRouteWithChildren,
