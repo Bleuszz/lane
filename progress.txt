@@ -1,4 +1,20 @@
-LANE PHASE 2 — ACTIVE CHECKPOINT 11 SEPTEMBER 2026
+LANE PHASE 2 — ACTIVE CHECKPOINT 12 SEPTEMBER 2026
+ACCESS UPDATE: Owner created/signed into Render and Neon using Google. This task has no
+  Render/Neon API tools, CLI session or provider environment credentials. Browser session
+  access is NOT yet verified: Chrome and Edge report minimized, and each recovery attempt
+  returned "failed to activate captured window". Do not infer provider login failed.
+  Owner action pending: bring signed-in Render dashboard forward in Chrome/Edge and name
+  the browser (or say if login was inside Codex's browser panel). No credentials in chat.
+NEW CHECK: scripts/staging-smoke.mjs performs read-only HTTPS/public-page/auth/anonymous
+  session/canonical/noindex/cache checks on a generated staging origin. Allows only bounded
+  same-origin/same-route redirects for TanStack search normalisation. Verified against the
+  built Node server with phase2-build-proof.mjs on 12 September (PASS). Hosted proof pending.
+COMPUTE UPDATE: Weekly window now reports 1% used / 99% remaining; 0 reset credits.
+  Previous 62% checkpoint below belongs to the earlier usage window. Spending remains £0.
+NEXT: access existing signed-in dashboards, verify Free plans, provision Neon/Render,
+  configure secrets privately, run smoke against generated HTTPS origin then real account
+  and packaged Desktop pairing/revocation tests. Domain remains deferred. Connectors untouched.
+
 Repository/branch unchanged: Bleuszz/lane, codex/lane-smart-crosslisting.
 OWNER UPDATE: eBay and Vinted authentication/session flow and Vinted listing discovery work.
 DESKTOP DEVELOPMENT: PAUSED. Do not change these working connectors in website phase.
