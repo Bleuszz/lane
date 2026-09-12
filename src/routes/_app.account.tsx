@@ -54,7 +54,7 @@ function Account() {
           <p className="mt-2 text-xl capitalize">{a.trialStatus}</p>
           <p className="mt-2 text-sm">
             {a.trialEndsAt
-              ? `Ends ${new Date(a.trialEndsAt).toLocaleDateString("en-GB")}`
+              ? `${a.trialStatus === "ended" ? "Ended" : "Ends"} ${new Date(a.trialEndsAt).toLocaleDateString("en-GB")}`
               : "Starts with account onboarding"}
           </p>
           <p className="mt-2 text-xs text-muted">No card required · 0 trial AI credits</p>
@@ -66,7 +66,9 @@ function Account() {
         </div>
         <div>
           <h2 className="text-sm text-muted">Cloud inventory</h2>
-          <p className="mt-2 text-xl">{a.inventoryCount} items</p>
+          <p className="mt-2 text-xl">
+            {a.inventoryCount} {a.inventoryCount === 1 ? "item" : "items"}
+          </p>
           <p className="mt-2 text-sm text-muted">
             Desktop discoveries are separate until imported and synced.
           </p>

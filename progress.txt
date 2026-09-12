@@ -1,3 +1,67 @@
+LANE WEBSITE CHECKPOINT — 12 SEPTEMBER 2026 — AUTHORITATIVE CURRENT STATUS
+Repository: https://github.com/Bleuszz/lane
+Branch: codex/lane-smart-crosslisting. Implementation checkpoint d0f711e; final QA checkpoint follows.
+
+PUBLIC DEPLOYED: NO — BLOCKED — OWNER LOGIN REQUIRED. No public URL or hosted DB yet.
+LOCAL PROD BUILD: PASS — actual Node/Nitro output, https://localhost:8443 isolated test TLS.
+  This is LOCAL PRODUCTION BUILD evidence, not LIVE STAGING. Persistent local PostgreSQL 16.
+WEBSITE: LOCALLY PROVEN — home/features/pricing/how-it-works/download/auth/account/devices/help/
+  privacy/terms/security/contact/cookies, clear trial CTAs, shared navigation, genuine HTTP 404,
+  success states and truthful beta limitations. Desktop connectors unchanged.
+SEO: LOCALLY PROVEN — unique metadata, canonical origins, OG/Twitter share image, public sitemap,
+  robots/private exclusions, Organization/WebSite/SoftwareApplication schema, internal links.
+  Staging is noindex; Search Console/custom domain remain later. No fake reviews or unsupported claims.
+ANALYTICS: IMPLEMENTED, OFF BY DEFAULT — optional consented first-party daily event counts.
+  No account IDs, listing data or tokens in payloads; DNT/GPC honoured, credentials/referrers omitted.
+  Server allowlist, bounded body and intake cap tested. No paid vendor. Not user-level attribution.
+AUTH: LOCALLY PROVEN — real email/password signup/login/logout, secure cookies and CSRF rejection.
+  Fixed sign-out navigation race. Google and real email delivery not configured/tested.
+DATABASE: LOCAL PASS — 19 migrations and required tables verified against durable Docker volume.
+  Cloud database NOT PROVISIONED. Remote verification requires TLS; secrets ignored by Git.
+TRIAL: LOCAL PASS — 168-hour server trial, zero AI credits, re-login does not reset dates;
+  expiry retains inventory, no automatic charge. Paid checkout closed.
+DESKTOP SHARED ACCOUNT: LOCAL PROTOCOL PASS — same Better Auth user, approval, one-use exchange,
+  revocation. Packaged Desktop + real staging browser approval/restart/revocation NOT YET PROVEN.
+RENDER: PREPARED — free Frankfurt Node service, Blueprint, current branch auto-deploy, health,
+  migrations, generated auth secret; validated Render URL supplies account origin automatically.
+NEON: SELECTED FREE FRANKFURT — owner account exists; dashboard access not verified by this task.
+  No new infrastructure or purchases. Provider login previously could not be accessed via UI.
+GOOGLE: OPTIONAL / NOT CONFIGURED — verified Better Auth callback /api/auth/callback/google;
+  exact OAuth and secret placement in docs/DEPLOYMENT_HANDOFF.md. Never put secrets in chat.
+DOWNLOAD: PAGE READY / RELEASE PENDING — version/date/SHA256 presentation ready; publish only
+  after packaged staging-pairing acceptance. No stale installer advertised as verified.
+SUPPORT / LEGAL: SQL support receipt + concurrent per-account rate limit LOCALLY PROVEN.
+  Intake disabled pending operator monitoring, verified public contact, retention and legal review.
+  Password-reset email infrastructure exists but sender configuration/delivery proof required.
+SCREENSHOTS: LOCAL PRODUCTION BUILD — phone-readable gallery docs/qa/README.md; synthetic account.
+LIGHTHOUSE: LOCAL homepage mobile 90 / desktop 98 performance; accessibility, best practices and
+  SEO 100 both. Mobile LCP 3.00s, desktop 0.91s; TBT 0ms, CLS 0. INP not measured. No live CWV claim.
+TESTS: typecheck/build PASS; 37 focused tests PASS; public QA 13 pages / 16 destinations PASS;
+  no automated axe violations on checked public/account pages; no overflow at 320/390/768px;
+  actual browser+SQL auth/trial/device/support proof PASS; production startup smoke PASS.
+  Chunked oversized analytics payload rejected 413, malformed JSON 400, allowed event 204.
+  Full methods, limits and reproducible commands: docs/WEBSITE_QA.md.
+KNOWN DESKTOP FOLLOW-UP: FIRST TASK AFTER WEBSITE — FULL VINTED ITEM DETAIL EXTRACTION.
+  Authentication and owner listing discovery work; many rows show Title unknown. Full import
+  (title/description/price/photos/order/brand/size/condition/colour/category/material) remains unproven.
+COMPUTE: Latest account meter 7% weekly used / 93% remaining. Weekly resets 19 September 2026
+  at 09:34 BST (08:34 UTC). Short rolling-window meter/reset unavailable, not zero. No reset used.
+SPENT: £0. Expected staging infrastructure £0 within free quotas; no card/paid upgrades authorised.
+
+BLOCKERS / EXACT NEXT ACTIONS
+1. Owner returns to PC: leave signed-in Render + Neon dashboards visible in Chrome/Edge and
+   identify browser. Owner handles Google/MFA and any GitHub repo grant; no secrets in chat.
+   Estimated interaction 3–5 minutes with sessions ready, 5–10 if repository authorisation needed.
+2. Codex provisions one free Neon project and one free Render service, privately sets DATABASE_URL,
+   deploys branch, runs read-only staging smoke then real account/trial/device acceptance.
+3. Prove packaged Desktop against staging; release verified Windows asset/checksum.
+4. Confirm operator/legal/contact/retention, configure email and optional Google, test delivery.
+   General public launch waits for those gates; domain remains deferred and not a staging blocker.
+5. Return to Vinted detail extraction only after website/shared-account foundation is proven live.
+
+Prior checkpoint history follows; current statuses above supersede older usage/readiness claims.
+================================================================================
+
 LANE PHASE 2 — ACTIVE CHECKPOINT 12 SEPTEMBER 2026
 ACCESS UPDATE: Owner created/signed into Render and Neon using Google. This task has no
   Render/Neon API tools, CLI session or provider environment credentials. Browser session

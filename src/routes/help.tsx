@@ -9,7 +9,9 @@ function Help() {
   const [search, setSearch] = useState("");
   const entries = [
     ...HELP,
-    ...FAQ.map(([question, answer]) => ({ category: "About Lane", question, answer })),
+    ...FAQ.filter(([question]) => !HELP.some((entry) => entry.question === question)).map(
+      ([question, answer]) => ({ category: "About Lane", question, answer }),
+    ),
   ].filter((e) => (e.question + " " + e.answer).toLowerCase().includes(search.toLowerCase()));
   return (
     <PublicLayout>

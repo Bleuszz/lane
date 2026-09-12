@@ -21,12 +21,37 @@ export const Route = createFileRoute("/api/measurement")({
           count = 0;
         }
         if (++count > 120) return new Response(null, { status: 429 });
+        let data;
         try {
-          const text = await request.text();
-          if (text.length > 100) return new Response(null, { status: 413 });
-          const data = JSON.parse(text);
-          if (!data || Object.keys(data).length !== 1 || !FUNNEL_EVENTS.includes(data.event))
-            return new Response(null, { status: 400 });
+          const reader = request.body?.getReader();
+          if (!reader) return new Response(null, { status: 400 });
+          const timer = setTimeout(() => void reader.cancel(), 5000);
+          let size = 0,
+            text = "";
+          const decoder = new TextDecoder();
+          try {
+            while (true) {
+              const chunk = await reader.read();
+              if (chunk.done) break;
+              size += chunk.value.byteLength;
+              if (size > 100) {
+                await reader.cancel();
+                return new Response(null, { status: 413 });
+              }
+              text += decoder.decode(chunk.value, { stream: true });
+            }
+            text += decoder.decode();
+          } finally {
+            clearTimeout(timer);
+            reader.releaseLock();
+          }
+          data = JSON.parse(text);
+        } catch {
+          return new Response(null, { status: 400 });
+        }
+        if (!data || Object.keys(data).length !== 1 || !FUNNEL_EVENTS.includes(data.event))
+          return new Response(null, { status: 400 });
+        try {
           const sql = await getSql();
           await sql`insert into website_daily_events(day,event,total) values(current_date,${data.event},1) on conflict(day,event) do update set total=website_daily_events.total+1`;
           return new Response(null, { status: 204 });
