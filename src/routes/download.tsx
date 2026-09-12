@@ -3,7 +3,7 @@ import { publicHead } from "@/lib/lane/public-site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LaneWordmark } from "@/components/logo";
 import { Button, Panel } from "@/components/ui";
-import { Download, Monitor, ShieldCheck, ArrowRight } from "lucide-react";
+import { Download, Monitor, Laptop, Terminal, ShieldCheck, ArrowRight } from "lucide-react";
 import {
   WINDOWS_BUILD,
   WINDOWS_RELEASE_DATE,
@@ -21,7 +21,7 @@ function DownloadPage() {
     <PublicLayout>
       <section className="mx-auto grid max-w-6xl gap-14 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:py-24">
         <div>
-          <p className="eyebrow">LANE DESKTOP · WINDOWS</p>
+          <p className="eyebrow">LANE DESKTOP</p>
           <h1 className="mt-6 font-serif text-5xl leading-[1.04] tracking-tight md:text-6xl">
             Your marketplaces.
             <br />
@@ -34,11 +34,19 @@ function DownloadPage() {
             sessions local, and review the listings discovered in the owner pilot. Full import
             remains under verification.
           </p>
-          <div className="mt-9">
+          <div className="mt-9 border-t border-line pt-6">
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <h2 className="flex items-center gap-2 text-xl font-medium">
+                <Monitor size={21} aria-hidden="true" /> Windows
+              </h2>
+              <span className="rounded-full bg-raised px-3 py-1 text-xs font-medium">
+                {WINDOWS_INSTALLER_URL ? "Available · current beta" : "Current beta · release pending"}
+              </span>
+            </div>
             {WINDOWS_INSTALLER_URL ? (
               <a href={WINDOWS_INSTALLER_URL} data-lane-event="download_clicked">
                 <span className="public-button">
-                  <Download size={17} /> Download Lane Desktop
+                  <Download size={17} /> Download for Windows
                 </span>
               </a>
             ) : (
@@ -105,6 +113,55 @@ function DownloadPage() {
             </p>
           </div>
         </Panel>
+      </section>
+      <section
+        aria-labelledby="platforms-heading"
+        className="mx-auto max-w-6xl border-t border-line px-6 py-16"
+      >
+        <div className="max-w-2xl">
+          <p className="eyebrow">MORE PLACES TO WORK</p>
+          <h2 id="platforms-heading" className="mt-4 font-serif text-3xl md:text-4xl">
+            Windows first. More platforms next.
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-muted">
+            Windows is the only supported desktop platform today. macOS is our next priority,
+            with Linux planned after it. Neither build is available yet, and release dates are
+            not confirmed.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-5 md:grid-cols-2">
+          {[
+            {
+              name: "macOS",
+              order: "NEXT IN LINE",
+              Icon: Laptop,
+              description:
+                "The next step for Lane Desktop, bringing the workspace to more resellers. Mac installation, secure sessions and marketplace sign-in still need validation.",
+            },
+            {
+              name: "Linux",
+              order: "AFTER macOS",
+              Icon: Terminal,
+              description:
+                "Planned for greater flexibility after macOS. Supported distributions, packaging and secure session storage will be confirmed during platform testing.",
+            },
+          ].map(({ name, order, Icon, description }) => (
+            <article key={name} className="min-w-0 rounded-2xl border border-line p-6 md:p-8">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="flex items-center gap-3 text-xl font-medium">
+                  <Icon size={22} strokeWidth={1.5} aria-hidden="true" /> {name}
+                </h3>
+                <span className="rounded-full bg-raised px-3 py-1 text-xs">Coming soon</span>
+              </div>
+              <p className="mt-7 text-xs tracking-wider text-muted">{order}</p>
+              <p className="mt-3 text-sm leading-7 text-muted">{description}</p>
+            </article>
+          ))}
+        </div>
+        <p className="mt-6 text-sm leading-7 text-muted">
+          These plans will not delay the Windows launch. Check this page and the release notes
+          for verified availability.
+        </p>
       </section>
       <section className="mx-auto grid max-w-6xl gap-10 border-t border-line px-6 py-16 md:grid-cols-3">
         <article>

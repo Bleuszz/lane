@@ -15,6 +15,26 @@ Keep your existing listing workflow. Prepare another marketplace's listing with 
 5. All supported marketplaces available on every tier. Show the service catalogue and distinguish implemented connectors from planned ones. Never mark a placeholder as connected. Depop, Etsy, Shopify, WooCommerce, Facebook and Gumtree remain planned; each needs its own integration, eligibility and live verification before support is advertised.
 6. Production gate: per-seller eBay policies/photo hosting, marketplace smoke tests, durable database, token configuration, sold-event deduplication and unattended jobs. No universal stock-sync guarantee before this passes.
 
+## Desktop platform order — 12 September 2026
+
+1. **Windows — current supported beta and launch priority.** Public distribution remains gated on a verified installer URL, version, release date and SHA256. A working local beta is not a public release. Keep Windows launch and Vinted full-detail extraction on their existing path.
+2. **macOS — coming soon, next high-priority platform.** Extends the usable audience beyond Windows; commercial impact is a hypothesis to validate with actual interested resellers. No build, supported CPU architecture or release date is promised yet.
+3. **Linux — coming soon, after macOS.** Useful for versatility, with lower initial commercial priority. Supported distributions and package formats are undecided.
+
+macOS/Linux must not delay Windows launch. This is preparation only: no new platform binaries or pipelines are implemented. `/download` presents the order explicitly, with no fake download links or notification form when email/subscription delivery is not configured.
+
+Before either platform becomes supported, validate:
+
+- Electron packaging per OS and CPU architecture, including native dependencies and clean install/uninstall.
+- OS-backed secure credential/session storage, unavailable-keychain behaviour, per-account isolation, restart persistence and complete disconnect cleanup. Do not assume Windows encryption works elsewhere or allow plaintext fallback.
+- Vinted/eBay session compatibility, browser navigation, login/popups, legitimate verification, background reads and account isolation; preserve the proven Windows implementation.
+- Browser-based Lane login/device approval, callback handling, revocation and platform-specific permissions.
+- Installer delivery and update/rollback flow; authenticated metadata, checksums and clear version identification.
+- Platform signing: Windows signing remains a later release concern; macOS Developer ID signing/notarisation and Gatekeeper handling need validation; Linux package provenance/signing depends on chosen formats. No purchases or signing credentials requested now.
+- Automated build/release matrix on appropriate OS runners, secret isolation, reproducible artifacts and platform smoke tests. Evaluate runner costs before enabling additional CI jobs.
+
+Release gate per OS: normal user installs, pairs the same Lane account, connects marketplaces, reads accurate owned data, restarts/reconnects safely, revokes/disconnects and uninstalls. Publish the platform's download URL/date/hash only after actual artifact verification. Interest collection is optional later through a real consented notification service, never a form that silently discards requests.
+
 ## Proposed launch pricing
 
 Trial: seven days, no card, 25 publish/relist actions for the trial's entire lifetime, zero AI credits. The action allowance does not reset at a month boundary. Expiry must be enforced by the server, while viewing and exporting existing work remains available.

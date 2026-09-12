@@ -1,4 +1,22 @@
-LANE £30 LAUNCH ACQUISITION PLAN — 12 SEPTEMBER 2026 — CURRENT CHECKPOINT
+LANE DOWNLOAD PLATFORM PREPARATION — 12 SEPTEMBER 2026 — CURRENT CHECKPOINT
+Branch: codex/lane-smart-crosslisting; baseline a616302; existing Windows connector code unchanged.
+DOWNLOAD PAGE: Windows current beta featured; macOS Coming soon next; Linux Coming soon after macOS.
+WINDOWS PUBLIC DOWNLOAD: BLOCKED on verified installer publication/URL/date/SHA256; metadata remains null.
+GitHub release list checked: no published releases. No fake active download link or release date added.
+Active Windows download branch remains ready for a verified release URL; install/version/security guidance retained.
+MACOS / LINUX: roadmap only; no binaries, signing, new CI infrastructure or notification forms created.
+PRODUCT PLAN: Windows -> macOS -> Linux; OS packaging, secure storage, sessions/auth, updates,
+signing/notarisation, permissions and build-pipeline validation recorded; Windows launch must not wait.
+CHECKS: typecheck PASS; existing download-gating test PASS; production Node build PASS.
+BUILD NOTE: initial Windows DLL lock resolved by stopping only the identified old Lane web preview;
+rebuilt successfully and restored preview on port 8093. Desktop processes/session data were untouched.
+RESPONSIVE QA: HTTP 200/no horizontal overflow at 1440/768/390/320px; both future cards have no actions;
+unreleased Windows button disabled. Desktop/mobile screenshots visually inspected, LOCAL PRODUCTION BUILD.
+QA ARTIFACTS: artifacts/download-platform-qa/ (local ignored screenshots/results); not live staging.
+SPENT: £0. COMPUTE: 23% weekly used / 77% remaining; reset 19 Sep 2026 09:34 BST; short meter unavailable.
+NEXT: verified Windows release distribution, existing deployment gates; Vinted full details remains first app follow-up.
+
+LANE £30 LAUNCH ACQUISITION PLAN — 12 SEPTEMBER 2026 — PRIOR CHECKPOINT
 Repository: https://github.com/Bleuszz/lane; branch codex/lane-smart-crosslisting.
 Baseline: 77db991; marketing documentation/checker only, no application or connector changes.
 MARKETING PLAN: COMPLETE — seven linked playbooks, current primary vendor/policy evidence and explicit unknowns.
