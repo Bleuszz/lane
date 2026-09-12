@@ -20,6 +20,14 @@ try {
     "desktop_pairings",
     "support_requests",
     "website_daily_events",
+    "ai_wallets",
+    "ai_batches",
+    "ai_jobs",
+    "ai_credit_ledger",
+    "ai_cost_ledger",
+    "ai_suggestions",
+    "ai_generated_assets",
+    "ai_job_events",
   ];
   const rows = await pool.query("select tablename from pg_tables where schemaname='public'");
   const present = new Set(rows.rows.map((r) => r.tablename));

@@ -45,8 +45,8 @@ export function mapSettings(row: Record<string, unknown>): UserSettingsView {
     plan,
     trialStartedAt, trialEndsAt, trialActionsUsed, trialActionsLimit: TRIAL_ACTION_LIMIT,
     trialActive: access.trialActive, canPublish: access.canPublish,
-    aiPack: access.aiCreditsLimit > 0 && bool(row.ai_autofill_enabled),
-    aiAutofillEnabled: bool(row.ai_autofill_enabled),
+    aiPack: false, // Legacy inline AI is retired; explicit mock workbench only.
+    aiAutofillEnabled: false,
     aiCreditsUsed: num0(row.ai_credits_used),
     aiCreditsLimit: access.aiCreditsLimit,
     onboardingStep: num0(row.onboarding_step),
@@ -289,7 +289,7 @@ export async function ensureUser(sql: Sql, userId: string): Promise<UserSettings
     await sql`insert into pricing_rules (id, user_id, marketplace, kind, amount, undercut_marketplace) values (${makeId("pr")}, ${userId}, ${"vinted_uk"}, ${"flat"}, ${null}, ${null})`;
   }
 
-  const usage = await sql<{ used: number }>`select used from ai_credit_usage where user_id = ${userId} and month = ${new Date().toISOString().slice(0, 7)}`;
+  const usage = await sql<{ used: number }>`select reserved + consumed as used from ai_wallets where user_id = ${userId} and month = ${new Date().toISOString().slice(0, 7)}`;
   return { ...settings, aiCreditsUsed: Number(usage[0]?.used ?? 0) };
 }
 

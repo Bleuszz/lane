@@ -33,3 +33,11 @@ services:
         value: "false"
       - key: VITE_LANE_ANALYTICS_ENABLED
         value: "false"
+      - key: AI_PROVIDER
+        value: "mock"
+      - key: AI_LISTING_ENABLED
+        value: "false"
+      - key: AI_IMAGE_ENABLED
+        value: "false"
+      - key: AI_MOCK_DEVELOPMENT
+        value: "false"

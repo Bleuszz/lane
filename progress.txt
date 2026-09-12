@@ -1,3 +1,45 @@
+LANE AI SKELETON CHECKPOINT — 12 SEPTEMBER 2026 — CURRENT ADDENDUM
+Repository/branch unchanged: Bleuszz/lane, codex/lane-smart-crosslisting.
+AI ARCHITECTURE: LOCALLY VERIFIED SKELETON. NOT PRODUCTION-READY AI.
+AI TEXT PROVIDER: MOCK ONLY. No final provider/model selected.
+AI IMAGE PROVIDER: MOCK ONLY. Labelled placeholder; no generated imagery.
+REAL API CALLS: DISABLED. Retired xAI handlers no longer dispatch network calls.
+AI API SPEND: £0. No keys, provider accounts, credits or infrastructure purchased.
+FEATURE FLAGS: OFF in .env.example, Render Blueprint and restored local production process.
+  Mock tests explicitly enabled only in isolated local fixture; no owner account upgraded.
+LISTING INTELLIGENCE: /ai review workbench; source/saved/user context, confidence/evidence,
+  accept/reject, known-value confirmation, stale-value rejection. Unknown stays unknown.
+  Accepted mock text is review history only, never written into sellable inventory.
+IMAGE STUDIO: operation catalogue/settings, per-batch cost preview, separate original/derivative,
+  review/delete/return-to-original. Derivative deletion never deletes source. Fidelity notices.
+CREDITS: server-side atomic batch reservation, per-job consumption/refund, duplicate protection,
+  independent month wallets, lease recovery, cancellation and explicit retry. Trial/Starter 0;
+  provisional Seller 500 / Pro 1500; server-configurable prices/allowances, no migration to reprice.
+COST LEDGER: provider/model/operation/tier/usage/estimate/actual/credits stored privately.
+  Mock usage and API cost zero. Internal provider cost not included in normal-user DTOs.
+DATABASE: 0020_ai_workbench.sql applied to local durable PostgreSQL. 20 migrations now.
+  Legacy ledger retained for history; prior used totals carried forward once.
+TESTS: 17 real PostgreSQL AI tests PASS; 11 focused auth/trial/device/inventory regressions PASS;
+  typecheck and production build PASS. Browser mock flow PASS for signup/trial-zero gate,
+  individual review, image preview, failure refund, original preservation and no external requests.
+  Axe: no violations on tested workbench; overflow checks 320/390/768 PASS.
+  Normal local production AI-disabled UI verified after restoring flags OFF.
+  Browser bundles checked: no provider-key names or retired xAI endpoint.
+UI FIX: narrow shared account header now truncates/hides long display name appropriately.
+  Marketplace Desktop connector code untouched.
+EVIDENCE: docs/AI_ARCHITECTURE.md, docs/qa/AI_README.md, ignored artifacts/ai-*.
+COMPUTE: 10% weekly used / 90% remaining; reset 19 September 09:34 BST.
+  Short rolling-window meter and reset unavailable. No usage reset consumed.
+SPENT TOTAL THIS PHASE: £0.
+NEXT: STOP AI IMPLEMENTATION. Return to free Render/Neon website deployment handoff.
+  Provider dashboard access remains BLOCKED — OWNER LOGIN REQUIRED; no public staging URL yet.
+  Domain still deferred. Packaged Desktop shared-account staging acceptance, verified download,
+  email and operator/legal/support details remain launch gates.
+KNOWN DESKTOP FOLLOW-UP: full Vinted item-detail extraction; Title unknown is not fixed by AI.
+
+Previous website checkpoint follows; this addendum supersedes its migration/usage counts.
+================================================================================
+
 LANE WEBSITE CHECKPOINT — 12 SEPTEMBER 2026 — AUTHORITATIVE CURRENT STATUS
 Repository: https://github.com/Bleuszz/lane
 Branch: codex/lane-smart-crosslisting. Implementation checkpoint d0f711e; final QA checkpoint follows.

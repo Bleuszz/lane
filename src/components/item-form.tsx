@@ -477,20 +477,7 @@ export function ItemForm({
           </div>
         </div>
 
-        <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-raised p-3">
-          <p className="text-xs font-medium">Listing copy</p>
-          <p className="text-[11px] text-subtle">Fills empty title and description only. Your edits stay in place. Uses 1 AI credit.</p>
-          <NativeSelect value={voice} onChange={(e) => setVoice(e.target.value as AiVoice)}>
-            <option value="short">Short</option>
-            <option value="detailed">Detailed</option>
-            <option value="vintage">Vintage</option>
-            <option value="streetwear">Streetwear</option>
-          </NativeSelect>
-          <Button variant="secondary" size="sm" className="w-full" disabled={aiBusy || !aiEnabled} onClick={() => void fillAi()}>
-            {aiBusy ? "Writing…" : aiEnabled ? "Fill from notes" : "Enable AI in Billing"}
-          </Button>
-          {aiError ? <p className="text-xs text-danger">{aiError}</p> : null}
-        </div>
+        <div className="space-y-2 rounded-lg border border-line bg-raised p-3"><p className="text-xs font-medium">AI is not live</p><p className="text-xs text-muted">Save this listing first. Optional mock suggestions are reviewed separately.</p><a className="text-sm underline" href="/ai">Open AI Studio</a></div>
       </aside>
     </div>
   );

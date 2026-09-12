@@ -1,3 +1,4 @@
+import { AI_ALLOWANCES } from "./ai/catalog.ts";
 import type { PlanId } from "./types";
 
 export type PlanDef = {
@@ -17,7 +18,7 @@ export const PLAN_DEFS: Record<PlanId, PlanDef> = {
     name: "Starter",
     priceGbp: 9,
     actions: 150,
-    aiCredits: 0,
+    aiCredits: AI_ALLOWANCES.starter,
     accounts: "unlimited",
     channels: "Every supported marketplace",
     notes: ["150 publish-or-relist actions / month", "All supported connections", "Photo cleanup included", "No AI credits"],
@@ -27,24 +28,24 @@ export const PLAN_DEFS: Record<PlanId, PlanDef> = {
     name: "Seller",
     priceGbp: 19,
     actions: 600,
-    aiCredits: 150,
+    aiCredits: AI_ALLOWANCES.seller,
     accounts: "unlimited",
     channels: "Every supported marketplace",
-    notes: ["600 actions / month", "All supported connections", "150 AI credits / month", "Optional field autofill"],
+    notes: ["600 actions / month", "All supported connections", `${AI_ALLOWANCES.seller} provisional AI credits / month (not live)`, "AI tools planned; mock previews only"],
   },
   pro: {
     id: "pro",
     name: "Pro",
     priceGbp: 29,
     actions: 2000,
-    aiCredits: 500,
+    aiCredits: AI_ALLOWANCES.pro,
     accounts: "unlimited",
     channels: "Every supported UK channel",
     notes: [
       "2,000 actions / month",
       "Unlimited accounts on supported channels",
       "CSV import/export",
-      "500 AI credits / month", "Optional field autofill", "Photo cleanup included",
+      `${AI_ALLOWANCES.pro} provisional AI credits / month (not live)`, "AI tools planned; mock previews only", "Photo cleanup included",
     ],
   },
 };

@@ -28,6 +28,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
+import { Route as AppAiRouteImport } from './routes/_app.ai'
 import { Route as AppDevicesRouteImport } from './routes/_app.devices'
 import { Route as AppImportRouteImport } from './routes/_app.import'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
@@ -150,6 +151,11 @@ const AppAccountRoute = AppAccountRouteImport.update({
 const AppActivityRoute = AppActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAiRoute = AppAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDevicesRoute = AppDevicesRouteImport.update({
@@ -317,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
+  '/ai': typeof AppAiRoute
   '/devices': typeof AppDevicesRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
@@ -366,6 +373,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
+  '/ai': typeof AppAiRoute
   '/devices': typeof AppDevicesRoute
   '/import': typeof AppImportRoute
   '/inbox': typeof AppInboxRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/activity': typeof AppActivityRoute
+  '/_app/ai': typeof AppAiRoute
   '/_app/devices': typeof AppDevicesRoute
   '/_app/import': typeof AppImportRoute
   '/_app/inbox': typeof AppInboxRoute
@@ -466,6 +475,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/activity'
+    | '/ai'
     | '/devices'
     | '/import'
     | '/inbox'
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/activity'
+    | '/ai'
     | '/devices'
     | '/import'
     | '/inbox'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_app/account'
     | '/_app/activity'
+    | '/_app/ai'
     | '/_app/devices'
     | '/_app/import'
     | '/_app/inbox'
@@ -761,6 +773,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof AppActivityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ai': {
+      id: '/_app/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AppAiRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/devices': {
@@ -1008,6 +1027,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
   AppActivityRoute: typeof AppActivityRoute
+  AppAiRoute: typeof AppAiRoute
   AppDevicesRoute: typeof AppDevicesRoute
   AppImportRoute: typeof AppImportRoute
   AppInboxRoute: typeof AppInboxRoute
@@ -1020,6 +1040,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
   AppActivityRoute: AppActivityRoute,
+  AppAiRoute: AppAiRoute,
   AppDevicesRoute: AppDevicesRoute,
   AppImportRoute: AppImportRoute,
   AppInboxRoute: AppInboxRoute,

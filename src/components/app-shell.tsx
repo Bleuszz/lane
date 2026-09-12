@@ -37,6 +37,7 @@ const NAV = [
 ] as const;
 
 const MANAGE = [
+  { to: "/ai", label: "AI Studio & usage", icon: Activity },
   { to: "/devices", label: "Your devices", icon: Settings },
   { to: "/settings/channels", label: "Accounts", icon: Settings },
   { to: "/settings/billing", label: "Billing", icon: CreditCard },

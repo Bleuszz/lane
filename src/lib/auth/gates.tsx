@@ -50,13 +50,7 @@ export function RedirectToSignIn({ to = SIGN_IN_PATH }: { to?: string }) {
   return <Navigate to={to} search={{ returnTo: location.href }} />;
 }
 
-export function SignInGate({
-  children,
-  fallback,
-}: {
-  children: ReactNode;
-  fallback?: ReactNode;
-}) {
+export function SignInGate({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   const { user, isPending } = useCurrentUserState();
   const state = resolveSignInGateState({ isPending, hasUser: user !== null });
   if (state === "pending") return null;
@@ -65,8 +59,16 @@ export function SignInGate({
 }
 
 export function SignInButtons() {
-  const location=useLocation();
-  return <Link to="/login" search={{returnTo:location.href}} className="rounded-md border border-line px-4 py-2">Sign in to Lane</Link>;
+  const location = useLocation();
+  return (
+    <Link
+      to="/login"
+      search={{ returnTo: location.href }}
+      className="rounded-md border border-line px-4 py-2"
+    >
+      Sign in to Lane
+    </Link>
+  );
 }
 
 /**
@@ -89,19 +91,21 @@ export function UserButton() {
   if (!user) return null;
   const label = user.displayName ?? user.primaryEmail ?? "Account";
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       {user.profileImageUrl ? (
         <img
           src={user.profileImageUrl}
           alt=""
-          className="h-8 w-8 rounded-full object-cover"
+          className="h-8 w-8 shrink-0 rounded-full object-cover"
         />
       ) : (
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-raised text-sm font-medium">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-raised text-sm font-medium">
           {label.charAt(0).toUpperCase()}
         </span>
       )}
-      <span className="text-sm font-medium">{label}</span>
+      <span className="hidden max-w-32 truncate text-sm font-medium sm:block md:max-w-48">
+        {label}
+      </span>
       {authEnabled && !gateSession && (
         <button
           type="button"
@@ -111,7 +115,7 @@ export function UserButton() {
             // Success navigates away; on failure re-enable so it can be retried.
             void signOut().catch(() => setSigningOut(false));
           }}
-          className="cursor-pointer text-sm underline-offset-4 opacity-70 hover:underline disabled:cursor-wait disabled:no-underline"
+          className="cursor-pointer whitespace-nowrap text-sm underline-offset-4 opacity-70 hover:underline disabled:cursor-wait disabled:no-underline"
         >
           {signingOut ? "Signing out…" : "Sign out"}
         </button>

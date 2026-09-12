@@ -1,4 +1,6 @@
 import type { Sql } from "../../db";
+// RETIRED historical ledger implementation, retained only for injected audit tests.
+// Active product credits live in ai/service.server.ts and its configurable catalogue.
 
 export type AiRequestType = "field_autofill" | "listing_copy";
 export type ProviderUsage = { prompt_tokens?: number; completion_tokens?: number };
@@ -17,6 +19,7 @@ export function estimateTokenCost(model: string, usage?: ProviderUsage) {
 
 /** DB injection enables local Postgres tests, never client-supplied entitlements. */
 export async function reserveAiCredit(userId: string, options: { requestType: AiRequestType; model: string }, injectedSql?: Sql) {
+  if (!injectedSql) throw new Error("LEGACY_AI_DISABLED");
   if (options.model !== "grok-4.3") throw new Error("This AI model has not passed Lane's cost limits. Manual fields remain available.");
   const sql = injectedSql ?? await (await import("@/lib/db")).getSql();
   if (!injectedSql) await (await import("./map")).ensureUser(sql, userId);
