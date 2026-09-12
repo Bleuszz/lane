@@ -6,7 +6,8 @@ services:
     plan: free
     region: frankfurt
     branch: codex/lane-smart-crosslisting
-    autoDeploy: false
+    autoDeployTrigger: commit
+    healthCheckPath: /api/health
     buildCommand: npm ci && npm run build:node
     startCommand: node scripts/start-server.mjs
     envVars:
@@ -18,8 +19,6 @@ services:
         value: "true"
       - key: BETTER_AUTH_SECRET
         generateValue: true
-      - key: BETTER_AUTH_URL
-        sync: false
       - key: DATABASE_URL
         sync: false
       - key: LANE_BILLING_V2_READY
@@ -27,4 +26,10 @@ services:
       - key: LANE_EBAY_ORDER_POLLING
         value: "false"
       - key: LANE_ALLOW_PREVIEW_PLANS
+        value: "false"
+      - key: LANE_SUPPORT_ENABLED
+        value: "false"
+      - key: LANE_ANALYTICS_ENABLED
+        value: "false"
+      - key: VITE_LANE_ANALYTICS_ENABLED
         value: "false"

@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { measure } from "@/lib/lane/measurement";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getAccountOverview } from "@/lib/lane/server/account-fns";
@@ -10,9 +12,20 @@ export const Route = createFileRoute("/_app/account")({
   component: Account,
 });
 function Account() {
+  const [created, setCreated] = useState(false);
   const logout = useMutation({ mutationFn: () => signOut("/login") });
   const account = useQuery({ queryKey: ["account-overview"], queryFn: () => getAccountOverview() });
   const devices = useQuery({ queryKey: ["devices"], queryFn: () => listDesktopDevices() });
+  useEffect(() => {
+    if (account.data)
+      try {
+        if (sessionStorage.getItem("lane-signup-complete") === "yes") {
+          sessionStorage.removeItem("lane-signup-complete");
+          setCreated(true);
+          if (account.data.trialStatus === "active") measure("trial_started");
+        }
+      } catch {}
+  }, [account.data]);
   if (account.isPending) return <main aria-busy="true">Loading your account…</main>;
   if (account.isError)
     return (
@@ -24,6 +37,12 @@ function Account() {
   const a = account.data;
   return (
     <main className="mx-auto max-w-4xl space-y-10">
+      {created && (
+        <p role="status" className="rounded border border-line bg-raised p-4">
+          Your Lane account is ready. Your seven-day trial has started — no card, no automatic
+          charge.
+        </p>
+      )}
       <div>
         <p className="eyebrow">YOUR LANE WORKSPACE</p>
         <h1 className="mt-3 font-serif text-4xl">Welcome back.</h1>

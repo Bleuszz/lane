@@ -1,6 +1,22 @@
 export function deploymentPolicy(env: Record<string, string | undefined>) {
   const deployed = env.LANE_ENV === "staging" || env.LANE_ENV === "production";
   if (!deployed) return { deployed: false, origin: null };
+  // Render supplies this at build and runtime. Never derive trust from request headers.
+  if (!env.BETTER_AUTH_URL?.trim() && env.RENDER === "true" && env.RENDER_EXTERNAL_URL) {
+    const generated = new URL(env.RENDER_EXTERNAL_URL);
+    if (
+      generated.protocol !== "https:" ||
+      !generated.hostname.endsWith(".onrender.com") ||
+      generated.username ||
+      generated.password ||
+      generated.port ||
+      generated.pathname !== "/" ||
+      generated.search ||
+      generated.hash
+    )
+      throw new Error("Invalid Render staging origin");
+    env.BETTER_AUTH_URL = generated.origin;
+  }
   for (const key of ["DATABASE_URL", "BETTER_AUTH_URL", "BETTER_AUTH_SECRET"])
     if (!env[key]?.trim()) throw new Error(`Deployment requires ${key}`);
   const url = new URL(env.BETTER_AUTH_URL!);

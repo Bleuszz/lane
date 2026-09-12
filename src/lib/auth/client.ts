@@ -196,6 +196,17 @@ export async function signOut(redirectTo = "/"): Promise<void> {
     // Better Auth resolves with `{ error }` instead of rejecting, so surface a
     // failed response as a rejection for the sequence to act on.
     requestSignOut: async () => {
+      if (!inLivePreview()) {
+        // The client plugin's session-store notification can race route unmounts.
+        // Confirm the server cookie invalidation, then let runSignOut navigate once.
+        const response = await fetch('/api/auth/sign-out', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' }, body: '{}',
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) throw new Error('Sign-out failed. Please retry.');
+        return;
+      }
       const { error } = await authClient.signOut();
       if (error) throw new Error(error.message ?? "Sign-out failed");
     },

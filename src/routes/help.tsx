@@ -1,11 +1,44 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HELP } from "@/lib/lane/help";
-import { LaneWordmark } from "@/components/logo";
+import { FAQ, publicHead } from "@/lib/lane/public-site";
+import { PublicLayout, PageIntro } from "@/components/public-layout";
 import { Input } from "@/components/ui";
-export const Route = createFileRoute("/help")({ component: Help });
+export const Route = createFileRoute("/help")({ head: () => publicHead("/help"), component: Help });
 function Help() {
   const [search, setSearch] = useState("");
-  const entries = HELP.filter((e) => `${e.category} ${e.question} ${e.answer}`.toLowerCase().includes(search.toLowerCase()));
-  return <main className="min-h-screen bg-paper"><header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6"><Link to="/"><LaneWordmark/></Link><Link to="/inbox" className="text-sm text-mark">Open your workspace →</Link></header><div className="mx-auto max-w-3xl px-6 py-12"><p className="eyebrow">A little guidance</p><h1 className="page-title">Less figuring things out.</h1><p className="mt-3 text-muted">Straight answers for your first listing and the ones after it.</p><Input aria-label="Search help" type="search" className="my-8 h-12" placeholder="Search connections, photos, AI credits…" value={search} onChange={(e) => setSearch(e.target.value)}/><div>{entries.map((e) => <details className="group border-b border-line py-5" key={e.question}><summary className="cursor-pointer text-base font-medium"><span className="mb-1 block text-[10px] uppercase tracking-widest text-muted">{e.category}</span>{e.question}</summary><p className="mt-4 max-w-2xl text-sm leading-7 text-muted">{e.answer}</p></details>)}{!entries.length && <p className="text-muted">No matching answer. Try “photos”, “connect” or “credits”.</p>}</div><p className="mt-10 text-sm text-muted">This is a beta. The answers describe what is implemented and what still needs live verification.</p></div></main>;
+  const entries = [
+    ...HELP,
+    ...FAQ.map(([question, answer]) => ({ category: "About Lane", question, answer })),
+  ].filter((e) => (e.question + " " + e.answer).toLowerCase().includes(search.toLowerCase()));
+  return (
+    <PublicLayout>
+      <PageIntro eyebrow="A LITTLE GUIDANCE" title="Less figuring things out.">
+        <p>Straight answers about accounts, marketplace connections and the current beta.</p>
+      </PageIntro>
+      <section className="public-section !pt-0 max-w-3xl">
+        <Input
+          aria-label="Search help"
+          type="search"
+          className="mb-8 h-12"
+          placeholder="Search trials, connect, privacy…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <p className="mb-4 text-sm text-muted" role="status">
+          {entries.length} answers
+        </p>
+        {entries.map((e, i) => (
+          <details key={i} className="border-b border-line py-5">
+            <summary className="cursor-pointer font-medium">{e.question}</summary>
+            <p className="mt-4 leading-7 text-muted">{e.answer}</p>
+          </details>
+        ))}
+        {!entries.length && <p>No matching answer. Try “trial” or “connect”.</p>}
+        <a href="/contact" className="mt-8 inline-block underline">
+          Still need help? Contact Lane →
+        </a>
+      </section>
+    </PublicLayout>
+  );
 }

@@ -13,14 +13,19 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DownloadRouteImport } from './routes/download'
+import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppAccountRouteImport } from './routes/_app.account'
 import { Route as AppActivityRouteImport } from './routes/_app.activity'
 import { Route as AppDevicesRouteImport } from './routes/_app.devices'
@@ -30,6 +35,8 @@ import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppNewRouteImport } from './routes/_app.new'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSoldRouteImport } from './routes/_app.sold'
+import { Route as ApiHealthRouteImport } from './routes/api.health'
+import { Route as ApiMeasurementRouteImport } from './routes/api.measurement'
 import { Route as ApiWorkerRouteImport } from './routes/api/worker'
 import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
@@ -70,6 +77,11 @@ const DownloadRoute = DownloadRouteImport.update({
   path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -80,6 +92,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -88,6 +105,16 @@ const LoginRoute = LoginRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -108,6 +135,11 @@ const SignupRoute = SignupRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAccountRoute = AppAccountRouteImport.update({
@@ -154,6 +186,16 @@ const AppSoldRoute = AppSoldRouteImport.update({
   id: '/sold',
   path: '/sold',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeasurementRoute = ApiMeasurementRouteImport.update({
+  id: '/api/measurement',
+  path: '/api/measurement',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWorkerRoute = ApiWorkerRouteImport.update({
   id: '/api/worker',
@@ -260,14 +302,19 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
+  '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/security': typeof SecurityRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
   '/devices': typeof AppDevicesRoute
@@ -277,6 +324,8 @@ export interface FileRoutesByFullPath {
   '/new': typeof AppNewRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/sold': typeof AppSoldRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/measurement': typeof ApiMeasurementRoute
   '/api/worker': typeof ApiWorkerRoute
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -302,14 +351,19 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
+  '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/security': typeof SecurityRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/account': typeof AppAccountRoute
   '/activity': typeof AppActivityRoute
   '/devices': typeof AppDevicesRoute
@@ -317,6 +371,8 @@ export interface FileRoutesByTo {
   '/inbox': typeof AppInboxRoute
   '/new': typeof AppNewRoute
   '/sold': typeof AppSoldRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/measurement': typeof ApiMeasurementRoute
   '/api/worker': typeof ApiWorkerRoute
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -344,14 +400,19 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/contact': typeof ContactRoute
   '/download': typeof DownloadRoute
+  '/features': typeof FeaturesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/security': typeof SecurityRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/activity': typeof AppActivityRoute
   '/_app/devices': typeof AppDevicesRoute
@@ -361,6 +422,8 @@ export interface FileRoutesById {
   '/_app/new': typeof AppNewRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/sold': typeof AppSoldRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/measurement': typeof ApiMeasurementRoute
   '/api/worker': typeof ApiWorkerRoute
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -388,14 +451,19 @@ export interface FileRouteTypes {
     | '/'
     | '/contact'
     | '/download'
+    | '/features'
     | '/forgot-password'
     | '/help'
+    | '/how-it-works'
     | '/login'
     | '/onboarding'
+    | '/pricing'
+    | '/privacy'
     | '/robots.txt'
     | '/security'
     | '/signup'
     | '/sitemap.xml'
+    | '/terms'
     | '/account'
     | '/activity'
     | '/devices'
@@ -405,6 +473,8 @@ export interface FileRouteTypes {
     | '/new'
     | '/settings'
     | '/sold'
+    | '/api/health'
+    | '/api/measurement'
     | '/api/worker'
     | '/legal/cookies'
     | '/legal/privacy'
@@ -430,14 +500,19 @@ export interface FileRouteTypes {
     | '/'
     | '/contact'
     | '/download'
+    | '/features'
     | '/forgot-password'
     | '/help'
+    | '/how-it-works'
     | '/login'
     | '/onboarding'
+    | '/pricing'
+    | '/privacy'
     | '/robots.txt'
     | '/security'
     | '/signup'
     | '/sitemap.xml'
+    | '/terms'
     | '/account'
     | '/activity'
     | '/devices'
@@ -445,6 +520,8 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/new'
     | '/sold'
+    | '/api/health'
+    | '/api/measurement'
     | '/api/worker'
     | '/legal/cookies'
     | '/legal/privacy'
@@ -471,14 +548,19 @@ export interface FileRouteTypes {
     | '/_app'
     | '/contact'
     | '/download'
+    | '/features'
     | '/forgot-password'
     | '/help'
+    | '/how-it-works'
     | '/login'
     | '/onboarding'
+    | '/pricing'
+    | '/privacy'
     | '/robots.txt'
     | '/security'
     | '/signup'
     | '/sitemap.xml'
+    | '/terms'
     | '/_app/account'
     | '/_app/activity'
     | '/_app/devices'
@@ -488,6 +570,8 @@ export interface FileRouteTypes {
     | '/_app/new'
     | '/_app/settings'
     | '/_app/sold'
+    | '/api/health'
+    | '/api/measurement'
     | '/api/worker'
     | '/legal/cookies'
     | '/legal/privacy'
@@ -515,14 +599,21 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ContactRoute: typeof ContactRoute
   DownloadRoute: typeof DownloadRoute
+  FeaturesRoute: typeof FeaturesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SecurityRoute: typeof SecurityRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
+  ApiHealthRoute: typeof ApiHealthRoute
+  ApiMeasurementRoute: typeof ApiMeasurementRoute
   ApiWorkerRoute: typeof ApiWorkerRoute
   LegalCookiesRoute: typeof LegalCookiesRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
@@ -567,6 +658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
@@ -581,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -593,6 +698,20 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -621,6 +740,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/account': {
@@ -685,6 +811,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/sold'
       preLoaderRoute: typeof AppSoldRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/measurement': {
+      id: '/api/measurement'
+      path: '/api/measurement'
+      fullPath: '/api/measurement'
+      preLoaderRoute: typeof ApiMeasurementRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/worker': {
       id: '/api/worker'
@@ -896,14 +1036,21 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ContactRoute: ContactRoute,
   DownloadRoute: DownloadRoute,
+  FeaturesRoute: FeaturesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
+  HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SecurityRoute: SecurityRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
+  ApiHealthRoute: ApiHealthRoute,
+  ApiMeasurementRoute: ApiMeasurementRoute,
   ApiWorkerRoute: ApiWorkerRoute,
   LegalCookiesRoute: LegalCookiesRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,

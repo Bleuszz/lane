@@ -1,26 +1,24 @@
+import { PublicLayout } from "@/components/public-layout";
+import { publicHead } from "@/lib/lane/public-site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LaneWordmark } from "@/components/logo";
 import { Button, Panel } from "@/components/ui";
 import { Download, Monitor, ShieldCheck, ArrowRight } from "lucide-react";
 import {
   WINDOWS_BUILD,
+  WINDOWS_RELEASE_DATE,
+  WINDOWS_INSTALLER_SHA256,
   WINDOWS_INSTALLER_URL,
   WINDOWS_INSTALLER_BYTES,
   WINDOWS_RELEASE_NOTES,
 } from "@/lib/lane/download";
-export const Route = createFileRoute("/download")({ component: DownloadPage });
+export const Route = createFileRoute("/download")({
+  head: () => publicHead("/download"),
+  component: DownloadPage,
+});
 function DownloadPage() {
   return (
-    <main className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
-        <Link to="/">
-          <LaneWordmark />
-        </Link>
-        <div className="flex items-center gap-6 text-sm">
-          <Link to="/help">Help</Link>
-          <Link to="/account">Your Lane account ↗</Link>
-        </div>
-      </header>
+    <PublicLayout>
       <section className="mx-auto grid max-w-6xl gap-14 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:py-24">
         <div>
           <p className="eyebrow">LANE DESKTOP · WINDOWS</p>
@@ -33,14 +31,15 @@ function DownloadPage() {
           </h1>
           <p className="mt-7 max-w-md text-lg leading-8 text-muted">
             Connect marketplaces securely from your own computer. Sign in yourself, keep your saved
-            sessions local, and bring your listings into Lane.
+            sessions local, and review the listings discovered in the owner pilot. Full import
+            remains under verification.
           </p>
           <div className="mt-9">
             {WINDOWS_INSTALLER_URL ? (
-              <a href={WINDOWS_INSTALLER_URL}>
-                <Button size="lg">
+              <a href={WINDOWS_INSTALLER_URL} data-lane-event="download_clicked">
+                <span className="public-button">
                   <Download size={17} /> Download Lane Desktop
-                </Button>
+                </span>
               </a>
             ) : (
               <>
@@ -59,6 +58,12 @@ function DownloadPage() {
             {WINDOWS_INSTALLER_BYTES
               ? ` · ${(WINDOWS_INSTALLER_BYTES / 1048576).toFixed(1)} MB`
               : ""}
+          </p>
+          <p className="mt-3 text-xs text-muted">
+            Release date: {WINDOWS_RELEASE_DATE ?? "Pending verified release"}
+          </p>
+          <p className="mt-2 break-all text-xs text-muted">
+            SHA256: {WINDOWS_INSTALLER_SHA256 ?? "Published with the verified installer"}
           </p>
           <a
             className="mt-4 inline-block text-sm underline underline-offset-4"
@@ -85,7 +90,7 @@ function DownloadPage() {
               "Install Lane Desktop",
               "Sign in to your Lane account",
               "Connect Vinted or eBay",
-              "Review your imported listings",
+              "Review discovered listing links",
             ].map((step, i) => (
               <div key={step} className="flex items-center gap-4 text-sm">
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-raised text-xs">
@@ -163,6 +168,6 @@ function DownloadPage() {
           Visit the help centre <ArrowRight size={15} />
         </Link>
       </section>
-    </main>
+    </PublicLayout>
   );
 }

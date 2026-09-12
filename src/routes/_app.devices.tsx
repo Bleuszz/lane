@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { measure } from "@/lib/lane/measurement";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { approveDesktop, listDesktopDevices, revokeDesktop } from "@/lib/lane/server/desktop-fns";
@@ -6,6 +8,12 @@ export const Route = createFileRoute("/_app/devices")({
   validateSearch: (search: Record<string, unknown>): { pair?: string; code?: string } => ({
     pair: typeof search.pair === "string" ? search.pair : "",
     code: typeof search.code === "string" ? search.code : "",
+  }),
+  head: () => ({
+    meta: [
+      { title: "Your desktop devices | Lane" },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
   }),
   component: Devices,
 });
@@ -19,12 +27,18 @@ function Devices() {
     });
   const approve = useMutation({
     mutationFn: () => approveDesktop({ data: { id: pair, code } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["devices"] }),
+    onSuccess: () => {
+      measure("desktop_device_approved");
+      return qc.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
   const revoke = useMutation({
     mutationFn: (id: string) => revokeDesktop({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["devices"] }),
   });
+  useEffect(() => {
+    if (pair && code) measure("desktop_device_approval_started");
+  }, [pair, code]);
   return (
     <main className="mx-auto max-w-3xl space-y-5">
       <h1 className="font-serif text-3xl">Your Lane setup</h1>
@@ -44,6 +58,9 @@ function Devices() {
           >
             {approve.isSuccess ? "Approved — return to Desktop" : "Approve this device"}
           </Button>
+          {approve.isSuccess && (
+            <p role="status">Device approved. Return to Lane Desktop to finish connecting.</p>
+          )}
           {approve.isError && (
             <p role="alert">Pairing expired or could not be approved. Start again from Desktop.</p>
           )}

@@ -1,3 +1,4 @@
+import { measure } from "@/lib/lane/measurement";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +16,12 @@ export const Route = createFileRoute("/login")({
   ): { returnTo?: string; authError?: boolean } => ({
     returnTo: safeReturnPath(search.returnTo, "/account"),
     authError: Boolean(search.authError || search.error),
+  }),
+  head: () => ({
+    meta: [
+      { title: "Sign in to your Lane account" },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
   }),
   component: Login,
 });
@@ -90,6 +97,11 @@ export function LoginForm({
         const res = await authClient.signIn.email({ email, password, callbackURL: returnTo });
         if (res.error) throw new Error(res.error.message);
       }
+      measure(mode === "up" ? "signup_completed" : "login_completed");
+      if (mode === "up")
+        try {
+          sessionStorage.setItem("lane-signup-complete", "yes");
+        } catch {}
       window.location.href = returnTo;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed");
@@ -180,11 +192,13 @@ export function LoginForm({
                     ? "Need an account? Create one"
                     : "Already have an account? Sign in"}
                 </button>
-                <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-subtle">
-                  <span className="h-px flex-1 bg-line" />
-                  or
-                  <span className="h-px flex-1 bg-line" />
-                </div>
+                {config.data?.providers.some((p) => p.available) && (
+                  <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-subtle">
+                    <span className="h-px flex-1 bg-line" />
+                    or
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                )}
                 <div className="space-y-2">
                   {config.isPending && (
                     <p className="text-sm text-muted">Loading sign-in options…</p>
